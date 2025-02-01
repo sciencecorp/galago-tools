@@ -1,0 +1,124 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.toolbox;
+import "google/protobuf/struct.proto";
+
+message Command {
+  oneof command {
+    Timer timer = 1;
+    UserMessage user_message = 2;
+    ShowImage show_image = 3; 
+    SlackMessage slack_message = 4;
+    SendEmail send_email=5;
+    TextToSpeech text_to_speech = 6;
+    GetWorkcells get_workcells = 7;
+    LogMediaExchange log_media_exchange = 8;
+    GetLiconicSensorData get_liconic_sensor_data = 9;
+    GetOT2ImagesByDate get_ot2_images_by_date = 10;
+    GetOT2ImageBytes get_ot2_image_bytes = 11;
+    GetOT2ImagePrediction get_ot2_image_prediction = 12;
+    RunPythonScript run_python_script = 13;
+    SendSlackAlert send_slack_alert = 14;
+    ClearLastSlackAlert clear_last_slack_alert = 15;
+    GetLogMediaExchangeByDate get_log_media_exchange_by_date = 16;
+    ValidateFolder validate_folder = 17;
+    WriteToJson write_to_json = 18;
+  }
+
+  message WriteToJson {
+    google.protobuf.Struct struct_object = 1;
+    string file_path = 2;
+  }
+
+  message Timer {
+    int32 time_seconds = 1;
+    optional string message =2;
+  }
+
+  message UserMessage {
+    string message = 1;
+    string title = 2;
+    string message_type =3;
+  }
+
+  message ShowImage {
+    string file = 1; 
+    optional string title = 2;
+    optional int32 width = 3;
+    optional int32 height = 4;
+  }
+
+  message SlackMessage {
+    string message = 1;
+  }
+
+  message SendEmail {
+    optional string recipients = 1;
+    string message = 2;
+    string subject = 3;
+  }
+
+  message TextToSpeech {
+    string text =1;
+  }
+
+  message GetWorkcells {}
+
+  message LogMediaExchange {
+    string source_barcode=1;
+    string destination_name=2;
+    string destination_barcode=3;
+    repeated string source_wells=4;
+    int32 percent_exchange=5;
+    bool new_tips=6;
+  }
+
+  message GetLogMediaExchangeByDate {
+    string date = 1;
+  }
+
+  message GetLiconicSensorData {
+    string tool_id =1; 
+    string date =2;
+  }
+
+  message GetOT2ImagesByDate {
+    string date=1;
+  }
+
+  message GetOT2ImageBytes {
+    string date =1;
+    string image_file = 2;
+  }
+
+  message ImageResponse {
+    bytes image_data = 1;
+  }
+
+  message GetOT2ImagePrediction {
+    string date =1;
+    string image_file =2;
+  }
+
+  message RunPythonScript {
+    string script_content = 1;
+    bool blocking = 2;
+  }
+
+  message SendSlackAlert {
+    string workcell =1;
+    string tool =2;
+    string protocol=3;
+    string error_message=4;
+  }
+
+  message ClearLastSlackAlert { }
+
+  message ValidateFolder { 
+    string folder_path = 1;
+  }
+}
+
+message Config {
+
+}

@@ -1,0 +1,54 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.vcode;
+
+message Command {
+  oneof command {
+    Home home = 1;
+    Print print =2;
+    PrintAndApply print_and_apply = 3;
+    Rotate180 rotate_180 = 4;
+    RotateStage rotate_stage = 5;
+    ShowDiagsDialog show_diagnostics =6;
+  }
+
+  message RotateStage {
+    int32 angle = 1;
+  }
+
+  message Home {}
+
+  message PrintAndApply {
+    string format_name = 1;
+    string side = 2;
+    bool drop_stage = 3;
+    string field_0 = 4;
+    string field_1 = 5;
+    string field_2 = 6;
+    string field_3 = 7;
+    string field_4 = 8;
+    string field_5 = 9;
+  }
+
+  message DropStage {
+    bool drop_stage = 1;
+  }
+
+  message Print {
+    string format_name = 1;
+    string field_0 = 2;
+    string field_1 = 3;
+    string field_2 = 4;
+    string field_3 = 5;
+    string field_4 = 6;
+    string field_5 = 7;
+  }
+
+  message Rotate180 {}
+
+  message ShowDiagsDialog {}
+}
+
+message Config {
+  string profile = 1;
+}

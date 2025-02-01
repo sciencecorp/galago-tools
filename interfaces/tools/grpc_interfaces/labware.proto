@@ -1,0 +1,19 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.labware;
+
+message Labware {
+    int32 id = 1;
+    string name = 2;
+    string image_url = 3;
+    string description = 4;
+    int32 number_of_rows = 5;
+    int32 number_of_columns =6;
+    float z_offset =7;
+    float width= 8;
+    float height=9;
+    float plate_lid_offset=10;
+    float lid_offset=11;
+    float stack_height=12;
+    bool has_lid=13;
+}

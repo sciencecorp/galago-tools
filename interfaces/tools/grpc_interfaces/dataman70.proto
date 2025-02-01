@@ -1,0 +1,20 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.dataman70;
+
+message Command {
+  oneof command {
+    Reset reset = 1;
+    AssertBarcode assert_barcode = 2;
+  }
+
+  message Reset {}
+
+  message AssertBarcode {
+    string barcode = 1;
+  }
+}
+
+message Config {
+  string com_port = 1;
+}

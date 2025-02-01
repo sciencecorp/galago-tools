@@ -1,0 +1,34 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.liconic;
+
+message Command {
+  oneof command {
+    FetchPlate fetch_plate = 1;
+    StorePlate store_plate = 2;
+    Reset reset = 3;
+    SendRawCommand raw_command =4;
+  }
+
+  message FetchPlate {
+    int32 cassette = 1;
+    int32 level = 2;
+    optional int32 wait_time = 3;
+  }
+
+  message StorePlate {
+    int32 cassette = 1;
+    int32 level = 2;
+    optional int32 wait_time = 3;
+  }
+
+  message SendRawCommand {
+    string cmd = 1;
+  }
+
+  message Reset {}
+}
+
+message Config {
+  string com_port = 1;
+}

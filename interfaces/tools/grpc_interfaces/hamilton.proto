@@ -1,0 +1,21 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.hamilton;
+
+message Command {
+  oneof command {
+    RunProtocol run_protocol = 1;
+    LoadProtocol load_protocol =2;
+  }
+
+  message RunProtocol {
+    string protocol = 1;
+  }
+
+  message LoadProtocol {
+    string protocol = 1;
+  }
+}
+
+message Config {
+}

@@ -1,0 +1,85 @@
+syntax = 'proto3';
+
+package com.science.foundry;
+
+enum PlateType {
+    PLATE_6_WELL = 0;
+    PLATE_24_WELL = 1;
+    PLATE_96_WELL = 2;
+    PLATE_10_CM = 3;
+    PLATE_JB = 4;
+    PLATE_MEA = 5;
+    PLATE_T175_FLASK = 6;
+    PLATE_12_WELL = 7;
+    PLATE_8_CHAMBERED_SIDE = 8;
+    PLATE_MICROCHAMBER_ARRAY_16_WELL = 9;
+    PLATE_MICROCHAMBER_ARRAY_8_WELL = 10;
+    PLATE_1_WELL = 11;
+    PLATE_PDMS_WELL_TALL_CHAMBERS = 12;
+    PLATE_PDMS_WELL_SHORT_CHAMBERS = 13;
+    PLATE_48_WELL_PLATE = 14;
+}
+
+// A Plate represents a container reference that can be passed around between
+// instructions - it identifies a specific physical plate, either one new to
+// this protocol (provisioned with NewPlate) or an existing plate retrieved from
+// storage (via RetrievePlate).
+message Plate {
+    string ref = 1;
+}
+
+// Provision a new plate of the given type
+message NewPlate {
+    Plate plate = 1;
+    PlateType plate_type = 2;
+}
+
+// Locate and retrieve a plate in its current location
+message RetrievePlate {
+    Plate plate = 1;
+    string id = 2;
+}
+
+message StorePlate {
+    Plate plate = 1; // end
+    StorageTemp where = 2;
+    
+    enum StorageTemp {
+        UNSPECIFIED = 0;
+        AMBIENT = 1;
+        COLD_80 = 2;
+        COLD_20 = 3;
+        COLD_4 = 4;
+        WARM_30 = 5;
+        WARM_37 = 6;
+    }
+}
+
+message DiscardPlate {
+    Plate plate = 1;
+    oneof method {
+        bool destroy = 2;
+        bool recycle = 3;
+    }
+}
+
+message CytationImage {
+    Plate plate = 1;
+    string program_file = 2;
+    optional string experiment_name = 3;
+}
+
+message Instruction {
+    oneof instruction {
+        NewPlate new_plate = 1;
+        RetrievePlate retrieve_plate = 2;
+        StorePlate store_plate = 3;
+        DiscardPlate discard_plate = 4;
+
+        CytationImage cytation_image = 5;
+    }
+}
+
+message Protocol {
+    repeated Instruction instructions = 1;
+}

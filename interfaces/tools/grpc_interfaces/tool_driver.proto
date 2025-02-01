@@ -1,0 +1,14 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces;
+
+import "google/protobuf/empty.proto";
+
+import "tools/grpc_interfaces/tool_base.proto";
+
+service ToolDriver {
+  rpc GetStatus(google.protobuf.Empty) returns (StatusReply);
+  rpc ExecuteCommand(Command) returns (ExecuteCommandReply);
+  rpc EstimateDuration(Command) returns (EstimateDurationReply);
+  rpc Configure(Config) returns (ConfigureReply);
+}

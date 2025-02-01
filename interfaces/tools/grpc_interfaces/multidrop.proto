@@ -1,0 +1,19 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.multidrop;
+
+message Command {
+  oneof command {
+    Home home = 1;
+    Dispense dispense = 2;
+  }
+
+  message Home {}
+
+  message Dispense {}
+
+}
+
+message Config {
+  int32 port = 1;
+}

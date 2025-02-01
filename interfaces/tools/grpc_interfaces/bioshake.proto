@@ -1,0 +1,38 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.bioshake;
+
+message Command {
+  oneof command {
+    Grip grip = 1;
+    Ungrip ungrip = 2;
+    Home home = 3;
+    StartShake start_shake = 4;
+    StopShake stop_shake = 5;
+    Reset reset = 6;
+    WaitForShakeToFinish wait_for_shake_to_finish = 7;
+  }
+
+  message Grip {}
+
+  message Ungrip {}
+
+  message Home {}
+
+  message StartShake {
+    int32 speed = 1;
+    int32 duration = 2;
+  }
+
+  message StopShake {}
+
+  message Reset {}
+
+  message WaitForShakeToFinish {
+    int32 timeout = 1;
+  }
+}
+
+message Config {
+  string com_port = 1;
+}
