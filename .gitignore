@@ -1,0 +1,47 @@
+*_pb2*.py
+*_pb2*.pyi
+*.pyc
+__pycache__/
+
+stdout.txt 
+tmp_file.py 
+
+
+# misc
+.DS_Store
+*.pem
+.vscode/ 
+trace_log.log
+*log
+workcells/*.log
+package-lock.json
+package.json
+dump.rdb
+
+
+# local env files
+.env*.local
+**/.env*.local
+.env
+Procfile.*
+Procfile.tools
+
+*.pdf 
+
+# python
+.ruff_cache
+
+*.db
+
+**/inventory.db
+**/*.egg-info
+.mypy_cache
+
+#windows exe in root folder
+/Galago.deps.json
+/Galago.dll
+/Galago.pdb
+/Galago.runtimeconfig.json
+
+app_config.json
+tools/build/*
