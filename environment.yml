@@ -1,0 +1,5 @@
+name: galago-tools
+channels:
+  - defaults
+dependencies:
+  - python=3.9.12

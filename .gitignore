@@ -30,18 +30,7 @@ Procfile.tools
 
 # python
 .ruff_cache
-
-*.db
-
-**/inventory.db
 **/*.egg-info
 .mypy_cache
-
-#windows exe in root folder
-/Galago.deps.json
-/Galago.dll
-/Galago.pdb
-/Galago.runtimeconfig.json
-
 app_config.json
 tools/build/*

@@ -88,7 +88,7 @@ def find_tool_packages() -> list[str]:
 find_tool_packages()
 setup(
     name='galago_tools',
-    version='0.1.0',
+    version='0.9',
     packages=find_tool_packages(),
     package_dir={'tools': '.'},
     license='Apache',
@@ -106,6 +106,12 @@ setup(
     entry_points={
         'console_scripts': [
             'galago-run=tools.cli:launch_all_servers',  
+            'galago-stop=tools.cli:stop_all_servers',
+            'galago-status=tools.cli:status_all_servers',
+            'galago-restart=tools.cli:restart_all_servers',
+            'galago-logs=tools.cli:logs_all_servers',
+            'galago-run-server=tools.cli:launch_server',
+            'galago-proto=tools.cli:generate_protobuf',
         ],
     },
     classifiers=[
