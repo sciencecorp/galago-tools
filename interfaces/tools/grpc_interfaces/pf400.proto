@@ -8,31 +8,23 @@ message Command {
     Move move = 1;
     GraspPlate grasp_plate = 2;
     ReleasePlate release_plate = 3;
-    Approach approach = 4;
-    Leave leave = 5;
-    Transfer transfer = 6;
-    Wait wait = 9;
-    Release release = 10;
-    Engage engage =11;
-    Retract retract = 12;
-    RunSequence run_sequence = 13;
-    RetrievePlate retrieve_plate = 14;
-    DropOffPlate dropoff_plate = 15;
-    PickLid pick_lid = 16;
-    PlaceLid place_lid = 17;
-    GetCurrentLocation get_current_location = 18;
-    Jog jog = 19;
-    RawCommand raw_command = 20;
-    GetWaypoints get_waypoints = 21;
-    LoadWaypoints load_waypoints = 27;
+    Transfer transfer = 4;
+    Wait wait = 5;
+    Release release = 6;
+    Engage engage =7;
+    Retract retract = 8;
+    RunSequence run_sequence = 9;
+    RetrievePlate retrieve_plate = 10;
+    DropOffPlate dropoff_plate = 11;
+    PickLid pick_lid = 12;
+    PlaceLid place_lid = 13;
+    Jog jog = 15;
+    RawCommand raw_command = 16;
   }
 
   message RawCommand {
     string command = 1;
   } 
-
-  message GetCurrentLocation {
-  }
 
   message Jog {
     string axis = 1;
@@ -53,15 +45,21 @@ message Command {
   }
 
   message RetrievePlate {
-    tools.grpc_interfaces.labware.Labware labware = 1;
+    string labware = 1;
     string location = 2;
-    optional int32 motion_profile_id = 3;
+    optional float x_offset = 3;
+    optional float y_offset = 4;
+    optional float z_offset = 5;
+    optional int32 motion_profile_id = 6;
   }
 
   message DropOffPlate {
-    tools.grpc_interfaces.labware.Labware labware = 1;
+    string labware = 1;
     string location = 2;
-    optional int32 motion_profile_id = 3;
+    optional float x_offset = 3;
+    optional float y_offset = 4;
+    optional float z_offset = 5;
+    optional int32 motion_profile_id = 6;
   }
 
   message RunSequence {
@@ -90,33 +88,7 @@ message Command {
     int32 speed = 2;
   }
 
-  message Approach {
-    string nest = 1;
-    optional float x_offset = 2;
-    optional float y_offset = 3;
-    optional float z_offset = 4;
-    optional int32 motion_profile_id = 5;
-    optional string ignore_safepath = 6;
-  }
-
-  message Leave {
-    string nest = 1;
-    optional float x_offset = 2;
-    optional float y_offset = 3;
-    optional float z_offset = 4;
-    optional int32 motion_profile_id = 5;
-  }
-
   message Transfer {
-    Approach source_nest = 1;
-    Leave destination_nest = 2;
-    optional GraspPlate grasp_params = 3;
-    optional ReleasePlate release_params = 4;
-    optional int32 motion_profile_id = 5;
-    optional int32 grip_width = 6;
-  }
- 
-  message SmartTransfer {
     Approach source_nest = 1;
     Leave destination_nest = 2;
     optional GraspPlate grasp_params = 3;
@@ -128,49 +100,12 @@ message Command {
   message Wait {
     int32 duration = 1;
   }
-
-  message GetWaypoints {
-    // Empty message since we don't need parameters
-  }
-
-  message LoadWaypoints {
-    repeated WaypointConfig waypoints = 1;
-  }
 }
 
 message Config {
   string host = 1;
   int32 port = 2;
   int32 joints = 3;
-  GripParams grip_params =4;
-  google.protobuf.Struct locations=5;
-  repeated MotionProfile motion_profiles=6;
-}
-
-message MotionProfile {
-    int32 id = 1;
-    int32 speed = 2;
-    int32 speed2 = 3;
-    int32 acceleration = 4;
-    int32 deceleration = 5;
-    float accelramp = 6;
-    float decelramp = 7;
-    int32 inrange = 8;
-    int32 straight = 9;
-}
-
-message GripParams {
-    message Orientation {
-        int32 width = 1;
-        int32 speed = 2;
-        int32 force = 3;
-    }
-    Orientation landscape = 1;
-    Orientation portrait = 2;
-}
-
-message Location {
-    string loc = 1;
-    string loc_type = 2;
-    string oritentation =3;
+  string waypoints_file =4;
+  string sequence_folder=5;
 }
