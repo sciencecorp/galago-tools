@@ -44,12 +44,10 @@ class Location(BaseModel):
     loc: Coordinate
     loc_type: t.Literal["j", "c"]
 
-
 class Nest(BaseModel):
     loc: Location
     safe_loc: str
     orientation: t.Literal["portrait", "landscape"]
-    place_plate_wiggle: t.Optional[list[Coordinate]] = None
 
 
 class MotionProfile(BaseModel):
@@ -66,15 +64,39 @@ class MotionProfile(BaseModel):
     def __str__(self) -> str:
         return f"{self.id} {self.speed} {self.speed2} {self.acceleration} {self.deceleration} {self.accelramp} {self.decelramp} {self.inrange} {self.straight}"
 
+class Labware(BaseModel):
+    id: int
+    name: str
+    description: str
+    number_of_rows: int
+    number_of_columns: int
+    z_offset: float
+    width : float
+    height: float 
+    zoffset: float
+    plate_lid_offset: float #offset when the lid is on the plate
+    lid_offset: float #offset when lid is on nest
+    stack_height: float
+    has_lid: bool
+    image_url: str
+
 class Grip(BaseModel):
+    id: int
     width: int
     speed: int 
     force: int 
 
-
 class Waypoints(BaseModel):
-    graph_edges: list[tuple[str, str]]
     locations: dict[str, Location]
-    nests: dict[str, Nest]
     motion_profiles: list[MotionProfile]
-    grip_params: dict[str, Grip]
+    grip_params: list[Grip]
+    labware: list[Labware]
+
+class SequenceCommand(BaseModel):
+    command: str
+    params: t.Optional[dict[str, t.Any]]
+
+class ArmSequence(BaseModel):
+    name: str
+    description: str
+    commands: list[SequenceCommand]

@@ -1,7 +1,7 @@
 syntax = 'proto3';
 
 package com.science.foundry.tools.grpc_interfaces.pf400;
-import "tools/grpc_interfaces/labware.proto";
+import "google/protobuf/struct.proto";
 
 message Command {
   oneof command {
@@ -11,12 +11,10 @@ message Command {
     Approach approach = 4;
     Leave leave = 5;
     Transfer transfer = 6;
-    RegisterMotionProfile register_motion_profile = 7;
-    SmartTransfer smart_transfer = 8;
     Wait wait = 9;
-    Free free = 10;
-    UnFree unfree =11;
-    Unwind unwind = 12;
+    Release release = 10;
+    Engage engage =11;
+    Retract retract = 12;
     RunSequence run_sequence = 13;
     RetrievePlate retrieve_plate = 14;
     DropOffPlate dropoff_plate = 15;
@@ -25,6 +23,8 @@ message Command {
     GetCurrentLocation get_current_location = 18;
     Jog jog = 19;
     RawCommand raw_command = 20;
+    GetWaypoints get_waypoints = 21;
+    LoadWaypoints load_waypoints = 27;
   }
 
   message RawCommand {
@@ -66,14 +66,13 @@ message Command {
 
   message RunSequence {
     string sequence_name = 1;
-    string labware = 2;
   }
   
-  message UnFree {}
+  message Engage {}
 
-  message Free {}
+  message Release {}
 
-  message Unwind {} 
+  message Retract {} 
 
   message Move {
     string waypoint = 1;
@@ -117,18 +116,6 @@ message Command {
     optional int32 grip_width = 6;
   }
  
-  message RegisterMotionProfile {
-    int32 id = 1;
-    float speed = 2;
-    float speed2 = 3;
-    float accel = 4;
-    float decel = 5;
-    float accel_ramp = 6;
-    float decel_ramp = 7;
-    float inrange = 8;
-    int32 straight = 9;
-  }
- 
   message SmartTransfer {
     Approach source_nest = 1;
     Leave destination_nest = 2;
@@ -142,12 +129,48 @@ message Command {
     int32 duration = 1;
   }
 
+  message GetWaypoints {
+    // Empty message since we don't need parameters
+  }
+
+  message LoadWaypoints {
+    repeated WaypointConfig waypoints = 1;
+  }
 }
 
 message Config {
   string host = 1;
   int32 port = 2;
   int32 joints = 3;
-  repeated string waypoints = 4;
+  GripParams grip_params =4;
+  google.protobuf.Struct locations=5;
+  repeated MotionProfile motion_profiles=6;
 }
 
+message MotionProfile {
+    int32 id = 1;
+    int32 speed = 2;
+    int32 speed2 = 3;
+    int32 acceleration = 4;
+    int32 deceleration = 5;
+    float accelramp = 6;
+    float decelramp = 7;
+    int32 inrange = 8;
+    int32 straight = 9;
+}
+
+message GripParams {
+    message Orientation {
+        int32 width = 1;
+        int32 speed = 2;
+        int32 force = 3;
+    }
+    Orientation landscape = 1;
+    Orientation portrait = 2;
+}
+
+message Location {
+    string loc = 1;
+    string loc_type = 2;
+    string oritentation =3;
+}

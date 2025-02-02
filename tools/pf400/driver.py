@@ -168,7 +168,7 @@ class RobotInitializer:
             self._ensure_pc_mode()
             self._ensure_power_on()
             self._ensure_robot_attached()
-            # self._ensure_robot_homed()
+            self._ensure_robot_homed()
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
             raise
@@ -223,40 +223,80 @@ class RobotInitializer:
             logging.info("Attached to robot")
 
     def _ensure_robot_homed(self) -> None:
-        """Ensure robot is homed with timeout handling"""
-        try:
-            response = self.communicator.send_command("home", timeout=15)  # Reduced from 30 to 15
-            if response != "0":
-                raise Exception(f"Failed to home robot: {response}")
+        """Ensure robot is homed by first attempting a move and then homing if needed"""
+        # Get current joint location from parent class
+        current_loc = self.communicator.send_command("wherej")
+        current_joint_loc = " ".join(current_loc.split(" ")[1:])
+        
+        # Try to move to current position to check if homed
+        message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
+
+        # Robot not homed message (-1021)
+        if message == "-1021":
+            logging.info("Homing robot...This may take a moment...")
+            message = self.communicator.send_command("home", timeout=30)
+
+            if message != "0":
+                raise Exception(f"Got malformed message when homing robot. {message}")
+
+            # Try move again after homing
+            message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
+
+            if message != "0":
+                raise Exception(f"Could not home robot. {message}")
+
             logging.info("Robot homed")
-        except Exception as e:
-            logging.error(f"Homing failed: {e}")
-            raise
 
 class Pf400Driver(ABCToolDriver):
     """Main driver class for the PF400 robot"""
     def __init__(self, tcp_host: str, tcp_port: int) -> None:
         self.state = RobotState()
         self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port)
-        self.tcp_ip = Pf400TcpIp(tcp_host, tcp_port)
-        self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip)
-        self.gripper = GripperController(
-            communicator=self.communicator,
-            state=self.state,
-            config=self.config
-        )
-        self.initializer = RobotInitializer(self.communicator)
+        # Initialize with Optional types
+        self.tcp_ip: Optional[Pf400TcpIp] = None
+        self.communicator: Optional[RobotCommunicator] = None
+        self.gripper: Optional[GripperController] = None
+        self.initializer: Optional[RobotInitializer] = None
+        self.movement: Optional[MovementController] = None
         
     def initialize(self) -> None:
         """Initialize connection to robot"""
         try:
-            # Connection is already established in Pf400TcpIp constructor
-            # Initialize robot state without setting initial joint location
-            self.initializer.initialize()
+            # Close any existing connection first
+            if self.tcp_ip is not None:
+                try:
+                    self.tcp_ip.close()
+                except Exception as e:
+                    logging.warning(f"Error closing existing connection: {e}")
+
+            # Establish new connection
+            self.tcp_ip = Pf400TcpIp(self.config.tcp_host, self.config.tcp_port)
+            self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip)
+            self.gripper = GripperController(
+                communicator=self.communicator,
+                state=self.state,
+                config=self.config
+            )
+            self.initializer = RobotInitializer(self.communicator)
+            
+            # Initialize robot state
+            if self.initializer is not None:
+                self.initializer.initialize()
             self.movement = MovementController(self.communicator, self.state)
             logging.info("Successfully connected to PF400")
         except Exception as e:
             logging.error(f"Failed to connect to PF400: {str(e)}")
+            # Clean up on failure
+            if self.tcp_ip is not None:
+                try:
+                    self.tcp_ip.close()
+                except Exception as close_error:
+                    logging.warning(f"Error while closing connection during cleanup: {close_error}")
+            self.tcp_ip = None
+            self.communicator = None
+            self.gripper = None
+            self.initializer = None
+            self.movement = None
             raise
 
     def close(self) -> None:
@@ -264,21 +304,30 @@ class Pf400Driver(ABCToolDriver):
         try:
             if hasattr(self, 'tcp_ip') and self.tcp_ip:
                 self.tcp_ip.close()
+                self.tcp_ip = None
                 logging.info("Successfully closed PF400 connection")
         except Exception as e:
             logging.error(f"Error closing PF400 connection: {str(e)}")
+            # Still set to None even if close fails
+            self.tcp_ip = None
 
     # Movement commands
     def movej(self, loc_string: str, motion_profile: int = 1) -> None:
         """Move in joint space"""
+        if self.movement is None:
+            raise RuntimeError("Robot not initialized")
         self.movement.move_joints(Location.from_string(loc_string), motion_profile)
 
     def movec(self, loc_string: str, motion_profile: int = 1) -> None:
         """Move in Cartesian space"""
+        if self.movement is None:
+            raise RuntimeError("Robot not initialized")
         self.movement.move_cartesian(Location.from_string(loc_string), motion_profile)
 
     def jog(self, axis: str, distance: float) -> None:
         """Jog along specified axis"""
+        if self.movement is None:
+            raise RuntimeError("Robot not initialized")
         try:
             robot_axis = Axis(axis)
             self.movement.jog(robot_axis, distance)
@@ -288,12 +337,16 @@ class Pf400Driver(ABCToolDriver):
     # Free mode commands
     def free(self) -> None:
         """Enable free mode on all axes"""
+        if self.movement is None:
+            raise RuntimeError("Robot not initialized")
         logging.info("Freeing robot...")
         self.movement._set_free_mode(0, timeout=15)
         self.state.is_free = True
 
     def safe_free(self) -> None:
         """Enable free mode on all axes except gripper"""
+        if self.movement is None:
+            raise RuntimeError("Robot not initialized")
         logging.info("Freeing robot, safe mode (exclude gripper axis 5)...")
         for axis in [1, 2, 3, 4, 6]:
             self.movement._set_free_mode(axis, timeout=15)
@@ -301,6 +354,8 @@ class Pf400Driver(ABCToolDriver):
 
     def unfree(self) -> None:
         """Disable free mode"""
+        if self.movement is None:
+            raise RuntimeError("Robot not initialized")
         logging.info("Unfreeing robot...")
         self.movement._set_free_mode(-1, timeout=10)
         self.state.is_free = False
@@ -308,10 +363,14 @@ class Pf400Driver(ABCToolDriver):
     # Gripper commands
     def graspplate(self, plate_width: int, grip_force: int = 10, speed: int = 10) -> None:
         """Grasp a plate"""
+        if self.gripper is None:
+            raise RuntimeError("Robot not initialized")
         self.gripper.grasp_plate(plate_width, grip_force, speed)
 
     def releaseplate(self, plate_width: int, speed: int = 10) -> None:
         """Release a plate"""
+        if self.gripper is None:
+            raise RuntimeError("Robot not initialized")
         self.gripper.release_plate(plate_width, speed)
 
     def is_plate_gripped(self) -> bool:
@@ -321,15 +380,21 @@ class Pf400Driver(ABCToolDriver):
     # Location commands
     def wherej(self) -> str:
         """Get current joint position"""
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         return self.communicator.send_command("wherej")
 
     def wherec(self) -> str:
         """Get current Cartesian position"""
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         return self.communicator.send_command("wherec")
 
     # Utility commands
     def register_motion_profile(self, profile: str) -> None:
         """Register a motion profile"""
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         logging.info(f"Registering motion profile {profile}...")
         self.communicator.send_command(f"profile {profile}")
 
