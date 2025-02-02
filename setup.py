@@ -7,15 +7,20 @@ import shutil
 
 
 class BuildProtobuf(_build_py):
-   def run(self) -> None:
-        proto_src = os.path.join(dirname(dirname(realpath(__file__))), "interfaces")
-        grpc_interfaces_output_dir = os.path.abspath(join(os.path.dirname(__file__), "grpc_interfaces"))
+    def run(self) -> None:
+        base_dir = os.path.dirname(os.path.abspath(__file__))  # Root directory
+        proto_src = os.path.join(base_dir, "interfaces")
+        grpc_interfaces_output_dir = os.path.join(base_dir, "tools", "grpc_interfaces")  # ✅ Correct output path
 
         os.makedirs(grpc_interfaces_output_dir, exist_ok=True)
 
+        grpc_proto_dir = os.path.join(proto_src, "tools", "grpc_interfaces")
+        if not os.path.exists(grpc_proto_dir):
+            raise FileNotFoundError(f"Expected proto directory {grpc_proto_dir} not found!")
+
         grpc_proto_files = [
-            os.path.join(proto_src, "tools/grpc_interfaces", proto_file)
-            for proto_file in os.listdir(os.path.join(proto_src, "tools/grpc_interfaces"))
+            os.path.join(grpc_proto_dir, proto_file)
+            for proto_file in os.listdir(grpc_proto_dir)
             if proto_file.endswith(".proto")
         ]
 
@@ -25,34 +30,39 @@ class BuildProtobuf(_build_py):
             if proto_file.endswith(".proto")
         ]
 
-        #Compile the files in the grpc_interfaces folder
+        # ✅ Compile gRPC files to `tools/grpc_interfaces/`
         if grpc_proto_files:
             subprocess.run(
                 [
                     "python", "-m", "grpc_tools.protoc",
-                    "-I" + proto_src,
-                    "--python_out=grpc_interfaces/",
-                    "--pyi_out=grpc_interfaces/",
-                    "--grpc_python_out=grpc_interfaces/",
+                    f"-I{proto_src}",
+                    f"--python_out={grpc_interfaces_output_dir}/",
+                    f"--pyi_out={grpc_interfaces_output_dir}/",
+                    f"--grpc_python_out={grpc_interfaces_output_dir}/",
                     *grpc_proto_files,
                 ],
                 check=True,
             )
 
-        for file in os.listdir(os.path.join(grpc_interfaces_output_dir,"tools","grpc_interfaces")):
-            if file.endswith(".py") or file.endswith(".pyi"):
-                shutil.move(os.path.join(grpc_interfaces_output_dir,"tools","grpc_interfaces", file), os.path.join(grpc_interfaces_output_dir, file))
-        
+        # ✅ Move generated files from temp location to `tools/grpc_interfaces`
+        grpc_generated_path = os.path.join(grpc_interfaces_output_dir, "tools", "grpc_interfaces")
+        if os.path.exists(grpc_generated_path):
+            for file in os.listdir(grpc_generated_path):
+                if file.endswith(".py") or file.endswith(".pyi"):
+                    shutil.move(
+                        os.path.join(grpc_generated_path, file),
+                        os.path.join(grpc_interfaces_output_dir, file),
+                    )
 
-        # Compile the root-level .proto files
+        # ✅ Compile root-level .proto files
         if root_proto_files:
             subprocess.run(
                 [
                     "python", "-m", "grpc_tools.protoc",
-                    "-I" + proto_src,
-                    "--python_out=grpc_interfaces/",
-                    "--pyi_out=grpc_interfaces/", 
-                    "--grpc_python_out=grpc_interfaces/",
+                    f"-I{proto_src}",
+                    f"--python_out={grpc_interfaces_output_dir}/",
+                    f"--pyi_out={grpc_interfaces_output_dir}/",
+                    f"--grpc_python_out={grpc_interfaces_output_dir}/",
                     *root_proto_files,
                 ],
                 check=True,
@@ -68,31 +78,46 @@ def readme() -> str:
 
 def read_requirements(filename:str) -> list[str]:
     requirements_path = os.path.join(os.path.dirname(__file__), filename)
+    print(requirements_path)
     with open(requirements_path) as f:
         return [line.strip() for line in f
                 if line.strip() and not line.startswith('#')]
 
 def find_tool_packages() -> list[str]:
     """Find all packages and subpackages in the current directory"""
-    packages = ['tools']
-    for root, dirs, files in os.walk('.'):
-        if '__init__.py' in files and root != '.':
-            # Convert path to package name
-            package_path = root.lstrip('./').replace('/', '.')
-            print(package_path)
-            if package_path:
-                packages.append(f'tools.{package_path}')
-    packages.append('tools.grpc_interfaces')
+    packages = []
+    for root, dirs, files in os.walk('tools'):  # Only look inside `tools/`
+        if '__init__.py' in files:
+            package_path = root.replace('/', '.')
+            print(f"Detected package: {package_path}")
+            packages.append(package_path)
+
+    # Ensure grpc_interfaces is included if it exists
+    if os.path.exists("tools/grpc_interfaces") and "__init__.py" in os.listdir("tools/grpc_interfaces"):
+        packages.append("tools.grpc_interfaces")
+
     return packages
 
-find_tool_packages()
+# def find_tool_packages() -> list[str]:
+#     """Find all packages and subpackages in the current directory"""
+#     packages = []
+#     for root, dirs, files in os.walk('tools'):
+#         if '__init__.py' in files and root != '.':
+#             # Convert path to package name
+#             package_path = root.lstrip('./').replace('/', '.')
+#             print(package_path)
+#             if package_path:
+#                 packages.append(f'tools.{package_path}')
+#     packages.append('tools.grpc_interfaces')
+#     return packages
+
 setup(
     name='galago_tools',
     version='0.9',
     packages=find_tool_packages(),
-    package_dir={'tools': '.'},
+    package_dir={'': '.'},
     license='Apache',
-    description='Open Source Lab Orchestration Software',
+    description='Open Source Lab Automation GRPC Library',
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
     include_package_data=True,

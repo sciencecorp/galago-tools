@@ -7,7 +7,7 @@ ENV_NAME="galago-tools"
 
 build_env() {
     echo "Creating conda environment '$ENV_NAME'..."
-    mamba create --name $ENV_NAME python=3.9.12 nodejs=18.20.3 -y
+    mamba create --name $ENV_NAME python=3.9.12
     echo "Conda environment '$ENV_NAME' created."
 }
 
@@ -23,7 +23,7 @@ run_debug() {
 
 deps() {
   echo "Installing Python Dependencies"
-  python -m pip install -r tools/requirements.txt
+  python -m pip install -r requirements.txt
   for req in tools/*/requirements.txt; do
     python -m pip install -r $req --no-cache-dir || echo "Failed to install $req" >&2 || true
   done
