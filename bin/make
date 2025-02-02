@@ -35,15 +35,11 @@ test() {
   echo "Ruff Check"
   ruff check .
   echo "Mypy Check Tools"
-  mypy --config-file=tools/pyproject.toml tools --install-types --non-interactive
-}
-
-pytest() {
-  pytest tools/tests/ -vv
-}
-
-unittest_py() {
+  mypy --config-file=pyproject.toml tools --install-types --non-interactive
+  echo "Running Pytest"
   python -m unittest discover -s tools/tests/ -p "*_test.py"
+  echo "Running Unittest"
+  pytest tools/tests/ -vv
 }
 
 # Generate protobuf definitions for Python

@@ -1,0 +1,15 @@
+name: "Setup"
+description: "Sets up dependencies and environment"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check out repository code
+      uses: actions/checkout@v3
+    - name: Use Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9.12
+    - name: Install dependencies
+      run: ./bin/make deps
+      shell: bash

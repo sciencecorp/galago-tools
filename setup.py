@@ -2,7 +2,6 @@ import os
 from setuptools import setup
 import subprocess
 from setuptools.command.build_py import build_py as _build_py
-from os.path import join, dirname, realpath
 import shutil 
 
 
