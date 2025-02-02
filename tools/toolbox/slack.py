@@ -38,42 +38,6 @@ class Slack():
                 f"Unable to post slack message to {recipient}"
             ) from e
         
-    def create_confluency_slack_message(culture_id:int, scientist_name:str, well_values:dict, threshold:int) -> Any:
-        template_path = os.path.join(os.path.dirname(__file__),"slack_templates","confluency_template.json")
-        if(os.path.isfile(template_path) is False):
-            raise RuntimeError(f'Failed to open template file: {template_path}')
-        with open(template_path) as f:
-            template_json = json.load(f)
-
-        template_string = json.dumps(template_json)
-        
-        heat_map = ""
-        values_string = ""
-        counter = 0
-        for key in well_values:
-            counter = counter + 1
-            confluency_string = well_values[key]['%Confluence from Cellular Analysis']
-            if(confluency_string == "?????"):
-                confluency_string = 0
-            confluency = float(confluency_string)
-
-            values_string += f"{key}={confluency},"
-            if(confluency == 0):
-                heat_map += ":white_circle:"
-            elif(confluency > threshold):
-                heat_map += ":red_circle:"
-            else:
-                heat_map += ":large_green_circle:"
-            if(counter == 3):
-                heat_map += "\\n"
-
-        template_string = template_string.replace("scientist_placeholder", scientist_name)
-        template_string = template_string.replace("culture_id_placeholder", str(culture_id))
-        template_string = template_string.replace("values_placeholder", values_string)
-        template_string = template_string.replace("heatmap_placeholder", heat_map)
-
-        return json.loads(template_string)
-    
     def create_alert_message(self,title:str, workcell:str, tool:str, protocol:str, error:str) -> Any:
         template_path = os.path.join(os.path.dirname(__file__),"slack_templates","error_template.json")
         with open(template_path) as f:
