@@ -9,9 +9,6 @@ from google.protobuf.struct_pb2 import Struct
 import logging
 from tools.pf400.waypoints_models import (
     Waypoints,
-    Location,
-    Nest,
-    Coordinate,
     MotionProfile,
     Grip
 )       
@@ -38,7 +35,6 @@ class Pf400Server(ToolServer):
         logging.info("Successfully connected to PF400")
 
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
-        
         #Locations 
         locations_dict : Waypoints = json.loads(params.locations.to_json())
         logging.info(locations_dict)
@@ -76,22 +72,11 @@ class Pf400Server(ToolServer):
 
     def Move(self, params: Command.Move) -> None:
         """Execute a move command with the given coordinate and motion profile."""
-        coordinate = params.waypoint
-        motion_profile = getattr(params, 'motion_profile_id', None)
-
-        if motion_profile:
-            logging.info(f"Motion profile ID {motion_profile} found in params")
-            profile_id = self._map_motion_profile(motion_profile)
-            logging.info(f"Registering motion profile {profile_id} for DB ID {motion_profile}")
-            self.driver.register_motion_profile(str(profile_id))
-        else:
-            profile_id = 1
-        self.driver.movej(coordinate, motion_profile=profile_id)
-
-    def movePath(self, path: list[str], motion_profile_id: int = 1) -> None:
-        """Move through a series of waypoints"""
-        for waypoint in path:
-            self.driver.movej(waypoint, motion_profile=motion_profile_id)
+        location_name = params.name 
+        if location_name not in self.waypoints.locations:
+            raise KeyError("Location not found: " + location_name)
+        location= self.waypoints.locations[location_name]
+        self.driver.movej(location, motion_profile=params.motion_profile_id)
 
     def moveTo(self, location: str, offset: tuple[float, float, float] = (0, 0, 0), motion_profile_id: int = 1) -> None:
         """Move to a location with optional offset"""

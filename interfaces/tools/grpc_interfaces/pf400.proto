@@ -77,7 +77,7 @@ message Command {
   message Retract {} 
 
   message Move {
-    string waypoint = 1;
+    string name = 1;
     optional int32 motion_profile_id = 2;
   }
 
@@ -117,7 +117,7 @@ message Command {
   message LoadWaypoints {
     google.protobuf.Struct locations = 1; 
     google.protobuf.Struct grip_params =2;
-    google.protobug.Struct motion_profiles =3;
+    google.protobuf.Struct motion_profiles =3;
   }
 
   message LoadLabware {
