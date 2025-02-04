@@ -13,7 +13,9 @@ from tools.pf400.waypoints_models import (
     Nest,
     Coordinate,
     MotionProfile,
+    Grip
 )       
+import json 
 
 class Pf400Server(ToolServer):
     toolType = "pf400"
@@ -22,69 +24,49 @@ class Pf400Server(ToolServer):
         super().__init__()
         self.driver: Pf400Driver
         self.waypoints: Waypoints
-        self.graph: nx.Graph
         self.sequence_location : str
-        self.teachpoints : t.Any
         self.plate_handling_params : dict[str, dict[str, Union[Command.GraspPlate, Command.ReleasePlate]]] = {}
 
     def _configure(self, request: Config) -> None:
-        """Configure the PF400 server with the provided configuration."""
-        try:
-            # Reset all mappings
-            self.motion_profile_map = {}
-            self.grip_params_map = {}
-            self.labware_map = {}
-            self.waypoints = {}
+        if self.driver:
+            self.driver.close()
+        self.driver = Pf400Driver(
+            tcp_host=request.host,
+            tcp_port=request.port
+        )
+        self.driver.initialize()
+        logging.info("Successfully connected to PF400")
 
-            # If in simulation mode, don't attempt hardware connection
-            if self.simulated:
-                logging.info("Configuring PF400 in simulation mode")
-                return
+    def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
+        
+        #Locations 
+        locations_dict : Waypoints = json.loads(params.locations.to_json())
+        logging.info(locations_dict)
+        self.waypoints = Waypoints.parse_obj(locations_dict)
+        logging.info("Locations loaded")
 
-            # Configure hardware connection
-            try:
-                self.driver = Pf400Driver(
-                    tcp_host=request.host,
-                    tcp_port=request.port
-                )
-                # Initialize the driver
-                self.driver.initialize()
-                # Test connection by getting current position
-                self.driver.wherej()
-                logging.info("Successfully connected to PF400")
-            except Exception as e:
-                logging.error(f"Failed to connect to PF400: {e}")
-                raise
+        #Plate handling params 
+        plate_handling_params : dict[str, Grip] = json.loads(params.plate_handling_params.to_json())
+        plate_handling_params = Grip.parse_obj(plate_handling_params)
 
-        except Exception as e:
-            logging.error(f"Error configuring PF400: {str(e)}")
-            # Reset all mappings on error
-            self.motion_profile_map = {}
-            self.grip_params_map = {}
-            self.labware_map = {}
-            self.waypoints = {}
-            raise
+        if "landscape" not in plate_handling_params.grip_params or "portrait" not in plate_handling_params.grip_params:
+            raise KeyError("missing lanndscape or portrait grip settings")
+        
+        for grip in plate_handling_params:
+            plate_width = grip["width"]
+            grip_force = grip["force"]
+            grip_speed = grip["speed"]
+            self.plate_handling_params[grip] = {
+                "grasp": Command.GraspPlate(width=plate_width, force=grip_force, speed=grip_speed),
+                "release": Command.ReleasePlate(width=plate_width, speed=grip_speed)
+            }
 
-    def _map_motion_profile(self, db_id: int) -> int:
-        """Map database motion profile ID to robot profile ID"""
-        if db_id in self.motion_profile_map:
-            return self.motion_profile_map[db_id]
-        logging.warning(f"Motion profile ID {db_id} not found in mapping, using default profile 1")
-        return 1
+        #Load and register profiles 
+        motion_profiles_list : list[MotionProfile] = json.loads(params.motion_profiles.to_json())
+        motion_profiles_list = MotionProfile.parse_obj(motion_profiles_list)
 
-    def _map_grip_params(self, db_id: int) -> dict[str, int]:
-        """Map database grip params ID to robot grip parameters"""
-        if db_id in self.grip_params_map:
-            return self.grip_params_map[db_id]
-        logging.warning(f"Grip params ID {db_id} not found in mapping, using defaults")
-        return {"width": 130, "force": 15, "speed": 10}
-
-    def _map_labware(self, db_id: int) -> str:
-        """Map database labware ID to labware name"""
-        if db_id in self.labware_map:
-            return self.labware_map[db_id]
-        logging.warning(f"Labware ID {db_id} not found in mapping, using 'default'")
-        return "default"
+        for motion_profile in motion_profiles_list:
+            self.driver.register_motion_profile(str(motion_profile))
 
     def Release(self, params: Command.Release) -> None:
         self.driver.safe_free()
@@ -99,10 +81,9 @@ class Pf400Server(ToolServer):
 
         if motion_profile:
             logging.info(f"Motion profile ID {motion_profile} found in params")
-            # Map the motion profile ID if it's from the database
             profile_id = self._map_motion_profile(motion_profile)
             logging.info(f"Registering motion profile {profile_id} for DB ID {motion_profile}")
-            # self.driver.register_motion_profile(str(profile_id))
+            self.driver.register_motion_profile(str(profile_id))
         else:
             profile_id = 1
         self.driver.movej(coordinate, motion_profile=profile_id)
@@ -420,7 +401,7 @@ class Pf400Server(ToolServer):
     def estimateEngage(self, params: Command.Engage) -> int:
         return 1
 
-    def estimateUnwind(self, params: Command.Unwind) -> int:
+    def estimateRetract(self, params: Command.Retract) -> int:
         return 1
     
     def estimateGraspPlate(self, params: Command.GraspPlate) -> int:
