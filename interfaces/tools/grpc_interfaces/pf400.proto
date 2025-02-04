@@ -18,8 +18,13 @@ message Command {
     DropOffPlate dropoff_plate = 11;
     PickLid pick_lid = 12;
     PlaceLid place_lid = 13;
-    Jog jog = 15;
-    RawCommand raw_command = 16;
+    Jog jog = 14;
+    RawCommand raw_command = 15;
+    RegisterMotionProfile register_motion_profile = 16;
+    LoadWaypoints load_waypoints = 17;
+    LoadLabware load_labware = 18;
+    LoadGripParams load_grip_params = 19;
+    LoadSequences load_sequences = 20;
   }
 
   message RawCommand {
@@ -89,16 +94,41 @@ message Command {
   }
 
   message Transfer {
-    Approach source_nest = 1;
-    Leave destination_nest = 2;
-    optional GraspPlate grasp_params = 3;
-    optional ReleasePlate release_params = 4;
-    optional int32 motion_profile_id = 5;
-    optional int32 grip_width = 6;
+    string source_nest = 1;
+    string destination_nest = 2;
+    optional int32 motion_profile_id = 3;
   }
 
   message Wait {
     int32 duration = 1;
+  }
+
+  message RegisterMotionProfile {
+    int32 id = 1;
+    float speed = 2;
+    float speed2 = 3;
+    float accel = 4;
+    float decel = 5;
+    float accel_ramp = 6;
+    float decel_ramp = 7;
+    float inrange = 8;
+    int32 straight = 9;
+  }
+  
+  message LoadWaypoints {
+    google.protobuf.Struct locations = 1; 
+  }
+
+  message LoadLabware {
+    google.protobuf.Struct load_labware =1;
+  }
+
+  message LoadGripParams {
+    google.protobuf.Struct load_grip_params=1;
+  }
+
+  message LoadSequences {
+    google.protobuf.Struct load_sequences=1;
   }
 }
 
@@ -106,6 +136,5 @@ message Config {
   string host = 1;
   int32 port = 2;
   int32 joints = 3;
-  string waypoints_file =4;
-  string sequence_folder=5;
 }
+

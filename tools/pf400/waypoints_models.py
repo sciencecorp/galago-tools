@@ -42,7 +42,7 @@ class Coordinate(str):
 
 class Location(BaseModel):
     loc: Coordinate
-    loc_type: t.Literal["j", "c"]
+    location_type: t.Literal["j", "c"]
 
 class Nest(BaseModel):
     loc: Location
@@ -88,9 +88,6 @@ class Grip(BaseModel):
 
 class Waypoints(BaseModel):
     locations: dict[str, Location]
-    motion_profiles: list[MotionProfile]
-    grip_params: list[Grip]
-    labware: list[Labware]
 
 class SequenceCommand(BaseModel):
     command: str
