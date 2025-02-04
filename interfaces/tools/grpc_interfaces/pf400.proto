@@ -74,7 +74,9 @@ message Command {
 
   message Release {}
 
-  message Retract {} 
+  message Retract {
+    int32 profile_id = 1;
+  } 
 
   message Move {
     string name = 1;

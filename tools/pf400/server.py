@@ -19,12 +19,14 @@ class Pf400Server(ToolServer):
 
     def __init__(self) -> None:
         super().__init__()
+        self.config : Config 
         self.driver: Pf400Driver
         self.waypoints: Waypoints
         self.sequence_location : str
         self.plate_handling_params : dict[str, dict[str, Union[Command.GraspPlate, Command.ReleasePlate]]] = {}
 
     def _configure(self, request: Config) -> None:
+        self.config = request
         if self.driver:
             self.driver.close()
         self.driver = Pf400Driver(
@@ -36,6 +38,7 @@ class Pf400Server(ToolServer):
 
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
         #Locations 
+    
         locations_dict : Waypoints = json.loads(params.locations.to_json())
         logging.info(locations_dict)
         self.waypoints = Waypoints.parse_obj(locations_dict)
@@ -64,6 +67,20 @@ class Pf400Server(ToolServer):
         for motion_profile in motion_profiles_list:
             self.driver.register_motion_profile(str(motion_profile))
 
+    def Retract(self,params: Command.Retract) -> None:
+        waypoint_name = "retract"
+        if waypoint_name not in self.waypoints.locations:
+            raise KeyError("Retract location not found")
+        waypoint_loc = self.waypoints.locations[waypoint_name].loc
+        current_loc_array = self.driver.wherej().split(" ")
+        #Retract the arm while keeping the z height, gripper width and rail constant
+        #current_loc_array[1] is the z height, current_loc_array[6] is the gripper (regardless of the number of joints)
+        if self.config.joints == 5:
+           new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]}"
+        else:
+            new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]} {current_loc_array[6]}"
+        self.driver.movej(new_loc,  motion_profile=params.profile_id)
+
     def Release(self, params: Command.Release) -> None:
         self.driver.safe_free()
 
@@ -87,20 +104,10 @@ class Pf400Server(ToolServer):
         self.driver.movej(adjusted_location, motion_profile=motion_profile_id)
 
     def GraspPlate(self, params: Command.GraspPlate) -> None:
-        # If params has an ID, map it to the actual grip parameters
-        if hasattr(params, 'id'):
-            grip_params = self._map_grip_params(params.id)
-            self.driver.graspplate(grip_params["width"], grip_params["force"], grip_params["speed"])
-        else:
-            self.driver.graspplate(params.width, params.force, params.speed)
+        self.driver.graspplate(params.width, params.force, params.speed)
 
     def ReleasePlate(self, params: Command.ReleasePlate) -> None:
-        # If params has an ID, map it to the actual grip parameters
-        if hasattr(params, 'id'):
-            grip_params = self._map_grip_params(params.id)
-            self.driver.releaseplate(grip_params["width"], grip_params["speed"])
-        else:
-            self.driver.releaseplate(params.width, params.speed)
+        self.driver.releaseplate(params.width, params.speed)
 
     def retrieve_plate(
         self,
