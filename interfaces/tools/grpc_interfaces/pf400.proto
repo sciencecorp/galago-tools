@@ -18,17 +18,21 @@ message Command {
     DropOffPlate dropoff_plate = 11;
     PickLid pick_lid = 12;
     PlaceLid place_lid = 13;
-    Jog jog = 14;
-    RawCommand raw_command = 15;
-    RegisterMotionProfile register_motion_profile = 16;
-    LoadWaypoints load_waypoints = 17;
-    LoadLabware load_labware = 18;
-    LoadSequences load_sequences =19;
+    GetCurrentLocation get_current_location = 14;
+    Jog jog = 15;
+    RawCommand raw_command = 16;
+    RegisterMotionProfile register_motion_profile = 17;
+    LoadWaypoints load_waypoints = 18;
+    LoadLabware load_labware = 19;
+    LoadSequences load_sequences =20;
   }
 
   message RawCommand {
     string command = 1;
   } 
+
+  message GetCurrentLocation {
+  }
 
   message Jog {
     string axis = 1;
@@ -117,9 +121,9 @@ message Command {
   }
   
   message LoadWaypoints {
-    google.protobuf.Struct locations = 1; 
-    google.protobuf.Struct grip_params =2;
-    google.protobuf.Struct motion_profiles =3;
+    optional google.protobuf.Struct locations = 1; 
+    optional google.protobuf.Struct grip_params =2;
+    optional google.protobuf.Struct motion_profiles =3;
   }
 
   message LoadLabware {

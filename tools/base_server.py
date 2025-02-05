@@ -82,13 +82,13 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
         self.simulated = simulated
 
     def setStatus(self, status: tool_base_pb2.ToolStatus) -> None:
-        logging.info(f"Setting status to {str(status)}")
+        # logging.info(f"Setting status to {str(status)}")
         self.status = status
     
     def Configure(
         self, request: tool_base_pb2.Config, context: grpc.ServicerContext
     ) -> tool_base_pb2.ConfigureReply:
-        logging.info(f"Received configuration: {request}")
+        # logging.info(f"Received configuration: {request}")
         self.config = getattr(request, request.WhichOneof("config"))
         config_dict = MessageToDict(self.config)
         if "toolId" in config_dict:
@@ -136,7 +136,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 response=tool_base_pb2.UNRECOGNIZED_COMMAND
             )
         if self.simulated:
-            logging.info(f"Running simulated command {method_name}")
+            # logging.info(f"Running simulated command {method_name}")
             duration, error = self._estimateDuration(command)
             if error is not None:
                 return tool_base_pb2.ExecuteCommandReply(response=error, return_reply=True)
@@ -227,7 +227,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
     def ExecuteCommand(
         self, request: tool_base_pb2.Command, context: grpc.ServicerContext
     ) -> tool_base_pb2.ExecuteCommandReply:
-        logging.info(f"Received command: {str(request)}:100.100")
+        # logging.info(f"Received command: {str(request)}:100.100")
         sys.stdout.flush()
         command, error, error_msg = self.parseCommand(request)
 
@@ -255,7 +255,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 )
             finally:
                 self.setStatus(tool_base_pb2.READY)
-                logging.info(f"Setting {self.toolId} to READY")
+                # logging.info(f"Setting {self.toolId} to READY")
         return tool_base_pb2.ExecuteCommandReply(response=tool_base_pb2.SUCCESS)
 
     def _estimateDuration(self, command: message.Message) -> tuple[Optional[int], t.Any]:
