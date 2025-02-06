@@ -1,3 +1,5 @@
+import os
+import json 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.pf400_pb2 import Command, Config
 from .driver import Pf400Driver
@@ -22,6 +24,9 @@ from google.protobuf.struct_pb2 import Struct
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.struct_pb2 import Struct
 from google.protobuf import json_format
+from google.protobuf import message
+import typing as t  
+from google.protobuf.json_format import Parse
 
 #Default motion profiles, use for retrieve and dropoff
 DEFAULT_MOTION_PROFILES : MotionProfiles = [
@@ -65,13 +70,13 @@ class Pf400Server(ToolServer):
 
     def _configure(self, request: Config) -> None:
         self.config = request
-        # if self.driver:
-        #     self.driver.close()
-        # self.driver = Pf400Driver(
-        #     tcp_host=request.host,
-        #     tcp_port=request.port
-        # )
-        #self.driver.initialize()
+        if self.driver:
+            self.driver.close()
+        self.driver = Pf400Driver(
+            tcp_host=request.host,
+            tcp_port=request.port
+        )
+        self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
     def _getLocation(self, location_name: str) -> Location:
@@ -301,12 +306,12 @@ class Pf400Server(ToolServer):
         )
 
     def PickLid(self, params: Command.PickLid) -> None:
-        labware:Labware = self.all_labware.get_labware(params.labware)
-        if params.location not in self.waypoints.nests:
-            raise KeyError("Nest not found: " + params.location)
+        labware:Labware = self._getLabware(params.labware)
+        location: Location = self._getLocation(params.location)
+        safe_location = self._getLocation(f"{location}_safe")
         grasp: Command.GraspPlate
         tmp_grasp: Union[Command.GraspPlate,Command.ReleasePlate] = self.plate_handling_params[
-            self.waypoints.nests[params.location].orientation
+            location.orientation
         ]["grasp"]
         if isinstance(tmp_grasp, Command.GraspPlate):
             grasp = tmp_grasp
@@ -315,7 +320,7 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid grasp params")
 
-        tmp_adjust_gripper = self.plate_handling_params[self.waypoints.nests[params.location].orientation]["release"]
+        tmp_adjust_gripper = self.plate_handling_params[location.orientation]["release"]
         if isinstance(tmp_adjust_gripper, Command.ReleasePlate):
             adjust_gripper = tmp_adjust_gripper
         else:
@@ -329,30 +334,22 @@ class Pf400Server(ToolServer):
         self.runSequence(
             [
                 adjust_gripper,
-                # Command.Approach(
-                #     nest=params.location,
-                #     z_offset=lid_height,
-                #     motion_profile_id=params.motion_profile_id,
-                #     ignore_safepath="false"
-                # ),
+                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location 
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
+                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=lid_height), #Move to the calculated heigh
                 grasp,
-                # Command.Approach(
-                #     nest=params.location,
-                #     z_offset=lid_height + 8,
-                #     motion_profile_id=params.motion_profile_id,
-                #     ignore_safepath="true"
-                # ),
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
+                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location
             ]
         )
     
     def PlaceLid(self, params: Command.PlaceLid) -> None:
-        labware:Labware = self.all_labware.get_labware(params.labware)
-        if params.location not in self.waypoints.nests:
-            raise KeyError("Nest not found: " + params.location)
-        
+        labware:Labware = self._getLabware(params.labware)
+        location: Location = self._getLocation(params.location)
+        safe_location = self._getLocation(f"{location}_safe")
         release: Command.ReleasePlate
         tmp_release: Union[Command.GraspPlate, Command.ReleasePlate] = self.plate_handling_params[
-            self.waypoints.nests[params.location].orientation
+            location.orientation
         ]["release"]
         if isinstance(tmp_release, Command.ReleasePlate):
             release = tmp_release
@@ -408,59 +405,34 @@ class Pf400Server(ToolServer):
             response.error_message = str(e)
             return response
 
-    def RunSequence(self, params: Command.RunSequence) -> None:
-        logging.info("Running sequence")
-        """Execute a sequence of commands."""
-        if not self.driver:
-            raise Exception("Driver not initialized")
+    def command_instance_from_name(self, command_name: str) -> Union[message.Message, t.Any]:
+        command_descriptors = Command.DESCRIPTOR.fields_by_name
+        command_dictionary = dict()
+        for (field_name, field_descriptor) in command_descriptors.items():
+            if field_descriptor.message_type:
+                if field_name not in command_dictionary:
+                    command_dictionary[field_name] = field_descriptor.message_type.name
+        
+        return command_dictionary[command_name]
 
-        sequence_name = params.sequence_name
-        # logging.info(f"Looking for sequence '{sequence_name}' in waypoints")
-        # logging.info(f"Available waypoints: {list(self.waypoints.keys())}")
-        # logging.info(f"Waypoints content: {self.waypoints}")
-        
-        if sequence_name not in self.waypoints:
-            raise Exception(f"Sequence '{sequence_name}' not found in waypoints")
-        
-        sequence = self.waypoints[sequence_name]
-        # logging.info(f"Found sequence {sequence_name}")
-        # logging.info(f"Sequence type: {type(sequence)}")
-        # logging.info(f"Sequence content: {sequence}")
-        
-        if not isinstance(sequence, list):
-            raise Exception(f"Invalid sequence format for '{sequence_name}'")
-        
-        for command in sequence:
-            if not isinstance(command, dict) or 'command' not in command or 'params' not in command:
-                raise Exception(f"Invalid command format in sequence '{sequence_name}'")
-            
-            command_type = command["command"]
-            command_params = command["params"]
-            
-            # Convert command type to method name (e.g., "move" -> "Move")
-            method_name = command_type.capitalize()
-            method = getattr(self, method_name, None)
-            
-            if not method:
-                raise Exception(f"Unknown command type: {command_type}")
-            
-            # Create Command object with parameters
-            command_obj = Command()
-            command_field = getattr(command_obj, command_type)
-            
-            # For move commands, ensure waypoint exists
-            if command_type == "move" and "waypoint" in command_params:
-                waypoint = command_params["waypoint"]
-                if waypoint not in self.waypoints:
-                    raise Exception(f"Waypoint '{waypoint}' not found")
-                command_params["waypoint"] = self.waypoints[waypoint]
-            
-            # Parse parameters into protobuf message
-            for key, value in command_params.items():
-                setattr(command_field, key, value)
-            
-            # Execute the command
-            method(command_field)
+    def RunSequence(self, params: Command.RunSequence) -> None:
+        commandSequence : list[message.Message] = list()
+        sequence = self._getSequence(params.sequence_name)
+        logging.info(f"Running sequence {sequence.name}")
+        for arm_command in sequence:
+            command_params :t.Any = arm_command['params']
+            command_name :str = arm_command['command']
+            command_type : t.Any = self.command_instance_from_name(command_name)
+            command : t.Any  = getattr(Command, command_type)
+
+            if command_name == 'dropoff_plate' or command_name == 'retrieve_plate'  or command_name == 'pick_lid' or command_name == 'place_lid':
+                if params.labware is not None:
+                    command_params["labware"] = params.labware
+            command_parsed = Parse(json.dumps(command_params), command())
+            commandSequence.append(command_parsed)
+
+        #At the end run the sequence through tools
+        self.runSequence(commandSequence)
     
     def estimateRelease(self, params: Command.Release) -> int:
         return 1
