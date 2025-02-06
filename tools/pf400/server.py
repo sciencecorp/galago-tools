@@ -60,27 +60,27 @@ class Pf400Server(ToolServer):
         return labware
     
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
+        logging.info("Loading waypoints")
         #Load locations
         waypoints_dictionary = json_format.MessageToDict(params.waypoints)
         locations_list : Waypoints = waypoints_dictionary.get("locations")
         self.waypoints = Waypoints.parse_obj({"locations": locations_list})
-
+        logging.info(f"Loaded {len(self.waypoints.locations)} locations")
+        
         #Load grips
         grips_list = waypoints_dictionary.get("grip_params")
         grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
-
+        logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
         for grip in grip_params.grip_params:
-            plate_width = grip.width
-            grip_force = grip.force
-            grip_speed = grip.speed
             self.plate_handling_params[grip.name] = {
-                "grasp": Command.GraspPlate(width=plate_width, force=grip_force, speed=grip_speed),
-                "release": Command.ReleasePlate(width=plate_width+10, speed=grip_speed)
+                "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
+                "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
             }
 
         #Load and register profiles 
         motion_profiles_list = waypoints_dictionary.get("motion_profiles")
         motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
+        logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
         for motion_profile in motion_profiles:
             self.driver.register_motion_profile(str(motion_profile))
 
@@ -88,22 +88,27 @@ class Pf400Server(ToolServer):
         sequences_list = waypoints_dictionary.get("sequences")
         sequences = ArmSequences.parse_obj({"sequences":sequences_list})
         self.sequences = sequences
+        logging.info(f"Loaded {len(sequences.sequences)} sequences")
 
 
-
-
+    def LoadLabware(self, params: Command.LoadLabware) -> None:
+        labware_dictionary = MessageToDict(params.labwares)
+        labware_lst = labware_dictionary.get("labwares")
+        self.all_labware = Labwares.parse_obj({"labwares": labware_lst})
+        logging.info(f"Loaded {len(self.all_labware.labwares)} labwares")
+        
     def Retract(self,params: Command.Retract) -> None:
-        waypoint_name = "retract"
+        waypoint_name = "Retract"
         if waypoint_name not in self.waypoints.locations:
-            raise KeyError("Retract location not found")
-        waypoint_loc = self.waypoints.locations[waypoint_name].loc
+            raise KeyError("Retract location not found. Please add a retract (unwind) location to the waypoints. Height or rail position does not matter.")
+        waypoint_loc = self._getLocation(waypoint_name).coordinates
         current_loc_array = self.driver.wherej().split(" ")
         #Retract the arm while keeping the z height, gripper width and rail constant
-        #current_loc_array[1] is the z height, current_loc_array[6] is the gripper (regardless of the number of joints)
         if self.config.joints == 5:
            new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]}"
         else:
             new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]} {current_loc_array[6]}"
+        logging.info(f"Retracting to {new_loc}")
         self.driver.movej(new_loc,  motion_profile=params.profile_id)
 
     def Release(self, params: Command.Release) -> None:
@@ -473,8 +478,10 @@ class Pf400Server(ToolServer):
         return 1
 
     def EstimateLoadWaypoints(self, params: Command.LoadWaypoints) -> int:
-        """Estimate duration for load_waypoints command"""
-        return 1  # This is an instant operation
+        return 1 
+    
+    def EstimateLoadLabware(self, params: Command.LoadLabware) -> int:
+        return 1
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

@@ -23,6 +23,7 @@ message Command {
     RawCommand raw_command = 16;
     RegisterMotionProfile register_motion_profile = 17;
     LoadWaypoints load_waypoints = 18;
+    LoadLabware load_labware =19;
   }
 
   message RawCommand {
@@ -119,7 +120,11 @@ message Command {
   }
   
   message LoadWaypoints {
-    optional google.protobuf.Struct waypoints = 1; 
+    google.protobuf.Struct waypoints = 1; 
+  }
+  
+  message LoadLabware {
+    google.protobuf.Struct labwares = 1;
   }
 }
 

@@ -79,12 +79,17 @@ class Labware(BaseModel):
     z_offset: float
     width : float
     height: float 
-    zoffset: float
+    z_offset: float
     plate_lid_offset: float #offset when the lid is on the plate
     lid_offset: float #offset when lid is on nest
     stack_height: float
     has_lid: bool
-    image_url: str
+
+    image_url: t.Optional[str] = ""  # Allow image_url to be null or omitted
+
+    class Config:
+        # Allow extra fields like "created_at", "updated_at"
+        extra = "allow"
 
 class Labwares(BaseModel):
     labwares: list[Labware]
