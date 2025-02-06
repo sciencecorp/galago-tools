@@ -54,19 +54,15 @@ message Command {
   message RetrievePlate {
     string labware = 1;
     string location = 2;
-    optional float x_offset = 3;
-    optional float y_offset = 4;
-    optional float z_offset = 5;
-    optional int32 motion_profile_id = 6;
+    optional float z_offset = 3;
+    optional int32 motion_profile_id = 4;
   }
 
   message DropOffPlate {
     string labware = 1;
     string location = 2;
-    optional float x_offset = 3;
-    optional float y_offset = 4;
-    optional float z_offset = 5;
-    optional int32 motion_profile_id = 6;
+    optional float z_offset = 3;
+    optional int32 motion_profile_id = 5;
   }
 
   message RunSequence {
@@ -78,7 +74,6 @@ message Command {
   message Release {}
 
   message Retract {
-    int32 profile_id = 1;
   } 
 
   message Move {

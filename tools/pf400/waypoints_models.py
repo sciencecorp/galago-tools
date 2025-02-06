@@ -46,10 +46,6 @@ class Location(BaseModel):
     id: int
     coordinates: Coordinate
     location_type: t.Literal["j", "c"]
-
-class Nest(BaseModel):
-    loc: Location
-    safe_loc: str
     orientation: t.Literal["portrait", "landscape"]
 
 class MotionProfile(BaseModel):
@@ -79,7 +75,6 @@ class Labware(BaseModel):
     z_offset: float
     width : float
     height: float 
-    z_offset: float
     plate_lid_offset: float #offset when the lid is on the plate
     lid_offset: float #offset when lid is on nest
     stack_height: float

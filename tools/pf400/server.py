@@ -1,6 +1,5 @@
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.pf400_pb2 import Command, Config
-from tools.labware import LabwareDb, Labware
 from .driver import Pf400Driver
 import argparse
 from typing import Optional, Union
@@ -10,19 +9,47 @@ import logging
 from tools.pf400.waypoints_models import (
     Waypoints,
     MotionProfiles,
+    MotionProfile,
     Grips,
     Location,
     Labwares,
-    ArmSequences
+    ArmSequences,
+    ArmSequence,
+    Coordinate,
+    Labware
 )       
-import json 
 from google.protobuf.struct_pb2 import Struct
-import typing as t
 from google.protobuf.json_format import MessageToDict
-from google.protobuf.struct_pb2 import Struct, Value, ListValue
+from google.protobuf.struct_pb2 import Struct
 from google.protobuf import json_format
-from pydantic import TypeAdapter
-from typing import List
+
+#Default motion profiles, use for retrieve and dropoff
+DEFAULT_MOTION_PROFILES : MotionProfiles = [
+    #curved motion profile
+    MotionProfile(
+        id=13,
+        speed=80,
+        speed2=80,
+        acceleration=60,
+        deceleration=60,
+        accel_ramp=0.1,
+        decel_ramp=0.1,
+        inrange=0,
+        straight=0
+    ), 
+    #straight motion profile
+    MotionProfile(
+        id=14,
+        speed=80,
+        speed2=80,
+        acceleration=100,
+        deceleration=100,
+        accel_ramp=0.1,
+        decel_ramp=0.1,
+        inrange=0,
+        straight=1
+    ),
+]
 
 class Pf400Server(ToolServer):
     toolType = "pf400"
@@ -59,6 +86,12 @@ class Pf400Server(ToolServer):
             raise Exception(f"Labware '{labware_name}' not found")
         return labware
     
+    def _getSequence(self, sequence_name:str) -> ArmSequence: 
+        sequence = next((x for x in self.sequences.sequences if x.name == sequence_name), None)
+        if not sequence:
+            raise Exception(f"Sequence '{sequence_name}' not found")
+        return sequence
+
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
         logging.info("Loading waypoints")
         #Load locations
@@ -83,33 +116,34 @@ class Pf400Server(ToolServer):
         logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
         for motion_profile in motion_profiles:
             self.driver.register_motion_profile(str(motion_profile))
+        #Register default motion profiles
+        for motion_profile in DEFAULT_MOTION_PROFILES:
+            self.driver.register_motion_profile(str(motion_profile))
 
         # #Load Sequences 
         sequences_list = waypoints_dictionary.get("sequences")
         sequences = ArmSequences.parse_obj({"sequences":sequences_list})
         self.sequences = sequences
-        logging.info(f"Loaded {len(sequences.sequences)} sequences")
 
 
     def LoadLabware(self, params: Command.LoadLabware) -> None:
         labware_dictionary = MessageToDict(params.labwares)
         labware_lst = labware_dictionary.get("labwares")
-        self.all_labware = Labwares.parse_obj({"labwares": labware_lst})
-        logging.info(f"Loaded {len(self.all_labware.labwares)} labwares")
-        
+        self.labwares = Labwares.parse_obj({"labwares": labware_lst})
+
     def Retract(self,params: Command.Retract) -> None:
-        waypoint_name = "Retract"
-        if waypoint_name not in self.waypoints.locations:
+        location = next((x for x in self.waypoints.locations if x.name.lower() in {"unwind", "retract"}), None)
+        if not location:
             raise KeyError("Retract location not found. Please add a retract (unwind) location to the waypoints. Height or rail position does not matter.")
-        waypoint_loc = self._getLocation(waypoint_name).coordinates
+        
+        waypoint_loc = location.coordinates
         current_loc_array = self.driver.wherej().split(" ")
         #Retract the arm while keeping the z height, gripper width and rail constant
         if self.config.joints == 5:
            new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]}"
         else:
             new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]} {current_loc_array[6]}"
-        logging.info(f"Retracting to {new_loc}")
-        self.driver.movej(new_loc,  motion_profile=params.profile_id)
+        self.driver.movej(new_loc,  motion_profile=13)
 
     def Release(self, params: Command.Release) -> None:
         self.driver.safe_free()
@@ -117,13 +151,36 @@ class Pf400Server(ToolServer):
     def Engage(self, params: Command.Engage) -> None:
         self.driver.unfree()
 
-    def Move(self, params: Command.Move) -> None:
+    def moveTo(
+        self,
+        loc: Location,
+        z_offset: float = 0, #x, y, z offset
+        motion_profile_id: int = 1,
+    ) -> None:
+        if self.driver is None:
+            return
+        loc_type = loc.location_type
+        if loc_type == "c":
+            string_offset =  f"0 0 {z_offset} 0 0 0"
+            if self.config.joints == 5:
+                string_offset = " ".join(string_offset.split(" ")[:-1])
+            self.driver.movec(
+                str(loc.coordinates + Coordinate(string_offset)),
+                motion_profile=motion_profile_id,
+            )
+        #For now we only handle a z offset for joints
+        elif loc_type == "j":
+            string_offset = f"{z_offset} 0 0 0 0 0"
+            self.driver.movej(str(loc.coordinates + Coordinate(string_offset)), 
+                                motion_profile=motion_profile_id)
+        else:
+            raise Exception("Invalid location type")
+        
+    def Move(self, params: Command.Move, z_offset :float = 0) -> None:
         """Execute a move command with the given coordinate and motion profile."""
         location_name = params.name 
-        if location_name not in self.waypoints.locations:
-            raise KeyError("Location not found: " + location_name)
-        location= self.waypoints.locations[location_name]
-        self.driver.movej(location, motion_profile=params.motion_profile_id)
+        location = self._getLocation(location_name)
+        self.moveTo(location, z_offset, motion_profile_id=params.motion_profile_id)
 
     def GraspPlate(self, params: Command.GraspPlate) -> None:
         self.driver.graspplate(params.width, params.force, params.speed)
@@ -135,17 +192,19 @@ class Pf400Server(ToolServer):
         self,
         source_nest: str,
         grasp_params: Optional[Command.GraspPlate] = None,
-        nest_offset: tuple[float, float, float] = (0, 0, 0),
+        z_offset: float = 0,
         motion_profile_id: int = 1,
         grip_width: int = 0,
+        labware_name: str = None,
     ) -> None:
-        if source_nest not in self.waypoints.nests:
-            raise KeyError("Nest not found: " + source_nest)
-        safe_point: str = self.waypoints.nests[source_nest].safe_loc
+        source_location = self._getLocation(source_nest)
+        safe_location = self._getLocation(f"{source_nest}_safe")
+        labware = self._getLabware(f"{labware_name}")
+        labware_offset = labware.z_offset
         grasp: Command.GraspPlate
         if not grasp_params or (grasp_params.width == 0):
             tmp_grasp: Union[Command.GraspPlate,Command.ReleasePlate] = self.plate_handling_params[
-                self.waypoints.nests[source_nest].orientation
+                source_location.orientation
             ]["grasp"]
             if isinstance(tmp_grasp, Command.GraspPlate):
                 grasp = tmp_grasp
@@ -157,7 +216,7 @@ class Pf400Server(ToolServer):
             adjust_gripper = Command.ReleasePlate(width=grip_width, speed=10)
         else:
             tmp_adjust_gripper = self.plate_handling_params[
-                self.waypoints.nests[source_nest].orientation
+                source_location.orientation
             ]["release"]
             if isinstance(tmp_adjust_gripper, Command.ReleasePlate):
                 adjust_gripper = tmp_adjust_gripper
@@ -165,24 +224,13 @@ class Pf400Server(ToolServer):
                 raise Exception("Invalid release params")
         self.runSequence(
             [
-                Command.Move(waypoint=safe_point, motion_profile_id=1),
-                adjust_gripper,
-                # Command.Approach(
-                #     nest=source_nest,
-                #     x_offset=nest_offset[0],
-                #     y_offset=nest_offset[1],
-                #     z_offset=nest_offset[2],
-                #     motion_profile_id=motion_profile_id,
-                # ),
-                grasp,
-                # Command.Leave(
-                #     nest=source_nest,
-                #     x_offset=nest_offset[0],
-                #     y_offset=nest_offset[1],
-                #     z_offset=nest_offset[2],
-                #     motion_profile_id=motion_profile_id,
-                # ),
-                Command.Move(waypoint=safe_point, motion_profile_id=2),
+                Command.Move(name=safe_location.coordinates, motion_profile_id=motion_profile_id), #Move to the safe location 
+                adjust_gripper, #Adjust gripper
+                Command.Move(name=source_location.coordinates, motion_profile_id=motion_profile_id, z_offset=z_offset), #Move to the source location plus offset
+                Command.Move(name=safe_location.coordinates, motion_profile_id=14, z_offset=labware_offset), #Move to the nest location down in a straight pattern
+                grasp, #Grasp the plate
+                Command.Move(name=source_location.coordinates, motion_profile_id=14, z_offset=z_offset), #Move to the nest location up in a straight pattern
+                Command.Move(waypoint=safe_location.coordinates, motion_profile_id=motion_profile_id),
             ]
         )
 
@@ -191,17 +239,19 @@ class Pf400Server(ToolServer):
         self,
         destination_nest: str,
         release_params: Optional[Command.ReleasePlate] = None,
-        nest_offset: tuple[float, float, float] = (0, 0, 0),
+        z_offset: float = 0,
         motion_profile_id: int = 1,
-        grip_width: int = 0,
+        labware_name: str = None,
     ) -> None:
-        if destination_nest not in self.waypoints.nests:
-            raise KeyError("Nest not found: " + destination_nest)
-        safe_point: str = self.waypoints.nests[destination_nest].safe_loc
+        dest_location = self._getLocation(destination_nest)
+        safe_location = self._getLocation(f"{destination_nest}_safe")
         release: Command.ReleasePlate
+        labware = self._getLabware(f"{labware_name}")
+        labware_offset = labware.z_offset
+
         if not release_params or (release_params.width == 0):
             tmp_release: Union[Command.GraspPlate , Command.ReleasePlate] = self.plate_handling_params[
-                self.waypoints.nests[destination_nest].orientation
+                dest_location.orientation
             ]["release"]
             if isinstance(tmp_release, Command.ReleasePlate):
                 release = tmp_release
@@ -209,37 +259,22 @@ class Pf400Server(ToolServer):
                 raise Exception("Invalid release params")
         else:
             release = release_params
-        self.runSequence(
-            [
-                Command.Move(waypoint=safe_point, motion_profile_id=1),
-                # Command.Approach(
-                #     nest=destination_nest,
-                #     x_offset=nest_offset[0],
-                #     y_offset=nest_offset[1],
-                #     z_offset=nest_offset[2],
-                #     motion_profile_id=motion_profile_id,
-                # ),
-                release,
-                # Command.Leave(
-                #     nest=destination_nest,
-                #     x_offset=nest_offset[0],
-                #     y_offset=nest_offset[1],
-                #     z_offset=nest_offset[2],
-                #     motion_profile_id=motion_profile_id,
-                # ),
-                Command.Move(waypoint=safe_point, motion_profile_id=1),
-            ]
-        )
+            self.runSequence(
+                [
+                    Command.Move(name=safe_location.coordinates, motion_profile_id=motion_profile_id), #Move to the safe location 
+                    Command.Move(name=dest_location.coordinates, motion_profile_id=motion_profile_id, z_offset=z_offset), #Move to the dest location plus offset
+                    Command.Move(name=safe_location.coordinates, motion_profile_id=14,z_offset=labware_offset), #Move to the nest location down in a straight pattern
+                    release, #Grasp the plate
+                    Command.Move(name=dest_location.coordinates, motion_profile_id=14, z_offset=z_offset), #Move to the nest location up in a straight pattern
+                    Command.Move(waypoint=safe_location.coordinates, motion_profile_id=motion_profile_id), #Move back to the safe location 
+                ]
+            )
 
     def RetrievePlate(self, params: Command.RetrievePlate) -> None:
-        labware:Labware = self.all_labware.get_labware(params.labware)
-        offset = (0,0,labware.zoffset)
-        self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, nest_offset=offset)
+        self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.z_offset, labware_name=params.labware)
 
     def DropOffPlate(self, params: Command.DropOffPlate) -> None:
-        labware:Labware = self.all_labware.get_labware(params.labware)
-        offset = (0,0,labware.zoffset)
-        self.dropoff_plate(destination_nest=params.location, motion_profile_id=params.motion_profile_id, nest_offset=offset)
+        self.dropoff_plate(destination_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.z_offset, labware_name=params.labware)
 
     def Jog(self, params: Command.Jog) -> None:
         """Handle jog command from UI"""
