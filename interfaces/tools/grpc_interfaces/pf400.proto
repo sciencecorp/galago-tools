@@ -93,9 +93,11 @@ message Command {
   }
 
   message Transfer {
+
     string source_nest = 1;
     string destination_nest = 2;
-    optional int32 motion_profile_id = 3;
+    string labware = 3;
+    optional int32 motion_profile_id = 4;
   }
 
   message Wait {

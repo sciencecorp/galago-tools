@@ -284,31 +284,20 @@ class Pf400Server(ToolServer):
         self.driver.jog(params.axis, params.distance)
 
     def Transfer(self, params: Command.Transfer) -> None:
-        """Execute a transfer between source and destination coordinates."""
-        profile_id = getattr(params, 'motion_profile_id', 1)
-        
         self.retrieve_plate(
-            source_nest=params.source_nest.nest,
-            grasp_params=params.grasp_params,
-            nest_offset=(
-                params.source_nest.x_offset,
-                params.source_nest.y_offset,
-                params.source_nest.z_offset,
-            ),
-            motion_profile_id=profile_id,
-            grip_width=params.grip_width,
+            source_nest=params.source_nest,
+            motion_profile_id=params.motion_profile_id,
+            z_offset=5,
+            labware_name=params.labware
         )
-
+        self.runSequence(
+            Command.Retract(),
+        )
         self.dropoff_plate(
-            destination_nest=params.destination_nest.nest,
-            release_params=params.release_params,
-            nest_offset=(
-                params.destination_nest.x_offset,
-                params.destination_nest.y_offset,
-                params.destination_nest.z_offset,
-            ),
-            motion_profile_id=profile_id,
-            grip_width=params.grip_width,
+            destination_nest=params.destination_nest,
+            motion_profile_id=params.motion_profile_id,
+            z_offset=5,
+            labware_name=params.labware
         )
 
     def PickLid(self, params: Command.PickLid) -> None:
