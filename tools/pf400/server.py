@@ -32,6 +32,7 @@ from google.protobuf.json_format import Parse
 DEFAULT_MOTION_PROFILES : MotionProfiles = [
     #curved motion profile
     MotionProfile(
+        name="default_curved",
         id=13,
         speed=80,
         speed2=80,
@@ -44,6 +45,7 @@ DEFAULT_MOTION_PROFILES : MotionProfiles = [
     ), 
     #straight motion profile
     MotionProfile(
+        name="default_straight",
         id=14,
         speed=80,
         speed2=80,
@@ -70,13 +72,13 @@ class Pf400Server(ToolServer):
 
     def _configure(self, request: Config) -> None:
         self.config = request
-        if self.driver:
-            self.driver.close()
-        self.driver = Pf400Driver(
-            tcp_host=request.host,
-            tcp_port=request.port
-        )
-        self.driver.initialize()
+        # if self.driver:
+        #     self.driver.close()
+        # self.driver = Pf400Driver(
+        #     tcp_host=request.host,
+        #     tcp_port=request.port
+        # )
+        # self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
     def _getLocation(self, location_name: str) -> Location:
@@ -129,6 +131,10 @@ class Pf400Server(ToolServer):
         sequences_list = waypoints_dictionary.get("sequences")
         sequences = ArmSequences.parse_obj({"sequences":sequences_list})
         self.sequences = sequences
+
+        #Test getting a sequences 
+        sequence = self._getSequence("pick_plate")
+        logging.info(sequence)
 
 
     def LoadLabware(self, params: Command.LoadLabware) -> None:
@@ -347,7 +353,8 @@ class Pf400Server(ToolServer):
         labware:Labware = self._getLabware(params.labware)
         location: Location = self._getLocation(params.location)
         safe_location = self._getLocation(f"{location}_safe")
-        release: Command.ReleasePlate
+
+        release: Command.GraspPlate
         tmp_release: Union[Command.GraspPlate, Command.ReleasePlate] = self.plate_handling_params[
             location.orientation
         ]["release"]
@@ -356,30 +363,31 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid release params")
         
+        tmp_adjust_gripper = self.plate_handling_params[location.orientation]["release"]
+        if isinstance(tmp_adjust_gripper, Command.ReleasePlate):
+            adjust_gripper = tmp_adjust_gripper
+        else:
+            raise Exception("Invalid release params")
+
         logging.info("Place lid params are "+ str(params.place_on_plate))
         if params.place_on_plate:
             lid_height = labware.height - 4 + labware.plate_lid_offset
         else:
             lid_height = labware.plate_lid_offset + labware.lid_offset
-
+            
         self.runSequence(
             [
-                # Command.Approach(
-                #     nest=params.location,
-                #     z_offset=lid_height,
-                #     motion_profile_id=params.motion_profile_id,
-                #     ignore_safepath="true"
-                # ),
+                adjust_gripper,
+                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location 
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
+                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=lid_height), #Move to the calculated heigh
                 release,
-                # Command.Approach(
-                #     nest=params.location,
-                #     z_offset=lid_height + 8,
-                #     motion_profile_id=params.motion_profile_id,
-                #     ignore_safepath="true"
-                # ),
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
+                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location
             ]
         )
 
+        
     def Wait(self, params: Command.Wait) -> None:
         self.driver.wait(duration=params.duration)
 
