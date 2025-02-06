@@ -141,13 +141,13 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
             if error is not None:
                 return tool_base_pb2.ExecuteCommandReply(response=error, return_reply=True)
             if method_name != "RunProgram":
-                logging.debug(f"Sleeping for estimated duration: {duration}")
+                #logging.debug(f"Sleeping for estimated duration: {duration}")
                 time.sleep(float(duration if duration else 0))
                 return tool_base_pb2.ExecuteCommandReply(response=tool_base_pb2.SUCCESS, return_reply=True)
             else:
                 try:
                     response_tmp = method(command, simulated=True)
-                    logging.debug(f"Simulated response: {response_tmp}")
+                    #logging.debug(f"Simulated response: {response_tmp}")
                     if response_tmp is None:
                         response = tool_base_pb2.ExecuteCommandReply(
                             response=tool_base_pb2.SUCCESS,
@@ -159,7 +159,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                             error_message=response_tmp.error_message,
                             return_reply=response_tmp.return_reply,
                         )
-                    logging.debug(f"Simulated response for return: {response}")
+                    #logging.debug(f"Simulated response for return: {response}")
                     return response
                 except KeyError as e:
                     logging.debug(f"Simulated error: {str(e)}")

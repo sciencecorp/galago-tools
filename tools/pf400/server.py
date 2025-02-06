@@ -9,21 +9,20 @@ from google.protobuf.struct_pb2 import Struct
 import logging
 from tools.pf400.waypoints_models import (
     Waypoints,
-    MotionProfile,
-    Grip
+    MotionProfiles,
+    Grips,
+    Location,
+    Labwares,
+    ArmSequences
 )       
 import json 
 from google.protobuf.struct_pb2 import Struct
 import typing as t
-
-def struct_to_dict(struct: Struct) -> t.Any:
-    out = {}
-    for key, value in struct.items():
-        if isinstance(value, Struct):
-            out[key] = struct_to_dict(value)
-        else:
-            out[key] = value
-    return out
+from google.protobuf.json_format import MessageToDict
+from google.protobuf.struct_pb2 import Struct, Value, ListValue
+from google.protobuf import json_format
+from pydantic import TypeAdapter
+from typing import List
 
 class Pf400Server(ToolServer):
     toolType = "pf400"
@@ -33,7 +32,8 @@ class Pf400Server(ToolServer):
         self.config : Config 
         self.driver: Pf400Driver
         self.waypoints: Waypoints
-        self.sequence_location : str
+        self.labwares : Labwares
+        self.sequences : ArmSequences
         self.plate_handling_params : dict[str, dict[str, Union[Command.GraspPlate, Command.ReleasePlate]]] = {}
 
     def _configure(self, request: Config) -> None:
@@ -47,49 +47,50 @@ class Pf400Server(ToolServer):
         #self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
+    def _getLocation(self, location_name: str) -> Location:
+        location = next((x for x in self.waypoints.locations if x.name == location_name), None)
+        if not location:
+            raise Exception(f"Location '{location_name}' not found")
+        return location
+    
+    def _getLabware(self, labware_name: str) -> Labware:
+        labware = next((x for x in self.labwares.labwares if x.name == labware_name), None)
+        if not labware:
+            raise Exception(f"Labware '{labware_name}' not found")
+        return labware
+    
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
-        #Locations 
-        logging.info("Loading waypoints")
-        logging.info(params.locations)
-        locations_dict = struct_to_dict(params.locations)
-        logging.info("Dictionary length is " + str(len(locations_dict)))
-        logging.info(locations_dict)
+        #Load locations
+        waypoints_dictionary = json_format.MessageToDict(params.waypoints)
+        locations_list : Waypoints = waypoints_dictionary.get("locations")
+        self.waypoints = Waypoints.parse_obj({"locations": locations_list})
 
-        # logging.info("There is a total of " + str(len(self.waypoints.locations)) + " locations")
-        # test_location = "VCode 2 Nest"
-        # if test_location in self.waypoints.locations:
-        #     logging.info("Found test location")
-        #     # logging.info(self.waypoints.locations[test_location])
+        #Load grips
+        grips_list = waypoints_dictionary.get("grip_params")
+        grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
 
-        # #Plate handling params 
-        # plate_handling_params : dict[str, Grip] = json.loads(params.plate_handling_params.to_json())
-        # plate_handling_params = Grip.parse_obj(plate_handling_params)
+        for grip in grip_params.grip_params:
+            plate_width = grip.width
+            grip_force = grip.force
+            grip_speed = grip.speed
+            self.plate_handling_params[grip.name] = {
+                "grasp": Command.GraspPlate(width=plate_width, force=grip_force, speed=grip_speed),
+                "release": Command.ReleasePlate(width=plate_width+10, speed=grip_speed)
+            }
 
-        # if "landscape" not in plate_handling_params.grip_params or "portrait" not in plate_handling_params.grip_params:
-        #     raise KeyError("missing lanndscape or portrait grip settings")
-        
-        # for grip in plate_handling_params:
-        #     plate_width = grip["width"]
-        #     grip_force = grip["force"]
-        #     grip_speed = grip["speed"]
-        #     self.plate_handling_params[grip] = {
-        #         "grasp": Command.GraspPlate(width=plate_width, force=grip_force, speed=grip_speed),
-        #         "release": Command.ReleasePlate(width=plate_width, speed=grip_speed)
-        #     }
+        #Load and register profiles 
+        motion_profiles_list = waypoints_dictionary.get("motion_profiles")
+        motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
+        for motion_profile in motion_profiles:
+            self.driver.register_motion_profile(str(motion_profile))
 
-        # #Load and register profiles 
-        # motion_profiles_list : list[MotionProfile] = json.loads(params.motion_profiles.to_json())
-        # motion_profiles_list = MotionProfile.parse_obj(motion_profiles_list)
+        # #Load Sequences 
+        sequences_list = waypoints_dictionary.get("sequences")
+        sequences = ArmSequences.parse_obj({"sequences":sequences_list})
+        self.sequences = sequences
 
-        # for motion_profile in motion_profiles_list:
-        #     self.driver.register_motion_profile(str(motion_profile))
 
-    def LoadLabware(self, params: Command.LoadLabware) -> None: 
-        logging.info("Loading labware")
-        # labware_dict = json.loads(params.labware.to_json())
-        # labware_list = Labware.parse_obj(labware_dict)
-        # # logging.info(labware_dict)
-        # # logging.info(labware_list)
+
 
     def Retract(self,params: Command.Retract) -> None:
         waypoint_name = "retract"

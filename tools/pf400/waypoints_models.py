@@ -41,7 +41,10 @@ class Coordinate(str):
 
 
 class Location(BaseModel):
-    loc: Coordinate
+    name: str
+    tool_id: int
+    id: int
+    coordinates: Coordinate
     location_type: t.Literal["j", "c"]
 
 class Nest(BaseModel):
@@ -49,20 +52,23 @@ class Nest(BaseModel):
     safe_loc: str
     orientation: t.Literal["portrait", "landscape"]
 
-
 class MotionProfile(BaseModel):
     id: int  # motion profile id
+    name: str # motion profile name
     speed: float  # peak motion speed as percentage
     speed2: float  # secondary peak motion speed as percentage for cartesian moves
     acceleration: float  # peak motion acceleration as percentage
     deceleration: float  # peak motion deceleration as percentage
-    accelramp: float  # acceleration ramp time in seconds
-    decelramp: float  # deceleration ramp time in seconds
+    accel_ramp: float  # acceleration ramp time in seconds
+    decel_ramp: float  # deceleration ramp time in seconds
     inrange: float  # Distance from target to consider motion complete
     straight: int  # Boolean determining if the motion is curved/0 or straight/-1
 
     def __str__(self) -> str:
-        return f"{self.id} {self.speed} {self.speed2} {self.acceleration} {self.deceleration} {self.accelramp} {self.decelramp} {self.inrange} {self.straight}"
+        return f"{self.id} {self.speed} {self.speed2} {self.acceleration} {self.deceleration} {self.accel_ramp} {self.decel_ramp} {self.inrange} {self.straight}"
+
+class MotionProfiles(BaseModel):
+    profiles: list[MotionProfile]
 
 class Labware(BaseModel):
     id: int
@@ -80,14 +86,23 @@ class Labware(BaseModel):
     has_lid: bool
     image_url: str
 
+class Labwares(BaseModel):
+    labwares: list[Labware]
+
 class Grip(BaseModel):
     id: int
     width: int
     speed: int 
     force: int 
+    name: str
+    id: int
+    tool_id: int
 
+class Grips(BaseModel):
+    grip_params: list[Grip]
+    
 class Waypoints(BaseModel):
-    locations: dict[str, Location]
+    locations: list[Location]
 
 class SequenceCommand(BaseModel):
     command: str
@@ -97,3 +112,6 @@ class ArmSequence(BaseModel):
     name: str
     description: str
     commands: list[SequenceCommand]
+
+class ArmSequences(BaseModel):
+    sequences: list[ArmSequence]
