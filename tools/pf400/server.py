@@ -182,11 +182,11 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid location type")
         
-    def Move(self, params: Command.Move, z_offset :float = 0) -> None:
+    def Move(self, params: Command.Move) -> None:
         """Execute a move command with the given coordinate and motion profile."""
         location_name = params.name 
         location = self._getLocation(location_name)
-        self.moveTo(location, z_offset, motion_profile_id=params.motion_profile_id)
+        self.moveTo(location, params.z_offset, motion_profile_id=params.motion_profile_id)
 
     def GraspPlate(self, params: Command.GraspPlate) -> None:
         self.driver.graspplate(params.width, params.force, params.speed)
