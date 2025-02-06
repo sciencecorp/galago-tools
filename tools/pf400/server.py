@@ -132,11 +132,6 @@ class Pf400Server(ToolServer):
         sequences = ArmSequences.parse_obj({"sequences":sequences_list})
         self.sequences = sequences
 
-        #Test getting a sequences 
-        sequence = self._getSequence("pick_plate")
-        logging.info(sequence)
-
-
     def LoadLabware(self, params: Command.LoadLabware) -> None:
         labware_dictionary = MessageToDict(params.labwares)
         labware_lst = labware_dictionary.get("labwares")
@@ -363,12 +358,6 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid release params")
         
-        tmp_adjust_gripper = self.plate_handling_params[location.orientation]["release"]
-        if isinstance(tmp_adjust_gripper, Command.ReleasePlate):
-            adjust_gripper = tmp_adjust_gripper
-        else:
-            raise Exception("Invalid release params")
-
         logging.info("Place lid params are "+ str(params.place_on_plate))
         if params.place_on_plate:
             lid_height = labware.height - 4 + labware.plate_lid_offset
@@ -377,7 +366,6 @@ class Pf400Server(ToolServer):
             
         self.runSequence(
             [
-                adjust_gripper,
                 Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location 
                 Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
                 Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=lid_height), #Move to the calculated heigh
@@ -387,7 +375,6 @@ class Pf400Server(ToolServer):
             ]
         )
 
-        
     def Wait(self, params: Command.Wait) -> None:
         self.driver.wait(duration=params.duration)
 
@@ -424,22 +411,29 @@ class Pf400Server(ToolServer):
         return command_dictionary[command_name]
 
     def RunSequence(self, params: Command.RunSequence) -> None:
+        logging.info("Running sequence")    
         commandSequence : list[message.Message] = list()
         sequence = self._getSequence(params.sequence_name)
         logging.info(f"Running sequence {sequence.name}")
-        for arm_command in sequence:
-            command_params :t.Any = arm_command['params']
-            command_name :str = arm_command['command']
+        logging.info(f"Sequence has {len(sequence.commands)} commands")
+        logging.info(f"Sequence has {len(sequence.commands)} commands")
+        for arm_command in sequence.commands:
+            logging.info(f"Command {arm_command.command} with params {arm_command.params}")
+            command_params :t.Any = arm_command.params
+            command_name :str = arm_command.command
             command_type : t.Any = self.command_instance_from_name(command_name)
+            logging.info(f"Command type is {command_type}")
             command : t.Any  = getattr(Command, command_type)
 
             if command_name == 'dropoff_plate' or command_name == 'retrieve_plate'  or command_name == 'pick_lid' or command_name == 'place_lid':
                 if params.labware is not None:
                     command_params["labware"] = params.labware
-            command_parsed = Parse(json.dumps(command_params), command())
-            commandSequence.append(command_parsed)
-
-        #At the end run the sequence through tools
+            try:
+                command_parsed = Parse(json.dumps(command_params), command())
+                commandSequence.append(command_parsed)
+            except Exception as e:
+                logging.error(f"Error parsing command {command_name} with params {command_params}: {e}")
+                raise Exception(f"Error parsing command {command_name} with params {command_params}: {e}")
         self.runSequence(commandSequence)
     
     def estimateRelease(self, params: Command.Release) -> int:
