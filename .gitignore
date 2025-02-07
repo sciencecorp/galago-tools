@@ -27,6 +27,8 @@ Procfile.*
 Procfile.tools
 
 *.pdf 
+*.whl
+
 
 # python
 .ruff_cache
