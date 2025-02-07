@@ -33,4 +33,4 @@ Procfile.tools
 **/*.egg-info
 .mypy_cache
 app_config.json
-tools/build/*
+build/*
