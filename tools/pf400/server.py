@@ -369,7 +369,6 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid release params")
         
-        logging.info("Place lid params are "+ str(params.place_on_plate))
         if params.place_on_plate:
             lid_height = labware.height - 4 + labware.plate_lid_offset
         else:
@@ -422,18 +421,14 @@ class Pf400Server(ToolServer):
         return command_dictionary[command_name]
 
     def RunSequence(self, params: Command.RunSequence) -> None:
-        logging.info("Running sequence")    
         commandSequence : list[message.Message] = list()
         sequence = self._getSequence(params.sequence_name)
-        logging.info(f"Sequence name is {sequence.name}")
         logging.info(f"Sequence has {len(sequence.commands)} commands")
         for arm_command in sequence.commands:
-            logging.info(f"Command {arm_command.command} with params {arm_command.params}")
             command_params :t.Any = arm_command.params
 
             command_name :str = arm_command.command
             command_type : t.Any = self.command_instance_from_name(command_name)
-            logging.info(f"Command type is {command_type}")
             command : t.Any  = getattr(Command, command_type)
 
             if command_name == 'dropoff_plate' or command_name == 'retrieve_plate'  or command_name == 'pick_lid' or command_name == 'place_lid':
@@ -445,7 +440,6 @@ class Pf400Server(ToolServer):
             except Exception as e:
                 logging.error(f"Error parsing command {command_name} with params {command_params}: {e}")
                 raise Exception(f"Error parsing command {command_name} with params {command_params}: {e}")
-        logging.info(f"Sequence length is {len(commandSequence)}")
         self.runSequence(commandSequence)
 
     def estimateRelease(self, params: Command.Release) -> int:
