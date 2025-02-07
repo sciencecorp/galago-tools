@@ -69,13 +69,13 @@ class Pf400Server(ToolServer):
 
     def _configure(self, request: Config) -> None:
         self.config = request
-        # if self.driver:
-        #     self.driver.close()
-        # self.driver = Pf400Driver(
-        #     tcp_host=request.host,
-        #     tcp_port=request.port
-        # )
-        # self.driver.initialize()
+        if self.driver:
+            self.driver.close()
+        self.driver = Pf400Driver(
+            tcp_host=request.host,
+            tcp_port=request.port
+        )
+        self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
     def _getLocation(self, location_name: str) -> Location:
