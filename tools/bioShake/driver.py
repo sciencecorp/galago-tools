@@ -10,8 +10,7 @@ from tools.base_server import ABCToolDriver
 
 
 class BioshakeDriver(ABCToolDriver):
-    def __init__(self, port: str = "COM7"):
-        """Initialize the driver with given parameters."""
+    def __init__(self, port: str):
         self.port: str = port
         self.ser: t.Optional[serial.Serial] = None
         self.command_queue: queue.Queue = queue.Queue()
