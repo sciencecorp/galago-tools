@@ -69,13 +69,13 @@ class Pf400Server(ToolServer):
 
     def _configure(self, request: Config) -> None:
         self.config = request
-        if self.driver:
-            self.driver.close()
-        self.driver = Pf400Driver(
-            tcp_host=request.host,
-            tcp_port=request.port
-        )
-        self.driver.initialize()
+        # if self.driver:
+        #     self.driver.close()
+        # self.driver = Pf400Driver(
+        #     tcp_host=request.host,
+        #     tcp_port=request.port
+        # )
+        # self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
     def _getLocation(self, location_name: str) -> Location:
@@ -127,12 +127,14 @@ class Pf400Server(ToolServer):
         # #Load Sequences 
         sequences_list = waypoints_dictionary.get("sequences")
         sequences = ArmSequences.parse_obj({"sequences":sequences_list})
+        logging.info(f"Loaded {len(sequences.sequences)} sequences")
         self.sequences = sequences
 
     def LoadLabware(self, params: Command.LoadLabware) -> None:
         labware_dictionary = MessageToDict(params.labwares)
         labware_lst = labware_dictionary.get("labwares")
         self.labwares = Labwares.parse_obj({"labwares": labware_lst})
+        logging.info(f"Loaded {len(self.labwares.labwares)} labwares")
 
     def _retract(self) -> None:
         location = next((x for x in self.waypoints.locations if x.name.lower() in {"unwind", "retract"}), None)

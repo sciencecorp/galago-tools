@@ -232,7 +232,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
         command, error, error_msg = self.parseCommand(request)
 
         if error is not None:
-            logging.error(f"Tool{self.toolId}, Command:{command}, Error={error_msg}")
+            logging.error(f"Tool{self.toolId}, Command:{command.__class__.__name__}, Error={error_msg}")
             self.last_error = error_msg
             return tool_base_pb2.ExecuteCommandReply(
                 response=error, error_message=error_msg
@@ -240,8 +240,11 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
 
         if command is not None:
             try:
-                logging.debug(f"Setting {self.toolId} to BUSY")
+                logging.debug("Setting tool to BUSY")
                 self.setStatus(tool_base_pb2.BUSY)
+                logging.info(f"Running command {command.__class__.__name__}")
+                command_dict = MessageToDict(self.config)
+                logging.info(f"Parameters: {str(command_dict)}")
                 response = self._dispatchCommand(command)
                 logged_response = str(response)
                 logged_response = (logged_response[:100] + '...') if len(logged_response) > 100 else logged_response
