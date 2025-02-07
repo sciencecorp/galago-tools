@@ -243,8 +243,6 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 logging.debug("Setting tool to BUSY")
                 self.setStatus(tool_base_pb2.BUSY)
                 logging.info(f"Running command {command.__class__.__name__}")
-                command_dict = MessageToDict(self.config)
-                logging.info(f"Parameters: {str(command_dict)}")
                 response = self._dispatchCommand(command)
                 logged_response = str(response)
                 logged_response = (logged_response[:100] + '...') if len(logged_response) > 100 else logged_response
