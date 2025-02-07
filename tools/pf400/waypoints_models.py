@@ -95,7 +95,6 @@ class Grip(BaseModel):
     speed: int 
     force: int 
     name: str
-    id: int
     tool_id: int
 
 class Grips(BaseModel):

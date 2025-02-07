@@ -1,4 +1,3 @@
-import os
 import json 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.pf400_pb2 import Command, Config
@@ -20,9 +19,7 @@ from tools.pf400.waypoints_models import (
     Coordinate,
     Labware
 )       
-from google.protobuf.struct_pb2 import Struct
 from google.protobuf.json_format import MessageToDict
-from google.protobuf.struct_pb2 import Struct
 from google.protobuf import json_format
 from google.protobuf import message
 import typing as t  
@@ -211,33 +208,10 @@ class Pf400Server(ToolServer):
         safe_location = self._getLocation(f"{source_nest}_safe")
         labware = self._getLabware(f"{labware_name}")
         labware_offset = labware.z_offset
-        logging.info(f"z-offset is {labware_offset}")
         labware_offset = int(labware_offset)
-        logging.info(f"labware height is {labware.height}")
-        labware_height = int(labware.height)
-        logging.info(f"labware plate lid offset is {labware.plate_lid_offset}")
-        labware_plate_lid_offset = int(labware.plate_lid_offset)
-        logging.info(f"labware lid offset is {labware.lid_offset}")
-        labware_lid_offset = int(labware.lid_offset)
-        logging.info(f"motion profile id is {motion_profile_id}")
         motion_profile_id = int(motion_profile_id)
-        logging.info(f"grip width is {grip_width}")
         grip_width = int(grip_width)
-        logging.info(f"labware name is {labware_name}")
-
-
-        logging.info(f"source nest is {source_nest}")
         z_offset = int(z_offset)
-        logging.info(f"z-offset is {z_offset}")
-        motion_profile = int(motion_profile_id)
-        logging.info(f"motion profile is {motion_profile}")
-
-
-
-        logging.info("sAFE Location is" + str(safe_location))
-
-
-
         grasp: Command.GraspPlate
         if not grasp_params or (grasp_params.width == 0):
             tmp_grasp: Union[Command.GraspPlate,Command.ReleasePlate] = self.plate_handling_params[

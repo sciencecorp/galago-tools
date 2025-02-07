@@ -1,4 +1,3 @@
-import os
 import json 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.pf400_pb2 import Command, Config
@@ -20,16 +19,14 @@ from tools.pf400.waypoints_models import (
     Coordinate,
     Labware
 )       
-from google.protobuf.struct_pb2 import Struct
 from google.protobuf.json_format import MessageToDict
-from google.protobuf.struct_pb2 import Struct
 from google.protobuf import json_format
 from google.protobuf import message
 import typing as t  
 from google.protobuf.json_format import Parse
 
 #Default motion profiles, use for retrieve and dropoff
-DEFAULT_MOTION_PROFILES : MotionProfiles = [
+DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
     #curved motion profile
     MotionProfile(
         name="default_curved",
@@ -102,8 +99,8 @@ class Pf400Server(ToolServer):
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
         logging.info("Loading waypoints")
         #Load locations
-        waypoints_dictionary = json_format.MessageToDict(params.waypoints)
-        locations_list : Waypoints = waypoints_dictionary.get("locations")
+        waypoints_dictionary: dict[str, t.Any] = json_format.MessageToDict(params.waypoints)
+        locations_list = waypoints_dictionary.get("locations", [])
         self.waypoints = Waypoints.parse_obj({"locations": locations_list})
         logging.info(f"Loaded {len(self.waypoints.locations)} locations")
         
@@ -121,7 +118,7 @@ class Pf400Server(ToolServer):
         motion_profiles_list = waypoints_dictionary.get("motion_profiles")
         motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
         logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
-        for motion_profile in motion_profiles:
+        for motion_profile in motion_profiles.profiles:
             self.driver.register_motion_profile(str(motion_profile))
         #Register default motion profiles
         for motion_profile in DEFAULT_MOTION_PROFILES:
@@ -205,39 +202,16 @@ class Pf400Server(ToolServer):
         z_offset: float = 0,
         motion_profile_id: int = 1,
         grip_width: int = 0,
-        labware_name: str = None,
+        labware_name: str = "",
     ) -> None:
         source_location = self._getLocation(source_nest)
         safe_location = self._getLocation(f"{source_nest}_safe")
         labware = self._getLabware(f"{labware_name}")
         labware_offset = labware.z_offset
-        logging.info(f"z-offset is {labware_offset}")
         labware_offset = int(labware_offset)
-        logging.info(f"labware height is {labware.height}")
-        labware_height = int(labware.height)
-        logging.info(f"labware plate lid offset is {labware.plate_lid_offset}")
-        labware_plate_lid_offset = int(labware.plate_lid_offset)
-        logging.info(f"labware lid offset is {labware.lid_offset}")
-        labware_lid_offset = int(labware.lid_offset)
-        logging.info(f"motion profile id is {motion_profile_id}")
         motion_profile_id = int(motion_profile_id)
-        logging.info(f"grip width is {grip_width}")
         grip_width = int(grip_width)
-        logging.info(f"labware name is {labware_name}")
-
-
-        logging.info(f"source nest is {source_nest}")
         z_offset = int(z_offset)
-        logging.info(f"z-offset is {z_offset}")
-        motion_profile = int(motion_profile_id)
-        logging.info(f"motion profile is {motion_profile}")
-
-
-
-        logging.info("sAFE Location is" + str(safe_location))
-
-
-
         grasp: Command.GraspPlate
         if not grasp_params or (grasp_params.width == 0):
             tmp_grasp: Union[Command.GraspPlate,Command.ReleasePlate] = self.plate_handling_params[
@@ -279,7 +253,7 @@ class Pf400Server(ToolServer):
         release_params: Optional[Command.ReleasePlate] = None,
         z_offset: float = 0,
         motion_profile_id: int = 1,
-        labware_name: str = None,
+        labware_name: str = "",
     ) -> None:
         dest_location = self._getLocation(destination_nest)
         safe_location = self._getLocation(f"{destination_nest}_safe")
@@ -301,11 +275,11 @@ class Pf400Server(ToolServer):
         self.runSequence(
             [
                 Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id), #Move to the safe location 
-                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, z_offset=z_offset), #Move to the dest location plus offset
+                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, z_offset=int(z_offset)), #Move to the dest location plus offset
 
                 Command.Move(name=dest_location.name, motion_profile_id=14,z_offset=labware_offset), #Move to the nest location down in a straight pattern
                 release, #Grasp the plate
-                Command.Move(name=dest_location.name, motion_profile_id=14, z_offset=z_offset), #Move to the nest location up in a straight pattern
+                Command.Move(name=dest_location.name, motion_profile_id=14, z_offset=int(z_offset)), #Move to the nest location up in a straight pattern
                 Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id), #Move back to the safe location 
             ]
         )
@@ -373,10 +347,10 @@ class Pf400Server(ToolServer):
             [
                 adjust_gripper,
                 Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location 
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
-                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=lid_height), #Move to the calculated heigh
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
+                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height)), #Move to the calculated heigh
                 grasp,
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
                 Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location
             ]
         )
@@ -386,7 +360,7 @@ class Pf400Server(ToolServer):
         location: Location = self._getLocation(params.location)
         safe_location = self._getLocation(f"{location}_safe")
 
-        release: Command.GraspPlate
+        release: Command.ReleasePlate
         tmp_release: Union[Command.GraspPlate, Command.ReleasePlate] = self.plate_handling_params[
             location.orientation
         ]["release"]
@@ -404,10 +378,10 @@ class Pf400Server(ToolServer):
         self.runSequence(
             [
                 Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location 
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
-                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=lid_height), #Move to the calculated heigh
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
+                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height)), #Move to the calculated heigh
                 release,
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=lid_height+6), #Move to the location plus offset
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
                 Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location
             ]
         )
