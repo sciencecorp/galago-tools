@@ -195,7 +195,7 @@ class RobotInitializer:
         response = self.communicator.send_command("hp")
         if response != "0 1":
             logging.info("Turning on power...")
-            response = self.communicator.send_command("hp 1 10")  # Reduced from 30 to 10
+            response = self.communicator.send_command("hp 1 30")  # Reduced from 30 to 10
             if response != "0":
                 raise Exception(f"Could not turn power on: {response}")
             
