@@ -4,6 +4,7 @@ import logging
 import threading 
 import time
 from tools.base_server import ABCToolDriver
+from typing import Union
 
 try:
     import pythoncom
@@ -124,22 +125,14 @@ class PlateLocDriver(ABCToolDriver):
     def show_diagnostics(self) -> None:
         self.schedule_threaded_command("show_diagnostics",{})
 
-
-    def schedule_threaded_command(self, command: str, arguments: dict) -> None:
-        with self.lock:  # Ensuring that only one command executes at a time
-            self.execution_thread = threading.Thread(target=self.execute_command(command, arguments))
-            self.execution_thread.daemon = True
-            self.execution_thread.start()
-
-
-    def schedule_threaded_command_v1(self, command:str, arguments:dict) -> None:
-        self.execution_thread = threading.Thread(target=self.execute_command(command, arguments))
+    def schedule_threaded_command(self, command:str, arguments:dict) -> None:  # type: ignore
+        self.execution_thread = threading.Thread(target=self.execute_command(command, arguments,)) # type: ignore
         self.execution_thread.daemon = True
         self.execution_thread.start()
         return None
 
     def execute_command(self, command:str, arguments:dict) -> None:
-        response = 0
+        response : Union[int, tuple] = 0
         try:
             if command == "initialize":
                 response = self.client.Initialize(arguments["profile"])
@@ -173,13 +166,14 @@ class PlateLocDriver(ABCToolDriver):
             pythoncom.CoUninitialize()
             logging.info(f"Received response is {response}")
             logging.info(f"Reponse type is {type(response)}")
-            if(type(response) == int):
-                if(response != 0):
-                    error : str = self.client.GetLastError()
+            error : str = ""
+            if isinstance(response, tuple):
+                if response[0] != 0:
+                    error = self.client.GetLastError()
                     raise RuntimeError(f"Failed to execute command {error}")
-            if(type(response) == tuple):
-                if(response[0] != 0):
-                    error : str = self.client.GetLastError()
+            elif isinstance(response, int):
+                if response != 0:
+                    error = self.client.GetLastError()
                     raise RuntimeError(f"Failed to execute command {error}")
             return None
 
