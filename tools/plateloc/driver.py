@@ -78,6 +78,7 @@ class PlateLocDriver(ABCToolDriver):
         self.profile: str = profile
         self.live : bool  = False
         self.client :AxPlateLoc
+        self.lock = threading.Lock()  # To synchronize access to the device
         self.instantiate()
         self.initialize()
 
@@ -100,11 +101,11 @@ class PlateLocDriver(ABCToolDriver):
         self.schedule_threaded_command("seal", {})
         return 
     
-    def set_seal_time(self, time:int) -> None:
+    def set_seal_time(self, time:float) -> None:
         self.schedule_threaded_command("set_seal_time", {"time":time})
         return 
 
-    def set_temperature(self, temperature:int) -> None:
+    def set_temperature(self, temperature:float) -> None:
         self.schedule_threaded_command("set_temperature", {"temperature":temperature})
         return 
     
@@ -123,8 +124,16 @@ class PlateLocDriver(ABCToolDriver):
     def show_diagnostics(self) -> None:
         self.schedule_threaded_command("show_diagnostics",{})
 
-    def schedule_threaded_command(self, command:str, arguments:dict) -> None:
-        self.execution_thread = threading.Thread(target=self.execute_command, args=(command,arguments,))
+
+    def schedule_threaded_command(self, command: str, arguments: dict) -> None:
+        with self.lock:  # Ensuring that only one command executes at a time
+            self.execution_thread = threading.Thread(target=self.execute_command(command, arguments))
+            self.execution_thread.daemon = True
+            self.execution_thread.start()
+
+
+    def schedule_threaded_command_v1(self, command:str, arguments:dict) -> None:
+        self.execution_thread = threading.Thread(target=self.execute_command(command, arguments))
         self.execution_thread.daemon = True
         self.execution_thread.start()
         return None
@@ -163,23 +172,29 @@ class PlateLocDriver(ABCToolDriver):
             time.sleep(1)
             pythoncom.CoUninitialize()
             logging.info(f"Received response is {response}")
-            if(response != 0):
-                error : str = self.client.GetLastError()
-                raise RuntimeError(f"Failed to execute command {error}")
+            logging.info(f"Reponse type is {type(response)}")
+            if(type(response) == int):
+                if(response != 0):
+                    error : str = self.client.GetLastError()
+                    raise RuntimeError(f"Failed to execute command {error}")
+            if(type(response) == tuple):
+                if(response[0] != 0):
+                    error : str = self.client.GetLastError()
+                    raise RuntimeError(f"Failed to execute command {error}")
             return None
 
 
 ##Non threaded commands work fine except via grpc, still not sure why but this is the only way I made it work. Eg. repace schedule_threaded_command with execute_command
-# if __name__ == "__main__":
-#     logging.basicConfig(level=logging.DEBUG)
-#     driver = PlateLocDriver("plateLoc")
-#     driver.initialize()
-#     # driver.set_seal_time()
-#     # driver.set_temperature()
-#     # driver.get_actual_temperature()
-#     driver.stage_in()
-#     driver.stage_out()
-#     driver.stage_in()
-#     driver.stage_out()
-#     driver.show_diagnostics()
-#     #driver.close()
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    driver = PlateLocDriver("plateLoc")
+    driver.initialize()
+    driver.set_seal_time(2.5)
+    # driver.set_temperature()
+    # driver.get_actual_temperature()
+    # driver.stage_in()
+    # driver.stage_out()
+    # driver.stage_in()
+    # driver.stage_out()
+    # driver.show_diagnostics()
+    # #driver.close()
