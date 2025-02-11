@@ -232,6 +232,7 @@ class BioshakeDriver(ABCToolDriver):
         self._send_command("sonwr" + str(seconds))
         while self._get_shake_state() != "Home":
             time.sleep(0.1)
+        self.ungrip()
 
     def get_shake_remaining_time(self) -> int:
         return self._get_remaining_time()
