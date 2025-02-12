@@ -1,4 +1,4 @@
-grpcio-tools==1.51.1
+grpcio-tools==1.70.0
 pydantic==2.8.2
 pythonnet==3.0.1
 requests==2.29.0 
