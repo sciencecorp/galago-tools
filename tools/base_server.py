@@ -24,6 +24,10 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
 
+
+logging.info("Grpc location", str(grpc.__file__))
+logging.info("The system path is", sys.path)
+
 class ABCToolDriver:
     """
     The ABCToolDriver is a dummy class, which responds to any method call with a

@@ -56,12 +56,12 @@ class Db:
         return False
         
 
-if __name__ == "__main__":  
-    print(Db.check_connection())
-    print(Db.get_data("workcells"))
-    print(Db.get_by_id_or_name(1, "workcells"))
-    print(Db.post_data({"name":"workcell_3"}, "workcells"))
-    print(Db.delete_data(3, "workcells"))
-    print(Db.update_data(2, {"name":"workcell_2"}, "workcells"))
-    print(Db.ping(3))
-    print(Db.ping(5))
+# if __name__ == "__main__":  
+#     print(Db.check_connection())
+#     print(Db.get_data("workcells"))
+#     print(Db.get_by_id_or_name(1, "workcells"))
+#     print(Db.post_data({"name":"workcell_3"}, "workcells"))
+#     print(Db.delete_data(3, "workcells"))
+#     print(Db.update_data(2, {"name":"workcell_2"}, "workcells"))
+#     print(Db.ping(3))
+#     print(Db.ping(5))
