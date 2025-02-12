@@ -33,7 +33,7 @@ class XPeelServer(ToolServer):
             logging.exception("Failed to deseal plate", exc)
             response.response = INVALID_ARGUMENTS
 
-    def CheckStatus(self) -> ExecuteCommandReply:
+    def CheckStatus(self, params: Command.CheckStatus) -> ExecuteCommandReply:
         response = ExecuteCommandReply()
         response.return_reply = True
         response.response = SUCCESS
@@ -44,7 +44,7 @@ class XPeelServer(ToolServer):
             response.response = INVALID_ARGUMENTS
         return response
 
-    def Reset(self) -> ExecuteCommandReply:
+    def Reset(self, params: Command.Reset) -> ExecuteCommandReply:
         response = ExecuteCommandReply()
         response.return_reply = True
         response.response = SUCCESS
@@ -55,7 +55,7 @@ class XPeelServer(ToolServer):
             response.response = INVALID_ARGUMENTS
         return response
 
-    def Restart(self) -> ExecuteCommandReply:
+    def Restart(self, params: Command.Restart) -> ExecuteCommandReply:
         response = ExecuteCommandReply()
         response.return_reply = True
         response.response = SUCCESS
@@ -66,7 +66,7 @@ class XPeelServer(ToolServer):
             response.response = INVALID_ARGUMENTS
         return response
 
-    def GetRemainingTape(self) -> ExecuteCommandReply:
+    def GetRemainingTape(self, params: Command.GetRemainingTape) -> ExecuteCommandReply:
         response = ExecuteCommandReply()
         response.return_reply = True
         response.response = SUCCESS
