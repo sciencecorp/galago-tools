@@ -1,6 +1,7 @@
 
 import logging.handlers
 import logging
+import sys
 logging.info("The system path in console is", sys.path)
 import subprocess
 from tools.app_config import Config
