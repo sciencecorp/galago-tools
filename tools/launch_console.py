@@ -24,6 +24,9 @@ logging.basicConfig(
 
 logging.info("The system path in console is", sys.path)
 
+#Remove anaconda from sys path
+sys.path = [p for p in sys.path if "anaconda3" not in p.lower()]
+
 class LaunchConsole():
     def __init__(self, config:Config) -> None:
         self.running_tools = 0
