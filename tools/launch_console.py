@@ -22,7 +22,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
 
-logging.info("The system path in console is", sys.path)
+logging.info("The system path in console is", str(sys.path))
 
 #Remove anaconda from sys path
 sys.path = [p for p in sys.path if "anaconda3" not in p.lower()]
@@ -79,10 +79,11 @@ class LaunchConsole():
 
     def get_shell_command(self, tool_type:str, port:int) -> list:
         python_cmd : str = f"python -m tools.{tool_type}.server --port={port}"
-        if os.name == 'nt':
-            return ["cmd.exe", "/C", python_cmd]       
-        else:
-            return python_cmd.split()
+        return [sys.executable, '-m', f'tools.{tool_type}.server', f'--port={port}']
+        # if os.name == 'nt':
+        #     return ["cmd.exe", "/C", python_cmd]       
+        # else:
+        #     return python_cmd.split()
     
     def __del__(self) -> None:
         self.kill_all_processes()
