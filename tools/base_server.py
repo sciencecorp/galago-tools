@@ -1,3 +1,5 @@
+logging.info("The system path in server is", sys.path)
+
 import typing as t
 import os
 from concurrent import futures
@@ -26,7 +28,7 @@ logging.basicConfig(
 
 
 logging.info("Grpc location", str(grpc.__file__))
-logging.info("The system path is", sys.path)
+
 
 class ABCToolDriver:
     """
