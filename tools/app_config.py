@@ -12,7 +12,6 @@ from tools.toolbox.db import Db
 ROOT_DIRECTORY = dirname(dirname(os.path.realpath(__file__)))
 APP_CONFIG_FILE = join(ROOT_DIRECTORY, "app_config.json")
 
-
 db = Db()
 
 class Tool(BaseModel):
@@ -115,7 +114,7 @@ class Config():
         #Ping the database to check if connection is established
         workcells = None
         selected_workcell = None
-        db_is_up = db.ping(3)
+        db_is_up = db.ping(1)
         if not db_is_up:
             logging.error("Can't establish connection to galago api.")
             logging.warning("Galago api container might be down. "

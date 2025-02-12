@@ -1,14 +1,14 @@
+import sys
+import logging
 import typing as t
 import os
 from concurrent import futures
-import logging
 import time
 import grpc
 from google.protobuf import message
 from google.protobuf.json_format import MessageToDict
 from tools.grpc_interfaces import tool_base_pb2, tool_driver_pb2_grpc
 from typing import Optional
-import sys 
 import logging.handlers
 
 if sys.platform == 'win32':
@@ -23,6 +23,8 @@ logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
+
+
 
 class ABCToolDriver:
     """
