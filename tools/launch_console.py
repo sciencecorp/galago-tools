@@ -1,12 +1,11 @@
 
 import logging.handlers
 import logging
+import os
 import sys
 import subprocess
 from tools.app_config import Config
 import socket 
-import os
-import sys
 import signal as os_signal
 import time
 import argparse
@@ -21,11 +20,6 @@ logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
-
-logging.info("The system path in console is", str(sys.path))
-
-#Remove anaconda from sys path
-sys.path = [p for p in sys.path if "anaconda3" not in p.lower()]
 
 class LaunchConsole():
     def __init__(self, config:Config) -> None:
@@ -78,12 +72,7 @@ class LaunchConsole():
             
 
     def get_shell_command(self, tool_type:str, port:int) -> list:
-        python_cmd : str = f"python -m tools.{tool_type}.server --port={port}"
         return [sys.executable, '-m', f'tools.{tool_type}.server', f'--port={port}']
-        # if os.name == 'nt':
-        #     return ["cmd.exe", "/C", python_cmd]       
-        # else:
-        #     return python_cmd.split()
     
     def __del__(self) -> None:
         self.kill_all_processes()

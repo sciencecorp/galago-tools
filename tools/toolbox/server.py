@@ -1,7 +1,4 @@
 import logging
-import sys
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-logging.info("Toolbox sys path is "+str(sys.path))
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.toolbox_pb2 import Command, Config
 from tools.app_config import Config as GlobalConfig
