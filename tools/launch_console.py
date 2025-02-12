@@ -1,10 +1,10 @@
-logging.info("The system path in console is", sys.path)
 
 import logging.handlers
+import logging
+logging.info("The system path in console is", sys.path)
 import subprocess
 from tools.app_config import Config
 import socket 
-import logging 
 import os
 import sys
 import signal as os_signal
