@@ -113,7 +113,8 @@ setup(
     long_description_content_type="text/markdown",
     entry_points={
         'console_scripts': [
-            'galago-run=tools.cli:launch_all_servers',  
+            'galago-run=tools.cli:launch_all_servers', 
+            'galago-run-console=tools.cli:launch_console', 
             'galago-stop=tools.cli:stop_all_servers',
             'galago-status=tools.cli:status_all_servers',
             'galago-restart=tools.cli:restart_all_servers',
