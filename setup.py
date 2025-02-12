@@ -114,13 +114,7 @@ setup(
     entry_points={
         'console_scripts': [
             'galago-run=tools.cli:launch_all_servers', 
-            'galago-run-console=tools.cli:launch_console', 
-            'galago-stop=tools.cli:stop_all_servers',
-            'galago-status=tools.cli:status_all_servers',
-            'galago-restart=tools.cli:restart_all_servers',
-            'galago-logs=tools.cli:logs_all_servers',
-            'galago-run-server=tools.cli:launch_server',
-            'galago-proto=tools.cli:generate_protobuf',
+            'galago-run-console=tools.cli:launch_console'
         ],
     },
     classifiers=[
