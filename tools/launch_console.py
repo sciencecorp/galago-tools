@@ -2,7 +2,6 @@
 import logging.handlers
 import logging
 import sys
-logging.info("The system path in console is", sys.path)
 import subprocess
 from tools.app_config import Config
 import socket 
@@ -22,6 +21,8 @@ logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
+
+logging.info("The system path in console is", sys.path)
 
 class LaunchConsole():
     def __init__(self, config:Config) -> None:
