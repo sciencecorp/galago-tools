@@ -1,16 +1,15 @@
+import sys
+import logging
 logging.info("The system path in server is", sys.path)
-
 import typing as t
 import os
 from concurrent import futures
-import logging
 import time
 import grpc
 from google.protobuf import message
 from google.protobuf.json_format import MessageToDict
 from tools.grpc_interfaces import tool_base_pb2, tool_driver_pb2_grpc
 from typing import Optional
-import sys 
 import logging.handlers
 
 if sys.platform == 'win32':
