@@ -1,6 +1,6 @@
 import sys
 import logging
-logging.info("The system path in server is", sys.path)
+logging.info("The system path in server is" + str(sys.path))
 import typing as t
 import os
 from concurrent import futures
