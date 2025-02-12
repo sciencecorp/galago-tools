@@ -1,4 +1,5 @@
 import sys
+sys.path = [p for p in sys.path if "anaconda3" not in p.lower()]
 import logging
 logging.info("The system path in server is" + str(sys.path))
 import typing as t
