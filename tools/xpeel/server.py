@@ -5,7 +5,7 @@ from tools.grpc_interfaces.xpeel_pb2 import Command, Config  # Adjust the import
 
 from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
 from tools.grpc_interfaces.tool_base_pb2 import INVALID_ARGUMENTS, SUCCESS
-import sys 
+
 from .driver import XPeelDriver
 import argparse 
 
@@ -81,9 +81,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
     parser.add_argument('--port')
-    known, remaining = parser.parse_known_args()
-    sys.argv = [sys.argv[0]] + remaining
-    
-    if not known.port:
+    args = parser.parse_args()
+    if not args.port:
         raise RuntimeWarning("Port must be provided...")
-    serve(XPeelServer(), str(known.port))
+    serve(XPeelServer(), str(args.port))
