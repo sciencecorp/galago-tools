@@ -10,19 +10,22 @@ import signal as os_signal
 import time
 import argparse
 from os.path import dirname
+from tools.utils import get_shell_command 
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
 LOG_TIME = int(time.time())
 TOOLS_32BITS = ["vcode","bravo","hig_centrifuge","plateloc","vspin"]
+
+sys.path = [
+    p for p in sys.path
+    if not any(sub in p.lower() for sub in ["anaconda3", "miniconda", "mamba"])
+]
 
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
-
-def get_shell_command(tool_type:str, port:int) -> list:
-    return [sys.executable, '-m', f'tools.{tool_type}.server', f'--port={port}']
 
 class LaunchConsole():
     def __init__(self, config:Config) -> None:

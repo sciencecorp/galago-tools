@@ -3,6 +3,7 @@ import os
 import logging
 from enum import Enum 
 from typing import Optional
+import sys 
 
 class LogType(Enum):
     ERROR = "ERROR",
@@ -13,6 +14,10 @@ class LogType(Enum):
     RUN_START = "RUN_START",
     RUN_END = "RUN_END",
     PLATE_READ = "PLATE_READ",
+
+
+def get_shell_command(tool_type:str, port:int) -> list:
+    return [sys.executable, '-m', f'tools.{tool_type}.server', f'--port={port}']
 
 def write_trace_log(log_path:Optional[str], log_type:LogType, tool:str,value:str) -> None:
 
