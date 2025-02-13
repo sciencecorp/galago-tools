@@ -3,7 +3,7 @@
 PROTOC_GEN_TS_PATH=".\\controller\\node_modules\\.bin\\protoc-gen-ts_proto"
 PROTO_SRC="./interfaces"
 WORKING_BRANCH=$(git symbolic-ref --short HEAD)
-ENV_NAME="galago-tools" 
+ENV_NAME="galago" 
 
 build_env() {
     echo "Creating conda environment '$ENV_NAME'..."

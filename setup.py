@@ -95,7 +95,7 @@ def find_tool_packages() -> list[str]:
     return packages
 
 setup(
-    name='galago_tools',
+    name='galago',
     version='0.9',
     packages=find_tool_packages(),
     package_dir={'': '.'},
@@ -113,8 +113,7 @@ setup(
     long_description_content_type="text/markdown",
     entry_points={
         'console_scripts': [
-            'galago-run=tools.cli:launch_all_servers', 
-            'galago-run-console=tools.cli:launch_console'
+            'galago=tools.cli:main', 
         ],
     },
     classifiers=[
