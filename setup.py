@@ -3,6 +3,12 @@ from setuptools import setup
 import subprocess
 from setuptools.command.build_py import build_py as _build_py
 import shutil 
+from cx_Freeze import setup, Executable
+import sys 
+
+base = None
+if sys.platform == "win32":
+    base = "Win32GUI"  # Use "Console" if you want a console window
 
 
 class BuildProtobuf(_build_py):
@@ -104,7 +110,6 @@ setup(
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
     include_package_data=True,
-    #package_data={'tools': ['*.dll', "site_logo.png", "favicon.ico"]},
     package_data={'tools': ['*.dll',"site_logo.png","favicon.ico",'grpc_interfaces/*.py']},
     url='https://github.com/sciencecorp/galago-core',
     author='Science Corporation',
