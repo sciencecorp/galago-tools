@@ -303,18 +303,18 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
 def serve(tool_server: 'ToolServer', port: str, num_workers: int = 10) -> None:
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=num_workers))
     
-    # Register your service (this adds your concrete implementation to the server)
+    # Register your service.
     tool_driver_pb2_grpc.add_ToolDriverServicer_to_server(tool_server, server)
     
-    # Make sure that "ToolDriver" is the actual name of the service defined in your proto.
+    # Get the service name from the correct module.
     try:
-        tool_driver_pb2.DESCRIPTOR.services_by_name["ToolDriver"].full_name
+        service_name = tool_driver_pb2.DESCRIPTOR.services_by_name["ToolDriver"].full_name
     except KeyError:
         raise RuntimeError("Service name 'ToolDriver' not found in descriptor. "
                            "Please check your proto definition.")
     
     service_names = [
-        tool_base_pb2.DESCRIPTOR.services_by_name["ToolDriver"].full_name,
+        service_name,
         reflection.SERVICE_NAME,
     ]
     reflection.enable_server_reflection(service_names, server)

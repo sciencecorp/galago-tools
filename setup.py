@@ -114,6 +114,7 @@ setup(
     entry_points={
         'console_scripts': [
             'galago=tools.cli:main', 
+            'galago-serve=tools.cli:serve',
         ],
     },
     classifiers=[
