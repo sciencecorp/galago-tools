@@ -2,7 +2,7 @@ import logging
 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.spectramax_pb2 import Command, Config
-
+import sys
 from .driver import SpectramaxDriver
 import argparse
 
@@ -48,7 +48,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
     parser.add_argument('--port')
-    args = parser.parse_args()
-    if not args.port:
+    known, remaining = parser.parse_known_args()
+    sys.argv = [sys.argv[0]] + remaining
+    
+    if not known.port:
         raise RuntimeWarning("Port must be provided...")
-    serve(SpectramaxServer(),str(args.port))
+    serve(SpectramaxServer(),str(known.port))

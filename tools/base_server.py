@@ -7,9 +7,10 @@ import time
 import grpc
 from google.protobuf import message
 from google.protobuf.json_format import MessageToDict
-from tools.grpc_interfaces import tool_base_pb2, tool_driver_pb2_grpc
+from tools.grpc_interfaces import tool_base_pb2, tool_driver_pb2_grpc, tool_driver_pb2
 from typing import Optional
 import logging.handlers
+from grpc_reflection.v1alpha import reflection
 
 if sys.platform == 'win32':
     import ctypes
@@ -299,10 +300,25 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 response=tool_base_pb2.DRIVER_ERROR, error_message=str(e)
             )
 
-
-def serve(tool_server: ToolServer, port: str, num_workers: int = 10) -> None:
+def serve(tool_server: 'ToolServer', port: str, num_workers: int = 10) -> None:
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=num_workers))
+    
+    # Register your service (this adds your concrete implementation to the server)
     tool_driver_pb2_grpc.add_ToolDriverServicer_to_server(tool_server, server)
+    
+    # Make sure that "ToolDriver" is the actual name of the service defined in your proto.
+    try:
+        tool_driver_pb2.DESCRIPTOR.services_by_name["ToolDriver"].full_name
+    except KeyError:
+        raise RuntimeError("Service name 'ToolDriver' not found in descriptor. "
+                           "Please check your proto definition.")
+    
+    service_names = [
+        tool_base_pb2.DESCRIPTOR.services_by_name["ToolDriver"].full_name,
+        reflection.SERVICE_NAME,
+    ]
+    reflection.enable_server_reflection(service_names, server)
+    
     server.add_insecure_port(f"[::]:{port}")
     server.start()
     logging.info(f"{tool_server.toolType} server started, listening on {port}")
