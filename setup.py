@@ -3,7 +3,6 @@ from setuptools import setup
 import subprocess
 from setuptools.command.build_py import build_py as _build_py
 import shutil 
-from cx_Freeze import setup, Executable
 import sys 
 
 base = None
