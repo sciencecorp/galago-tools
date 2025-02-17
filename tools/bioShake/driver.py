@@ -76,7 +76,7 @@ class BioshakeDriver(ABCToolDriver):
         logging.error("Error list: " + error_message)
         return error_message
 
-    def connect(self):
+    def connect(self) -> None:
         if not self.ser.is_open:
             self.ser.open()
         else:
@@ -84,7 +84,7 @@ class BioshakeDriver(ABCToolDriver):
             self.ser.close()
             self.ser.open()
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         if self.ser.is_open:
             self.ser.close()
 
@@ -241,7 +241,7 @@ class BioshakeDriver(ABCToolDriver):
         self.stop_shake()
 
     # For compatibility with the blank template.
-    def shake_with_time(self, duration, speed):
+    def shake_with_time(self, duration: int, speed: int) -> None:
         self.shake_on_with_runtime(seconds=duration, speed=speed)
 
 
