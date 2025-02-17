@@ -14,7 +14,7 @@ class BuildProtobuf(_build_py):
     def run(self) -> None:
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Root directory
         proto_src = os.path.join(base_dir, "interfaces")
-        grpc_interfaces_output_dir = os.path.join(base_dir, "tools", "grpc_interfaces")  # ✅ Correct output path
+        grpc_interfaces_output_dir = os.path.join(base_dir, "tools", "grpc_interfaces")  
 
         os.makedirs(grpc_interfaces_output_dir, exist_ok=True)
 
@@ -109,7 +109,15 @@ setup(
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
     include_package_data=True,
-    package_data={'tools': ['vcode/deps/*.dll',"plateloc/deps/*.dll","site_logo.png","favicon.ico",'grpc_interfaces/*.py']},
+    package_data={'tools': ["site_logo.png",
+                            'vcode/deps/*.dll',
+                            'plateloc/deps/*.dll',
+                            'vspin/deps/*.dll',
+                            'hig_centrifuge/deps/*.dll',
+                            'bravo/deps/*.dll',
+                            'minihub/deps/*.dll',
+                            "favicon.ico",
+                            'grpc_interfaces/*.py']},
     url='https://github.com/sciencecorp/galago-core',
     author='Science Corporation',
     python_requires=">=3.9",
