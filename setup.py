@@ -109,7 +109,7 @@ setup(
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
     include_package_data=True,
-    package_data={'tools': ['*.dll',"site_logo.png","favicon.ico",'grpc_interfaces/*.py']},
+    package_data={'tools': ['vcode/deps/*.dll',"plateloc/deps/*.dll","site_logo.png","favicon.ico",'grpc_interfaces/*.py']},
     url='https://github.com/sciencecorp/galago-core',
     author='Science Corporation',
     python_requires=">=3.9",

@@ -123,6 +123,9 @@ class ToolsManager():
         self.filter_var = tk.StringVar(value="ALL")
         self.filter_menu = ttk.OptionMenu(self.search_frame, self.filter_var, "ALL", "ALL", "INFO", "DEBUG", "WARNING", "ERROR", command=self.filter_logs)
         self.filter_menu.pack(side=tk.LEFT)
+        
+        self.clear_button = ttk.Button(self.search_frame, text="Clear Logs", command=self.clear_logs)
+        self.clear_button.pack(side=tk.LEFT, padx=(5, 0))
 
     def kill_all_processes(self) ->None:
         logging.info("Killing all processes")
@@ -436,7 +439,12 @@ class ToolsManager():
         process_thread.daemon = False
         process_thread.start()
         self.root.mainloop()
-    
+        
+    def clear_logs(self) -> None:
+        """Clear all logs from the output text widget"""
+        self.output_text.config(state='normal')
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.config(state='disabled')
 def main() -> int:
     parser = argparse.ArgumentParser(description='Launch Galago Tools Manager')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode with detailed logging')
