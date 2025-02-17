@@ -22,7 +22,7 @@ message SetTemperature {
 }
 
 message SetSealTime {
-    int32 time =1;
+    float time =1;
 }
 
 message GetActualTemperature {}

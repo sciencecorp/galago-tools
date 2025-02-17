@@ -82,13 +82,13 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
         self.simulated = simulated
 
     def setStatus(self, status: tool_base_pb2.ToolStatus) -> None:
-        logging.info(f"Setting status to {str(status)}")
+        # logging.info(f"Setting status to {str(status)}")
         self.status = status
     
     def Configure(
         self, request: tool_base_pb2.Config, context: grpc.ServicerContext
     ) -> tool_base_pb2.ConfigureReply:
-        logging.info(f"Received configuration: {request}")
+        # logging.info(f"Received configuration: {request}")
         self.config = getattr(request, request.WhichOneof("config"))
         config_dict = MessageToDict(self.config)
         if "toolId" in config_dict:
@@ -136,18 +136,18 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 response=tool_base_pb2.UNRECOGNIZED_COMMAND
             )
         if self.simulated:
-            logging.info(f"Running simulated command {method_name}")
+            # logging.info(f"Running simulated command {method_name}")
             duration, error = self._estimateDuration(command)
             if error is not None:
                 return tool_base_pb2.ExecuteCommandReply(response=error, return_reply=True)
             if method_name != "RunProgram":
-                logging.debug(f"Sleeping for estimated duration: {duration}")
+                #logging.debug(f"Sleeping for estimated duration: {duration}")
                 time.sleep(float(duration if duration else 0))
                 return tool_base_pb2.ExecuteCommandReply(response=tool_base_pb2.SUCCESS, return_reply=True)
             else:
                 try:
                     response_tmp = method(command, simulated=True)
-                    logging.debug(f"Simulated response: {response_tmp}")
+                    #logging.debug(f"Simulated response: {response_tmp}")
                     if response_tmp is None:
                         response = tool_base_pb2.ExecuteCommandReply(
                             response=tool_base_pb2.SUCCESS,
@@ -159,7 +159,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                             error_message=response_tmp.error_message,
                             return_reply=response_tmp.return_reply,
                         )
-                    logging.debug(f"Simulated response for return: {response}")
+                    #logging.debug(f"Simulated response for return: {response}")
                     return response
                 except KeyError as e:
                     logging.debug(f"Simulated error: {str(e)}")
@@ -227,12 +227,12 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
     def ExecuteCommand(
         self, request: tool_base_pb2.Command, context: grpc.ServicerContext
     ) -> tool_base_pb2.ExecuteCommandReply:
-        logging.info(f"Received command: {str(request)}:100.100")
+        # logging.info(f"Received command: {str(request)}:100.100")
         sys.stdout.flush()
         command, error, error_msg = self.parseCommand(request)
 
         if error is not None:
-            logging.error(f"Tool{self.toolId}, Command:{command}, Error={error_msg}")
+            logging.error(f"Tool{self.toolId}, Command:{command.__class__.__name__}, Error={error_msg}")
             self.last_error = error_msg
             return tool_base_pb2.ExecuteCommandReply(
                 response=error, error_message=error_msg
@@ -240,8 +240,9 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
 
         if command is not None:
             try:
-                logging.debug(f"Setting {self.toolId} to BUSY")
+                logging.debug("Setting tool to BUSY")
                 self.setStatus(tool_base_pb2.BUSY)
+                logging.info(f"Running command {command.__class__.__name__}")
                 response = self._dispatchCommand(command)
                 logged_response = str(response)
                 logged_response = (logged_response[:100] + '...') if len(logged_response) > 100 else logged_response
@@ -255,7 +256,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 )
             finally:
                 self.setStatus(tool_base_pb2.READY)
-                logging.info(f"Setting {self.toolId} to READY")
+                # logging.info(f"Setting {self.toolId} to READY")
         return tool_base_pb2.ExecuteCommandReply(response=tool_base_pb2.SUCCESS)
 
     def _estimateDuration(self, command: message.Message) -> tuple[Optional[int], t.Any]:

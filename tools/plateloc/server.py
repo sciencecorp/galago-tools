@@ -22,9 +22,11 @@ class PlateLocServer(ToolServer):
           self.driver.show_diagnostics()
      
      def SetTemperature(self, params:Command.SetTemperature) -> None:
+          logging.info(f"Setting temperature to {params.temperature}")
           self.driver.set_temperature(params.temperature)
      
      def SetSealTime(self, params:Command.SetSealTime) -> None:
+          logging.info(f"Setting time to {params.time}")
           self.driver.set_seal_time(params.time)
      
      def GetActualTemperature(self, params:Command.GetActualTemperature) -> None:
@@ -38,6 +40,7 @@ class PlateLocServer(ToolServer):
      
      def Seal(self, params:Command.Seal) -> None:
           self.driver.seal()
+          self.driver.stage_out()
      
 
 if __name__ == "__main__":

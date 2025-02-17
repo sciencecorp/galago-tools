@@ -27,10 +27,12 @@ Procfile.*
 Procfile.tools
 
 *.pdf 
+*.whl
+
 
 # python
 .ruff_cache
 **/*.egg-info
 .mypy_cache
 app_config.json
-tools/build/*
+build/*

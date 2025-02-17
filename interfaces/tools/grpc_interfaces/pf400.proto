@@ -1,30 +1,29 @@
 syntax = 'proto3';
 
 package com.science.foundry.tools.grpc_interfaces.pf400;
-import "tools/grpc_interfaces/labware.proto";
+import "google/protobuf/struct.proto";
 
 message Command {
   oneof command {
     Move move = 1;
     GraspPlate grasp_plate = 2;
     ReleasePlate release_plate = 3;
-    Approach approach = 4;
-    Leave leave = 5;
-    Transfer transfer = 6;
-    RegisterMotionProfile register_motion_profile = 7;
-    SmartTransfer smart_transfer = 8;
-    Wait wait = 9;
-    Free free = 10;
-    UnFree unfree =11;
-    Unwind unwind = 12;
-    RunSequence run_sequence = 13;
-    RetrievePlate retrieve_plate = 14;
-    DropOffPlate dropoff_plate = 15;
-    PickLid pick_lid = 16;
-    PlaceLid place_lid = 17;
-    GetCurrentLocation get_current_location = 18;
-    Jog jog = 19;
-    RawCommand raw_command = 20;
+    Transfer transfer = 4;
+    Wait wait = 5;
+    Release release = 6;
+    Engage engage =7;
+    Retract retract = 8;
+    RunSequence run_sequence = 9;
+    RetrievePlate retrieve_plate = 10;
+    DropOffPlate dropoff_plate = 11;
+    PickLid pick_lid = 12;
+    PlaceLid place_lid = 13;
+    GetCurrentLocation get_current_location = 14;
+    Jog jog = 15;
+    RawCommand raw_command = 16;
+    RegisterMotionProfile register_motion_profile = 17;
+    LoadWaypoints load_waypoints = 18;
+    LoadLabware load_labware =19;
   }
 
   message RawCommand {
@@ -53,31 +52,35 @@ message Command {
   }
 
   message RetrievePlate {
-    tools.grpc_interfaces.labware.Labware labware = 1;
+    string labware = 1;
     string location = 2;
-    optional int32 motion_profile_id = 3;
+    optional float z_offset = 3;
+    optional int32 motion_profile_id = 4;
   }
 
   message DropOffPlate {
-    tools.grpc_interfaces.labware.Labware labware = 1;
+    string labware = 1;
     string location = 2;
-    optional int32 motion_profile_id = 3;
+    optional float z_offset = 3;
+    optional int32 motion_profile_id = 5;
   }
 
   message RunSequence {
-    string sequence_name = 1;
+    string sequence_name = 1; 
     string labware = 2;
   }
   
-  message UnFree {}
+  message Engage {}
 
-  message Free {}
+  message Release {}
 
-  message Unwind {} 
+  message Retract {
+  } 
 
   message Move {
-    string waypoint = 1;
+    string name = 1;
     optional int32 motion_profile_id = 2;
+    optional int32 z_offset=3;
   }
 
   message GraspPlate {
@@ -91,32 +94,18 @@ message Command {
     int32 speed = 2;
   }
 
-  message Approach {
-    string nest = 1;
-    optional float x_offset = 2;
-    optional float y_offset = 3;
-    optional float z_offset = 4;
-    optional int32 motion_profile_id = 5;
-    optional string ignore_safepath = 6;
-  }
-
-  message Leave {
-    string nest = 1;
-    optional float x_offset = 2;
-    optional float y_offset = 3;
-    optional float z_offset = 4;
-    optional int32 motion_profile_id = 5;
-  }
-
   message Transfer {
-    Approach source_nest = 1;
-    Leave destination_nest = 2;
-    optional GraspPlate grasp_params = 3;
-    optional ReleasePlate release_params = 4;
-    optional int32 motion_profile_id = 5;
-    optional int32 grip_width = 6;
+
+    string source_nest = 1;
+    string destination_nest = 2;
+    string labware = 3;
+    optional int32 motion_profile_id = 4;
   }
- 
+
+  message Wait {
+    int32 duration = 1;
+  }
+
   message RegisterMotionProfile {
     int32 id = 1;
     float speed = 2;
@@ -128,26 +117,19 @@ message Command {
     float inrange = 8;
     int32 straight = 9;
   }
- 
-  message SmartTransfer {
-    Approach source_nest = 1;
-    Leave destination_nest = 2;
-    optional GraspPlate grasp_params = 3;
-    optional ReleasePlate release_params = 4;
-    optional int32 motion_profile_id = 5;
-    optional int32 grip_width = 6;
+  
+  message LoadWaypoints {
+    google.protobuf.Struct waypoints = 1; 
   }
-
-  message Wait {
-    int32 duration = 1;
+  
+  message LoadLabware {
+    google.protobuf.Struct labwares = 1;
   }
-
 }
 
 message Config {
   string host = 1;
   int32 port = 2;
   int32 joints = 3;
-  repeated string waypoints = 4;
 }
 
