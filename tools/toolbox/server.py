@@ -2,7 +2,6 @@ import logging
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.toolbox_pb2 import Command, Config
 from tools.app_config import Config as GlobalConfig
-from .forms import Forms
 from .data import Data 
 from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
 import argparse 
@@ -20,21 +19,11 @@ class ToolBoxServer(ToolServer):
           self.app_config = GlobalConfig()
           self.app_config.load_app_config()
           self.app_config.load_workcell_config()
-          self.forms = Forms()
           self.slack = Slack(self.app_config)
           self.setStatus(tool_base_pb2.READY)
 
      def _configure(self, request:Config) -> None:
           return
-     
-     def Timer(self, params:Command.Timer) -> None:
-        self.forms.timer(params.time_seconds, params.message)
-     
-     def UserMessage(self, params:Command.UserMessage) -> None:
-        self.forms.show_message(params.title, params.message, params.message_type)
-     
-     # def ShowImage(self, params:Command.ShowImage) -> None:
-     #    self.forms.show_image(params.title, params.file, params.width, params.height)
      
      def SlackMessage(self, params:Command.SlackMessage) -> None:
           if self.app_config.app_config.slack_workcell_channel:
