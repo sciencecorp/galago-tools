@@ -7,14 +7,12 @@ import logging
 import os
 import sys
 import signal as os_signal
-import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk
 import time
 import argparse
 from os.path import join, dirname
-from typing import Optional, Any, Callable
-from tkinter.scrolledtext import ScrolledText
+from typing import Optional, Callable, Dict
+import flet as ft
+from datetime import datetime
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
 LOG_TIME = int(time.time())
@@ -26,99 +24,392 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
 
-class ToolsManager():
+class ToolsManager:
+    def __init__(self, page: ft.Page, config: Config) -> None:
+        self.page = page
+        self.page.title = "Galago Tools Manager"
+        self.page.window_width = 1200
+        self.page.window_height = 800
+        self.page.theme_mode = ft.ThemeMode.LIGHT
+        self.page.padding = 20
+        self.page.window_center = True
+        self.page.window_resizable = True
+        self.page.icon = "/site_logo.png"  # Reference from assets directory
 
-    def __init__(self, app_root:tk.Tk, config:Config) -> None:
-        self.root = app_root
-        self.root.title("Tools Server Manager")
-        self.set_icon()
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.root.geometry('1000x700')  
-        
+        # Set theme colors
+        self.page.theme = ft.Theme(
+            color_scheme_seed=ft.colors.TEAL,
+            visual_density=ft.ThemeVisualDensity.COMFORTABLE,
+        )
+        self.page.dark_theme = ft.Theme(
+            color_scheme_seed=ft.colors.TEAL,
+            visual_density=ft.ThemeVisualDensity.COMFORTABLE,
+        )
+
+        # Buffer for batching log updates
+        self.log_buffer = []
+        self.last_update = time.time()
+        self.update_batch_size = 10  # Number of logs to accumulate before updating
+        self.min_update_interval = 0.1  # Minimum time between updates in seconds
+
         self.running_tools = 0
         self.config_file = ""
         logging.info("Starting Galago Manager")
-        self.config :Config = config
+        self.config = config
         working_dir = "" if not config.app_config.data_folder else config.app_config.data_folder
-        self.log_folder = os.path.join(working_dir,"data","trace_logs", str(LOG_TIME))
+        self.log_folder = os.path.join(working_dir, "data", "trace_logs", str(LOG_TIME))
         self.workcell = config.app_config.workcell
 
         if not os.path.exists(self.log_folder):
             logging.debug("folder does not exist. creating folder")
             os.makedirs(self.log_folder)
 
-        #Build databases if they do not exist
-        self.server_processes : dict[str,subprocess.Popen] = {}
+        self.server_processes: Dict[str, subprocess.Popen] = {}
         self.tool_box_process: Optional[subprocess.Popen] = None
-        self.main_frame = ttk.Frame(self.root)
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
-        self.paned_window = ttk.PanedWindow(self.main_frame, orient=tk.HORIZONTAL)
-        self.paned_window.pack(fill=tk.BOTH, expand=True)
-        self.paned_window.propagate(False)
-
-        left_width = 250  # Increased left frame width
-        self.left_frame = tk.Frame(self.paned_window, width=left_width)
-        self.left_frame.pack(fill=tk.BOTH, expand=True)
-        self.left_frame.pack_propagate(False)
-
-        self.left_scrollbar = ttk.Scrollbar(self.left_frame, orient=tk.VERTICAL)
-        self.left_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.left_canvas = tk.Canvas(self.left_frame, yscrollcommand=self.left_scrollbar.set)
-        self.left_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        self.left_scrollbar.config(command=self.left_canvas.yview)
-        self.tool_buttons : dict[str, tuple[str,tk.Button,tk.Canvas]] = {}
-        self.tool_buttons_previous_states : dict[str, bool] = {}
-
-        # Create a frame inside the canvas to hold the widgets
-        self.widgets_frame = ttk.Frame(self.left_canvas)
-        self.widgets_frame.bind(
-            "<Configure>",
-            lambda e: self.left_canvas.configure(
-                scrollregion=self.left_canvas.bbox("all")
-            )
-        )
-
-        # Create a window inside the canvas
-        self.left_canvas.create_window((0, 0), window=self.widgets_frame, anchor="nw")
-        # Populate the left frame with widgets from a list
-        self.alive_flags = []
-        self.status_labels = [] 
-
-        # Create the right frame for the scrolled text
-        self.right_frame = tk.Frame(self.paned_window, width=(self.root.winfo_width()/5)*4)
-        self.right_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Add the right frame to the paned window
-        self.paned_window.add(self.left_frame, weight=1)
-        self.paned_window.add(self.right_frame, weight=10)
+        self.tool_buttons: Dict[str, tuple[str, ft.ElevatedButton, ft.Container]] = {}
+        self.tool_buttons_previous_states: Dict[str, bool] = {}
         self.log_files_modified_times = {}
         self.log_files_last_read_positions = {}
+        self.last_log_update = time.time()
+        
+        # Create main layout
+        self.setup_layout()
+        self.update_interval = 500  # Increased to 500ms
+        self.start_log_update_timer()
 
-        # Replace the Treeview with ScrolledText
-        self.output_text = ScrolledText(self.right_frame, state='disabled', wrap='word')
-        self.output_text.pack(fill=tk.BOTH, expand=True)
-        self.output_text.tag_config('error', foreground='red') 
-        self.output_text.tag_config('warning', foreground='orange')
+    def setup_layout(self) -> None:
+        # Create theme toggle button
+        theme_toggle = ft.IconButton(
+            icon=ft.icons.DARK_MODE,
+            tooltip="Toggle dark mode",
+            on_click=self.toggle_theme,
+        )
 
-        self.update_interval = 100
-        self.update_log_text()
+        # Create main column for the entire layout
+        main_column = ft.Column(
+            controls=[
+                # Main row with tools and logs panels
+                ft.Row(
+                    spacing=20,
+                    controls=[
+                        # Left panel for tools
+                        ft.Container(
+                            width=300,
+                            content=ft.Column(
+                                scroll=ft.ScrollMode.AUTO,
+                                controls=[
+                                    ft.Text("Tools", size=24, weight=ft.FontWeight.BOLD),
+                                    ft.Divider(),
+                                ],
+                                spacing=10,
+                                horizontal_alignment=ft.CrossAxisAlignment.START,
+                            ),
+                            bgcolor=ft.colors.SURFACE,
+                            border_radius=10,
+                            padding=ft.padding.only(left=10, top=10, bottom=10, right=20),
+                            border=ft.border.all(1, ft.colors.OUTLINE),
+                        ),
+                        # Right panel for logs
+                        ft.Container(
+                            expand=True,
+                            content=ft.Column(
+                                controls=[
+                                    # Search and filter controls
+                                    ft.Row(
+                                        controls=[
+                                            ft.TextField(
+                                                expand=True,
+                                                hint_text="Search logs...",
+                                                on_change=self.search_logs,
+                                                border_radius=8,
+                                            ),
+                                            ft.Dropdown(
+                                                width=120,
+                                                options=[
+                                                    ft.dropdown.Option("ALL"),
+                                                    ft.dropdown.Option("INFO"),
+                                                    ft.dropdown.Option("DEBUG"),
+                                                    ft.dropdown.Option("WARNING"),
+                                                    ft.dropdown.Option("ERROR"),
+                                                ],
+                                                value="ALL",
+                                                on_change=self.filter_logs,
+                                            ),
+                                        ],
+                                        spacing=10,
+                                    ),
+                                    # Log output
+                                    ft.Container(
+                                        expand=True,
+                                        width=float("inf"),
+                                        content=ft.Column(
+                                            scroll=ft.ScrollMode.ALWAYS,
+                                            controls=[],
+                                            spacing=4,
+                                            expand=True,
+                                            width=float("inf"),
+                                        ),
+                                        bgcolor=ft.colors.SURFACE_VARIANT,
+                                        border_radius=10,
+                                        padding=ft.padding.only(left=15, top=15, bottom=15, right=5),  # Adjusted padding to move scrollbar right
+                                        border=ft.border.all(1, ft.colors.OUTLINE),
+                                    ),
+                                ],
+                                spacing=10,
+                                expand=True,
+                            ),
+                            bgcolor=ft.colors.SURFACE,
+                            border_radius=10,
+                            padding=10,
+                            border=ft.border.all(1, ft.colors.OUTLINE),
+                        ),
+                    ],
+                    expand=True,
+                    alignment=ft.MainAxisAlignment.START,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
+                ),
+                # Theme toggle at the bottom
+                ft.Container(
+                    content=theme_toggle,
+                    padding=ft.padding.only(top=10),
+                ),
+            ],
+            expand=True,
+        )
+        
+        self.page.add(main_column)
+        self.log_container = main_column.controls[0].controls[1].content.controls[1]
+        self.tools_column = main_column.controls[0].controls[0].content
+        self.search_field = main_column.controls[0].controls[1].content.controls[0].controls[0]
+        self.filter_dropdown = main_column.controls[0].controls[1].content.controls[0].controls[1]
 
-        # Add search and filter features
-        self.search_frame = ttk.Frame(self.right_frame)
-        self.search_frame.pack(fill=tk.X, padx=5, pady=5)
+    def create_tool_button(self, tool_name: str, command: Callable) -> ft.Container:
+        status_indicator = ft.Container(
+            width=12,
+            height=12,
+            bgcolor=ft.colors.RED,
+            border_radius=6,
+        )
+        
+        button = ft.ElevatedButton(
+            text="Connect",
+            on_click=lambda _: command(),
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+            ),
+            width=100,  # Fixed width for consistency
+        )
+        
+        tool_row = ft.Container(
+            content=ft.Row(
+                controls=[
+                    ft.Text(tool_name, expand=True),
+                    status_indicator,
+                    button,
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                spacing=10,  # Added spacing between elements
+            ),
+            padding=ft.padding.only(left=10, top=5, bottom=5, right=5),  # Adjusted padding
+            bgcolor=ft.colors.SURFACE,  # Theme-aware background color
+            border_radius=8,
+            border=ft.border.all(1, ft.colors.OUTLINE),  # Theme-aware border color
+        )
+        
+        self.tool_buttons[tool_name] = (tool_name, button, status_indicator)
+        return tool_row
 
-        self.search_entry = ttk.Entry(self.search_frame)
-        self.search_entry.pack(side=tk.LEFT, expand=True, fill=tk.X)
-        self.search_button = ttk.Button(self.search_frame, text="Search", command=self.search_logs)
-        self.search_button.pack(side=tk.LEFT)
+    def populate_tool_buttons(self) -> None:
+        self.tools_column.controls = [self.tools_column.controls[0], self.tools_column.controls[1]]
+        
+        # Add Tool Box button
+        self.tools_column.controls.append(
+            self.create_tool_button("Tool Box", self.start_toolbox)
+        )
+        
+        # Add workcell tools
+        if self.config.workcell_config:
+            for t in self.config.workcell_config.tools:
+                try:
+                    self.tools_column.controls.append(
+                        self.create_tool_button(
+                            t.name,
+                            lambda t=t: self.run_subprocess(t.type, t.name, t.port, True)
+                        )
+                    )
+                except Exception as e:
+                    logging.error(f"Failed to add button {t.id}. Error is {e}")
+        
+        # Add Restart All button
+        self.tools_column.controls.append(
+            ft.ElevatedButton(
+                text="Restart All",
+                on_click=lambda _: self.run_all_tools(),
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                    bgcolor=ft.colors.BLUE,
+                    color=ft.colors.WHITE,
+                ),
+                width=260,  # Adjusted width to account for padding
+            )
+        )
+        
+        self.page.update()
 
-        self.filter_var = tk.StringVar(value="ALL")
-        self.filter_menu = ttk.OptionMenu(self.search_frame, self.filter_var, "ALL", "ALL", "INFO", "DEBUG", "WARNING", "ERROR", command=self.filter_logs)
-        self.filter_menu.pack(side=tk.LEFT)
+    def toggle_theme(self, e: ft.ControlEvent) -> None:
+        self.page.theme_mode = (
+            ft.ThemeMode.LIGHT 
+            if self.page.theme_mode == ft.ThemeMode.DARK 
+            else ft.ThemeMode.DARK
+        )
+        self.page.update()
 
-    def kill_all_processes(self) ->None:
+    def log_text(self, text: str, log_type: str = "info") -> None:
+        # Parse timestamp and message
+        try:
+            # Try to split timestamp and message
+            full_timestamp, level, *message_parts = text.split(" | ")
+            # Convert timestamp to shorter format (HH:MM:SS)
+            try:
+                dt = datetime.strptime(full_timestamp, '%Y-%m-%d %H:%M:%S')
+                timestamp = dt.strftime('%H:%M:%S')
+            except ValueError:
+                timestamp = full_timestamp
+            message = " | ".join(message_parts)
+        except ValueError:
+            # If splitting fails, use the whole text as message
+            timestamp = datetime.now().strftime('%H:%M:%S')
+            message = text
+            level = "INFO"
+
+        # Set colors based on log type and theme
+        colors = {
+            "error": ft.colors.RED_400,
+            "warning": ft.colors.ORANGE_400,
+            "info": ft.colors.ON_SURFACE,
+            "debug": ft.colors.ON_SURFACE_VARIANT,
+        }
+        
+        # Create the log entry
+        log_entry = ft.Column(
+            controls=[
+                ft.Divider(height=1, color=ft.colors.OUTLINE),
+                ft.Text(
+                    f"{timestamp} | {level} | {message}",
+                    size=14,
+                    color=colors.get(log_type.lower(), colors["info"]),
+                    selectable=True,
+                    no_wrap=False,
+                ),
+            ],
+            spacing=0,
+        )
+        
+        self.log_container.content.controls.append(log_entry)
+        if len(self.log_container.content.controls) > 1000:
+            self.log_container.content.controls = self.log_container.content.controls[-1000:]
+
+        # Only update if enough time has passed
+        current_time = time.time()
+        if current_time - self.last_log_update >= 0.5:  # Update at most every 500ms
+            self.log_container.content.scroll_to(offset=float('inf'), duration=100)
+            self.log_container.update()
+            self.last_log_update = current_time
+
+    def search_logs(self, e: ft.ControlEvent) -> None:
+        search_term = self.search_field.value.lower()
+        for log_entry in self.log_container.content.controls:
+            if isinstance(log_entry, ft.Column) and len(log_entry.controls) > 1:
+                text_control = log_entry.controls[1]  # Get the Text control (index 1 after divider)
+                log_entry.visible = (not search_term) or (search_term in text_control.value.lower())
+        self.page.update()
+
+    def filter_logs(self, e: ft.ControlEvent) -> None:
+        filter_type = self.filter_dropdown.value
+        self.log_container.content.controls.clear()
+        
+        for file_name in self.log_files_modified_times.keys():
+            try:
+                with open(file_name, 'r') as file:
+                    lines = file.readlines()
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        if filter_type == "ALL":
+                            if "| ERROR |" in line:
+                                self.log_text(line, "error")
+                            elif "| WARNING |" in line:
+                                self.log_text(line, "warning")
+                            else:
+                                self.log_text(line)
+                        elif f"| {filter_type} |" in line:
+                            log_type = filter_type.lower()
+                            self.log_text(line, log_type)
+            except Exception as e:
+                current_time = datetime.now().strftime('%H:%M:%S')
+                self.log_text(f"{current_time} | ERROR | Failed to read log file: {str(e)}", "error")
+        
+        self.page.update()
+
+    def update_buttons(self) -> None:
+        while True:
+            for button_key, (_, button, status_indicator) in self.tool_buttons.items():
+                if button_key in self.server_processes:
+                    process = self.server_processes[button_key]
+                    is_alive = process is not None and process.poll() is None
+                else:
+                    is_alive = False
+
+                status_indicator.bgcolor = ft.colors.GREEN if is_alive else ft.colors.RED
+                button.text = "Disconnect" if is_alive else "Connect"
+            
+            self.page.update()
+            time.sleep(0.5)  # Update every 500ms
+
+    def start_log_update_timer(self) -> None:
+        def update_logs() -> None:
+            while True:
+                try:
+                    new_logs = []
+                    for file_name, update_time in self.log_files_modified_times.items():
+                        last_updated = os.path.getmtime(file_name)
+                        if update_time is None or last_updated != update_time:
+                            last_lines = self.read_last_lines(file_name, 100)
+                            self.log_files_modified_times[file_name] = last_updated
+                            filter_type = self.filter_dropdown.value
+                            
+                            # Collect all new logs before updating UI
+                            for line in last_lines:
+                                line = line.strip()
+                                if not line:
+                                    continue
+                                if filter_type == "ALL" or f"| {filter_type} |" in line:
+                                    if "| ERROR |" in line:
+                                        new_logs.append((line, "error"))
+                                    elif "| WARNING |" in line:
+                                        new_logs.append((line, "warning"))
+                                    else:
+                                        new_logs.append((line, "info"))
+                    
+                    # Update UI with all new logs at once
+                    if new_logs:
+                        for line, log_type in new_logs:
+                            self.log_text(line, log_type)
+                                
+                except Exception as e:
+                    logging.error(f"Error updating logs: {e}")
+                
+                time.sleep(self.update_interval / 1000)
+        
+        # Start update threads
+        button_thread = threading.Thread(target=self.update_buttons, daemon=True)
+        log_thread = threading.Thread(target=update_logs, daemon=True)
+        button_thread.start()
+        log_thread.start()
+
+    # Keep existing methods unchanged
+    def kill_all_processes(self) -> None:
         logging.info("Killing all processes")
         for proc_key, process in self.server_processes.items():
             try:
@@ -133,129 +424,8 @@ class ToolsManager():
                 pass
         self.server_processes.clear()
         self.force_kill_tool()
-    
-    def set_icon(self) -> None:
-        if os.name == "nt":
-            self.root.iconbitmap(join(ROOT_DIR,"tools","favicon.ico"))
-        elif os.name == "posix":
-            icon_file = join(ROOT_DIR,"tools","site_logo.png")
-            icon_img = tk.Image("photo", file=icon_file)
-            if icon_img:
-                self.root.iconphoto(True, str(icon_img))      
-    
-    def update_buttons(self) -> None:
-        for button_key, (button_name, button, status_indicator) in self.tool_buttons.items():
-            if button_key in self.server_processes:
-                process = self.server_processes[button_key]
-                is_alive = process is not None and process.poll() is None
-            else:
-                is_alive = False
 
-            if is_alive:
-                status_indicator.itemconfig('status', fill='green')
-                button.config(text='Disconnect')
-            else:
-                status_indicator.itemconfig('status', fill='red')
-                button.config(text='Connect')
-
-        self.root.after(500, self.update_buttons)
-    
-    def load_tools(self) -> None:
-        self.config.load_workcell_config()
- 
-    def read_last_lines(self, filename:str, lines:int=100) -> list[str]:
-        with open(filename, 'rb') as f:
-            f.seek(0, os.SEEK_END)
-            end_position = f.tell()
-            buffer_size = 1024
-            blocks = -1
-            data = []
-            while end_position > 0 and len(data) < lines:
-                if end_position - buffer_size > 0:
-                    f.seek(blocks * buffer_size, os.SEEK_END)
-                else:
-                    f.seek(0, os.SEEK_SET)
-                data.extend(f.readlines())
-                end_position -= buffer_size
-                blocks -= 1
-            return [line.decode('utf-8') for line in data[-lines:]]
-            
-    def update_log_text(self) -> None:
-        try:
-            self.output_text.config(state='normal')
-            current_scroll = self.output_text.yview()
-            for file_name, update_time in self.log_files_modified_times.items():
-                last_updated = os.path.getmtime(file_name)
-                if update_time is None or last_updated != update_time:
-                    last_lines = self.read_last_lines(file_name, 100)
-                    self.log_files_modified_times[file_name] = last_updated
-                    filter_type = self.filter_var.get()
-                    for line in last_lines:
-                        if filter_type == "ALL" or f"| {filter_type} |" in line:
-                            if "| ERROR |" in line:
-                                self.log_text(line.strip(), "error")
-                            elif "| WARNING |" in line:
-                                self.log_text(line.strip(), "warning")
-                            else:
-                                self.log_text(line.strip())
-            
-            if current_scroll == (0.0, 1.0):  # Only scroll to the bottom if at the bottom
-                self.output_text.see(tk.END)
-
-            self.output_text.config(state='disabled')
-        except FileNotFoundError:
-            self.output_text.config(state='disabled')
-        except Exception:
-            self.output_text.config(state='disabled')
-        self.root.after(self.update_interval, self.update_log_text)
-
-    def search_logs(self) -> None:
-        search_term = self.search_entry.get().lower()
-        self.output_text.tag_remove("search", "1.0", tk.END)
-        if search_term:
-            start_pos = "1.0"
-            while True:
-                start_pos = self.output_text.search(search_term, start_pos, stopindex=tk.END, nocase=True)
-                if not start_pos:
-                    break
-                end_pos = f"{start_pos}+{len(search_term)}c"
-                self.output_text.tag_add("search", start_pos, end_pos)
-                start_pos = end_pos
-            self.output_text.tag_config("search", background="yellow")
-
-    def filter_logs(self, *args: Any) -> None:
-        filter_type = self.filter_var.get()
-        
-        # Clear existing items in the Text widget
-        self.output_text.delete("1.0", tk.END)
-        
-        for file_name in self.log_files_modified_times.keys():
-            try:
-                with open(file_name, 'r') as file:
-                    for line in file:
-                        if filter_type == "ALL" or f"| {filter_type} |" in line:
-                            if "| ERROR |" in line:
-                                self.log_text(line.strip(), "error")
-                            elif "| WARNING |" in line:
-                                self.log_text(line.strip(), "warning")
-                            else:
-                                self.log_text(line.strip())
-            except Exception as e:
-                # Insert error as a new line in the Text widget
-                current_time = time.strftime('%Y-%m-%d %H:%M:%S')
-                self.output_text.insert(tk.END, f"{current_time} | ERROR | Failed to read log file: {str(e)}\n", ('error',))
-
-    def get_shell_command(self, tool_type:str, port:int) -> list:
-        python_cmd : str = f"python -m tools.{tool_type}.server --port={port}"
-        if os.name == 'nt':
-            return ["cmd.exe", "/C", python_cmd]       
-        else:
-            return python_cmd.split()
-    
-    def __del__(self) -> None:
-        self.kill_all_processes()
-    
-    def kill_by_process_id(self, process_id:int) -> None:
+    def kill_by_process_id(self, process_id: int) -> None:
         try:
             if os.name == 'nt':
                 subprocess.call(['taskkill', '/F', '/T', '/PID', str(process_id)])
@@ -266,15 +436,33 @@ class ToolsManager():
         finally:
             return None
 
-    def run_subprocess(self, tool_type:str, tool_name:str, port:int,confirm_modal:bool=False) -> None:
+    def run_subprocess(self, tool_type: str, tool_name: str, port: int, confirm_modal: bool = False) -> None:
         if confirm_modal:
-            box_result = messagebox.askquestion(title="Confirm Tool Restart", message=f"Are you sure you want to restart {tool_name}-{tool_type}")
-            if box_result == 'no':
-                return None
+            def handle_confirm(e: ft.ControlEvent) -> None:
+                if e.control.data:
+                    self._run_subprocess_impl(tool_type, tool_name, port)
+                dlg.open = False
+                self.page.update()
+
+            dlg = ft.AlertDialog(
+                title=ft.Text("Confirm Tool Restart"),
+                content=ft.Text(f"Are you sure you want to restart {tool_name}-{tool_type}?"),
+                actions=[
+                    ft.TextButton("Yes", on_click=handle_confirm, data=True),
+                    ft.TextButton("No", on_click=handle_confirm, data=False),
+                ],
+            )
+            self.page.dialog = dlg
+            dlg.open = True
+            self.page.update()
+        else:
+            self._run_subprocess_impl(tool_type, tool_name, port)
+
+    def _run_subprocess_impl(self, tool_type: str, tool_name: str, port: int) -> None:
         try:
             self.kill_process_by_name(str(tool_name))
             tool_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = tool_socket.connect_ex(('127.0.0.1',int(port)))
+            result = tool_socket.connect_ex(('127.0.0.1', int(port)))
             if result != 0:
                 cmd = self.get_shell_command(tool_type=tool_type, port=port)
                 os.chdir(ROOT_DIR)
@@ -284,18 +472,24 @@ class ToolsManager():
                 logging.info(f"log folder is {self.log_folder}")
                 if self.log_folder:
                     output_file = join(self.log_folder, str(tool_name)) + ".log"
-                    process = subprocess.Popen(cmd, stdout=open(output_file,'w'), stderr=subprocess.STDOUT,  universal_newlines=True)
+                    process = subprocess.Popen(cmd, stdout=open(output_file,'w'), stderr=subprocess.STDOUT, universal_newlines=True)
                 else:
-                     process = subprocess.Popen(cmd, shell=use_shell,universal_newlines=True)
+                    process = subprocess.Popen(cmd, shell=use_shell, universal_newlines=True)
                 self.server_processes[tool_name] = process
                 self.log_files_modified_times[output_file] = os.path.getmtime(output_file)
             else:
                 logging.warning(f"Port {port} for {tool_name} is already occupied")
         except subprocess.CalledProcessError:
             logging.info("There was an error launching tool server.")
-        return None
-    
-    def kill_process_by_name(self, process_name:str) -> None:
+
+    def get_shell_command(self, tool_type: str, port: int) -> list:
+        python_cmd: str = f"python -m tools.{tool_type}.server --port={port}"
+        if os.name == 'nt':
+            return ["cmd.exe", "/C", python_cmd]       
+        else:
+            return python_cmd.split()
+
+    def kill_process_by_name(self, process_name: str) -> None:
         if process_name not in self.server_processes.keys():
             return None
         else:
@@ -304,76 +498,7 @@ class ToolsManager():
                 self.kill_by_process_id(process_id)
             except Exception as e:
                 logging.warning(f"Failed to kill process {process_name}. Reason is={str(e)}.")
-        return None 
-    
-    def log_text(self, text: str, log_type: str = "info") -> None:
-        self.output_text.config(state='normal')
-        if log_type == "error":
-            self.output_text.insert(tk.END, text + "\n", ('error',))
-        elif log_type == "warning":
-            self.output_text.insert(tk.END, text + "\n", ('warning',))
-        else:
-            self.output_text.insert(tk.END, text + "\n")
-        self.output_text.config(state='disabled')
-        self.output_text.see(tk.END)
-
-    def populate_tool_buttons(self) -> None:
-        left_width = 300  # Initial width of the left frame
-
-        # Clear existing tool buttons and widgets in the frame
-        for widget in self.widgets_frame.winfo_children():
-            widget.destroy()
-
-        # Reset tool button state
-        self.tool_buttons.clear()
-        self.tool_buttons_previous_states.clear()
-
-        def create_tool_frame(parent: tk.Widget, tool_name: str, command: Callable) -> None:
-            frame = tk.Frame(parent)
-            frame.pack(fill=tk.X, padx=3, pady=2)
-            
-            label = ttk.Label(frame, text=tool_name, anchor='w')
-            label.pack(side=tk.LEFT, padx=(5, 10), pady=5, expand=True, fill=tk.X)
-            
-            # Changed from Frame to Canvas
-            status_indicator = tk.Canvas(frame, width=12, height=12, highlightthickness=0)
-            status_indicator.pack(side=tk.LEFT, padx=(0, 10), pady=5)
-            status_indicator.create_oval(2, 2, 10, 10, fill='red', tags='status')
-            
-            button = tk.Button(frame, text="Connect", command=command, width=10)
-            button.pack(side=tk.RIGHT, padx=(5, 5), pady=5)
-            
-            self.tool_buttons[tool_name] = (tool_name, button, status_indicator)
-            self.tool_buttons_previous_states[tool_name] = False
-
-        # Tool Box
-        create_tool_frame(self.widgets_frame, "Tool Box", self.start_toolbox)
-
-        # Workcell tools
-        if self.config.workcell_config:
-            for t in self.config.workcell_config.tools:
-                try:
-                    create_tool_frame(
-                        self.widgets_frame,
-                        t.name,
-                        lambda t=t: self.run_subprocess(t.type, t.name, t.port, True, )
-                    )
-                except Exception as e:
-                    logging.error(f"Failed to add button {t.id}. Error is {e}")
-
-        # Restart All button
-        restart_frame = ttk.Frame(self.widgets_frame)
-        restart_frame.pack(fill=tk.X, padx=3, pady=4)
-        restart_all_button = ttk.Button(restart_frame, text="Restart All", command=self.run_all_tools)
-        restart_all_button.pack(fill=tk.X)
-
-        # Add this line to ensure the widgets_frame fits its contents
-        self.widgets_frame.update_idletasks()
-        self.left_canvas.config(width=self.widgets_frame.winfo_reqwidth())
-
-        # Set the initial position of the paned window sash
-        self.paned_window.sashpos(0, left_width)
-
+        return None
 
     def force_kill_tool(self) -> None:
         try:
@@ -381,12 +506,11 @@ class ToolsManager():
                 subprocess.Popen("lsof -t -i tcp:1010 | xargs kill", shell=True)
         except Exception as e:
             self.log_text(f"Failed to kill web app. Error={e}")
-    
 
     def start_toolbox(self) -> None:
         logging.info("Launching Toolbox")
         try:
-            self.run_subprocess("toolbox", "Tool Box",1010,False)
+            self.run_subprocess("toolbox", "Tool Box", 1010, False)
         except subprocess.CalledProcessError:
             logging.info("There was an error launching toolbox server.")
 
@@ -407,13 +531,12 @@ class ToolsManager():
 
         for t in self.config.workcell_config.tools:
             logging.info(f"Launching process for tool {t.name}")
-            counter+=1
-            #Check if tool is already running. 
+            counter += 1
             tool_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = tool_socket.connect_ex(('127.0.0.1',t.port))
+            result = tool_socket.connect_ex(('127.0.0.1', t.port))
             if result != 0:
                 try:
-                    self.run_subprocess(t.type,t.name,t.port,False )
+                    self.run_subprocess(t.type, t.name, t.port, False)
                 except Exception as e:
                     logging.error(f"Failed to launch tool {t.name}. Error is {e}")
             else:
@@ -421,23 +544,26 @@ class ToolsManager():
         time.sleep(0.5)
         self.update_buttons()
 
-    def on_closing(self) -> None:
-        logging.info("Calling on closing function")
-        try:
-           self.kill_all_processes()
-        except Exception as e: 
-            self.log_text(f"Failed to kill tool servers, {e}")
-        finally:
-            self.log_text("Closing Galago Manager")
-            time.sleep(2)
-            self.root.destroy()
+    def load_tools(self) -> None:
+        self.config.load_workcell_config()
 
-    def show_gui(self) -> None:
-        process_thread = threading.Thread(target=self.run_all_tools)
-        process_thread.daemon = False
-        process_thread.start()
-        self.root.mainloop()
-    
+    def read_last_lines(self, filename: str, lines: int = 100) -> list[str]:
+        with open(filename, 'rb') as f:
+            f.seek(0, os.SEEK_END)
+            end_position = f.tell()
+            buffer_size = 1024
+            blocks = -1
+            data = []
+            while end_position > 0 and len(data) < lines:
+                if end_position - buffer_size > 0:
+                    f.seek(blocks * buffer_size, os.SEEK_END)
+                else:
+                    f.seek(0, os.SEEK_SET)
+                data.extend(f.readlines())
+                end_position -= buffer_size
+                blocks -= 1
+            return [line.decode('utf-8') for line in data[-lines:]]
+
 def main() -> int:
     parser = argparse.ArgumentParser(description='Launch Galago Tools Manager')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode with detailed logging')
@@ -460,15 +586,19 @@ def main() -> int:
 
     try:
         logging.info("Starting Galago Tools Manager")
-        root = tk.Tk()
-        logging.info(f"Is root None? {root is None}")
         config = Config()
         logging.info("Loading app config")
         config.load_app_config()
         logging.info("Loading workcell config")
         config.load_workcell_config()
-        manager = ToolsManager(root, config)
-        manager.show_gui()
+        
+        def main_window(page: ft.Page) -> None:
+            manager = ToolsManager(page, config)
+            manager.populate_tool_buttons()
+            manager.run_all_tools()
+        
+        # Always use assets directory for consistent icon loading
+        ft.app(target=main_window, assets_dir=join(ROOT_DIR, "tools"))
         return 0
     except Exception:
         logging.exception("Failed to launch tools")

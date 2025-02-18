@@ -25,3 +25,4 @@ slack-sdk==3.21.3
 slackclient==2.9.4
 cython==3.0.11
 pillow==11.0.0
+flet==0.26.0
