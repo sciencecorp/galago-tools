@@ -6,7 +6,6 @@ import threading
 import os
 from datetime import datetime
 from typing import Optional, Union
-from tools.toolbox.slack import Slack 
 from tools.app_config import Config 
 
 
@@ -40,14 +39,12 @@ def serial_read(serial_port: serial.Serial) -> str:
 
 WAIT_TIMEOUT = 90
 
-
 class LiconicStxDriver(ABCToolDriver):
     # Example: com_port can be "COM1"
     def __init__(self, com_port: str) -> None:
         self.config = Config()
         self.config.load_app_config()
         self.config.load_workcell_config()
-        self.slack_client = Slack(self.config)
         if self.config.app_config.data_folder:
             self.co2_log_path = os.path.join(self.config.app_config.data_folder,"sensors","liconic")
         self.serial_port = serial.Serial(
@@ -281,14 +278,6 @@ class LiconicStxDriver(ABCToolDriver):
         with open(today_file, "r") as f:
             lines = f.readlines()
             logging.info(F"length of lines {len(lines)}")
-            # if len(lines) > data_points+1:
-            #     last_data_points = lines[-data_points:]
-            #     sum = 0
-            #     for line in last_data_points:
-            #         value = int(line.replace("\n","").split(",")[1])
-            #         sum += value
-            #     avg = sum/data_points
-            #     return avg
             return None
 
     def monitor_co2_level(self) -> None:
@@ -297,19 +286,16 @@ class LiconicStxDriver(ABCToolDriver):
         config.load_app_config()
         try:
             while True:
-                logging.info("Liconic monitor thread is running...")
-                logging.info("Is busy: " + str(self.is_busy))
                 if not self.is_busy:
                     co2_level = float(self.get_co2_cur_level())/100
-                    logging.info(f"CO2 level is {co2_level}")
                     self.write_co2_log(str(co2_level))
                     if co2_level < 3:
                         self.co2_out_of_range = True
                         error_message = f"CO2 level is low: {co2_level}%"
-                        logging.error(error_message)
+                        logging.warning(error_message)
                     if co2_level > 4 and self.co2_out_of_range:
                         if self.config.app_config.slack_error_channel:
-                            self.slack_client.clear_last_error(self.config.app_config.slack_error_channel)
+                              logging.warning(f"CO2 level is back to normal: {co2_level}%")
                         self.co2_out_of_range = False
                 time.sleep(300)
                 
