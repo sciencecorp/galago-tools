@@ -200,6 +200,8 @@ class ToolsManager:
             height=12,
             bgcolor=ft.colors.RED,
             border_radius=6,
+            animate=ft.animation.Animation(500, ft.AnimationCurve.EASE_IN_OUT),
+            shadow=None,  # Initialize shadow as None
         )
         
         def handle_button_click(e: ft.ControlEvent) -> None:
@@ -396,7 +398,17 @@ class ToolsManager:
                     else:
                         is_alive = False
 
-                    status_indicator.bgcolor = ft.colors.GREEN if is_alive else ft.colors.RED
+                    if is_alive:
+                        status_indicator.bgcolor = ft.colors.GREEN
+                        status_indicator.shadow = ft.BoxShadow(
+                            spread_radius=3,
+                            blur_radius=8,
+                            color=ft.colors.GREEN_200,
+                            offset=ft.Offset(0, 0)
+                        )
+                    else:
+                        status_indicator.bgcolor = ft.colors.RED
+                        status_indicator.shadow = None
                     button.text = "Disconnect" if is_alive else "Connect"
                 
                 self.page.update()
