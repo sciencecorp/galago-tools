@@ -670,7 +670,10 @@ class ToolsManager:
                                 # Check if process still exists
                                 os.kill(pid, 0)
                                 # If we get here, process still exists, force kill
-                                os.kill(pid, os_signal.SIGKILL)
+                                if hasattr(os_signal, 'SIGKILL'):
+                                    os.kill(pid, os_signal.SIGKILL)  # type: ignore
+                                else:
+                                    os.kill(pid, os_signal.SIGTERM)
                             except OSError:
                                 # Process is already gone
                                 pass
