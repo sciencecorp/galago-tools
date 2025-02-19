@@ -689,15 +689,24 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.debug:
+        # More verbose debug logging configuration
         logging.basicConfig(
             level=logging.DEBUG,
-            format='%(asctime)s | %(levelname)s | %(message)s',
+            format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  # Added module name
             handlers=[
-                logging.StreamHandler(sys.stdout)
+                logging.StreamHandler(sys.stdout),
+                logging.handlers.RotatingFileHandler(
+                    filename=os.path.join(ROOT_DIR, 'tools_manager_debug.log'),
+                    maxBytes=10*1024*1024,  # 10MB
+                    backupCount=5
+                )
             ]
         )
-        # Even in debug mode, keep UI framework logging minimal
+        # Increase verbosity for some modules while keeping UI framework minimal
         logging.getLogger("flet_core").setLevel(logging.WARNING)
+        logging.getLogger("matplotlib").setLevel(logging.WARNING)
+        logging.getLogger("tools").setLevel(logging.DEBUG)  # Ensure all tools logging is visible
+        logging.getLogger("werkzeug").setLevel(logging.INFO)  # For Flask debugging if used
     else:
         logging.basicConfig(
             level=logging.INFO,
