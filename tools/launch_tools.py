@@ -1,3 +1,4 @@
+import warnings
 import logging.handlers
 import subprocess
 from tools.app_config import Config
@@ -29,6 +30,8 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 class ToolsManager:
     def __init__(self, page: ft.Page, config: Config) -> None:
         self.page = page
@@ -57,7 +60,7 @@ class ToolsManager:
         self.last_update = time.time()
         self.update_batch_size = 10  # Number of logs to accumulate before updating
         self.min_update_interval = 0.1  # Minimum time between updates in seconds
-        self.auto_scroll = False  # Track if we should auto-scroll logs
+        self.auto_scroll = True  # Track if we should auto-scroll logs
 
         self.running_tools = 0
         self.config_file = ""
@@ -302,9 +305,7 @@ class ToolsManager:
     def log_text(self, text: str, log_type: str = "info") -> None:
         # Parse timestamp and message
         try:
-            # Try to split timestamp and message
             full_timestamp, level, *message_parts = text.split(" | ")
-            # Convert timestamp to shorter format (HH:MM:SS)
             try:
                 dt = datetime.strptime(full_timestamp, '%Y-%m-%d %H:%M:%S')
                 timestamp = dt.strftime('%H:%M:%S')
@@ -312,19 +313,18 @@ class ToolsManager:
                 timestamp = full_timestamp
             message = " | ".join(message_parts)
         except ValueError:
-            # If splitting fails, use the whole text as message
             timestamp = datetime.now().strftime('%H:%M:%S')
             message = text
             level = "INFO"
 
-        # Set colors based on log type and theme
+        # Define colors based on log type
         colors = {
             "error": ft.colors.RED_400,
             "warning": ft.colors.ORANGE_400,
             "info": ft.colors.ON_SURFACE,
             "debug": ft.colors.ON_SURFACE_VARIANT,
         }
-        
+
         # Create the log entry
         log_entry = ft.Column(
             controls=[
@@ -339,19 +339,16 @@ class ToolsManager:
             ],
             spacing=0,
         )
-        
+
         self.log_container.content.controls.append(log_entry)
         if len(self.log_container.content.controls) > 1000:
             self.log_container.content.controls = self.log_container.content.controls[-1000:]
 
-        # Only update if enough time has passed
-        current_time = time.time()
-        if current_time - self.last_log_update >= 0.5:  # Update at most every 500ms
-            # Only auto-scroll if we were already at the bottom
-            if self.auto_scroll:
-                self.log_container.content.scroll_to(offset=float('inf'), duration=100)
-            self.log_container.update()
-            self.last_log_update = current_time
+        # Always scroll to the bottom regardless of previous scroll position
+        self.log_container.content.scroll_to(offset=999999, duration=100)
+        self.log_container.update()
+        self.last_log_update = time.time()
+
 
     def search_logs(self, e: ft.ControlEvent) -> None:
         search_term = self.search_field.value.lower()
