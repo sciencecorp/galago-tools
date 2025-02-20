@@ -22,8 +22,9 @@ TOOLS_32BITS = ["vcode","bravo","hig_centrifuge","plateloc","vspin"]
 logging.getLogger("flet_core").setLevel(logging.WARNING)  # Reduce Flet framework logging
 logging.getLogger("matplotlib").setLevel(logging.WARNING)  # Reduce any matplotlib logging
 
+# Default to DEBUG level logging
 logging.basicConfig(
-    level=logging.INFO,  # Changed from DEBUG to INFO by default
+    level=logging.DEBUG,  # Changed from INFO to DEBUG
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
 )
@@ -692,7 +693,7 @@ def main() -> int:
         # More verbose debug logging configuration
         logging.basicConfig(
             level=logging.DEBUG,
-            format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',  # Added module name
+            format='%(asctime)s | %(levelname)s | %(message)s',
             handlers=[
                 logging.StreamHandler(sys.stdout),
                 logging.handlers.RotatingFileHandler(
@@ -702,14 +703,14 @@ def main() -> int:
                 )
             ]
         )
-        # Increase verbosity for some modules while keeping UI framework minimal
+        # Keep UI framework logging minimal while allowing full tool logging
         logging.getLogger("flet_core").setLevel(logging.WARNING)
         logging.getLogger("matplotlib").setLevel(logging.WARNING)
-        logging.getLogger("tools").setLevel(logging.DEBUG)  # Ensure all tools logging is visible
-        logging.getLogger("werkzeug").setLevel(logging.INFO)  # For Flask debugging if used
+        logging.getLogger("tools").setLevel(logging.DEBUG)
+        logging.getLogger("werkzeug").setLevel(logging.INFO)
     else:
         logging.basicConfig(
-            level=logging.INFO,
+            level=logging.DEBUG,  # Changed from INFO to DEBUG to match original
             format='%(asctime)s | %(levelname)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
         )
