@@ -1,3 +1,4 @@
+import warnings
 import logging.handlers
 import subprocess
 from tools.app_config import Config
@@ -28,6 +29,8 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 class ToolsManager:
     def __init__(self, page: ft.Page, config: Config) -> None:
         self.page = page
