@@ -15,6 +15,7 @@ import argparse
 from os.path import join, dirname
 from typing import Optional, Any, Callable
 from tkinter.scrolledtext import ScrolledText
+from tools.utils import get_shell_command 
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
 LOG_TIME = int(time.time())
@@ -25,6 +26,11 @@ logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
+
+sys.path = [
+    p for p in sys.path
+    if not any(sub in p.lower() for sub in ["anaconda3", "miniconda", "mamba"])
+]
 
 class ToolsManager():
 
@@ -117,6 +123,9 @@ class ToolsManager():
         self.filter_var = tk.StringVar(value="ALL")
         self.filter_menu = ttk.OptionMenu(self.search_frame, self.filter_var, "ALL", "ALL", "INFO", "DEBUG", "WARNING", "ERROR", command=self.filter_logs)
         self.filter_menu.pack(side=tk.LEFT)
+        
+        self.clear_button = ttk.Button(self.search_frame, text="Clear Logs", command=self.clear_logs)
+        self.clear_button.pack(side=tk.LEFT, padx=(5, 0))
 
     def kill_all_processes(self) ->None:
         logging.info("Killing all processes")
@@ -244,13 +253,6 @@ class ToolsManager():
                 # Insert error as a new line in the Text widget
                 current_time = time.strftime('%Y-%m-%d %H:%M:%S')
                 self.output_text.insert(tk.END, f"{current_time} | ERROR | Failed to read log file: {str(e)}\n", ('error',))
-
-    def get_shell_command(self, tool_type:str, port:int) -> list:
-        python_cmd : str = f"python -m tools.{tool_type}.server --port={port}"
-        if os.name == 'nt':
-            return ["cmd.exe", "/C", python_cmd]       
-        else:
-            return python_cmd.split()
     
     def __del__(self) -> None:
         self.kill_all_processes()
@@ -276,7 +278,7 @@ class ToolsManager():
             tool_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result = tool_socket.connect_ex(('127.0.0.1',int(port)))
             if result != 0:
-                cmd = self.get_shell_command(tool_type=tool_type, port=port)
+                cmd = get_shell_command(tool_type=tool_type, port=port)
                 os.chdir(ROOT_DIR)
                 use_shell = False
                 if os.name == 'nt':
@@ -437,7 +439,12 @@ class ToolsManager():
         process_thread.daemon = False
         process_thread.start()
         self.root.mainloop()
-    
+        
+    def clear_logs(self) -> None:
+        """Clear all logs from the output text widget"""
+        self.output_text.config(state='normal')
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.config(state='disabled')
 def main() -> int:
     parser = argparse.ArgumentParser(description='Launch Galago Tools Manager')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode with detailed logging')
