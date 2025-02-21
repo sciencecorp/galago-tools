@@ -20,7 +20,6 @@ set CONDA_SUBDIR="win-32"
 mamba create -n galago-tools
 mamba activate galago-tools
 ```
-```
 
 ### Install 
 ```
@@ -30,4 +29,13 @@ pip install "git+ssh://git@github.com/sciencecorp/galago-tools"
 ### Development 
 ```
 pip install -e .
+```
+
+
+### Generating Wheels. 
+This process is still manual. 
+```
+pip install build
+python setup.py bdist_wheel
+
 ```

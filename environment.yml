@@ -1,4 +1,4 @@
-name: galago-tools
+name: galago
 channels:
   - defaults
 dependencies:

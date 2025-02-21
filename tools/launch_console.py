@@ -10,10 +10,16 @@ import signal as os_signal
 import time
 import argparse
 from os.path import dirname
+from tools.utils import get_shell_command 
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
 LOG_TIME = int(time.time())
 TOOLS_32BITS = ["vcode","bravo","hig_centrifuge","plateloc","vspin"]
+
+sys.path = [
+    p for p in sys.path
+    if not any(sub in p.lower() for sub in ["anaconda3", "miniconda", "mamba"])
+]
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -69,10 +75,6 @@ class LaunchConsole():
                 end_position -= buffer_size
                 blocks -= 1
             return [line.decode('utf-8') for line in data[-lines:]]
-            
-
-    def get_shell_command(self, tool_type:str, port:int) -> list:
-        return [sys.executable, '-m', f'tools.{tool_type}.server', f'--port={port}']
     
     def __del__(self) -> None:
         self.kill_all_processes()
@@ -94,7 +96,7 @@ class LaunchConsole():
             tool_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result = tool_socket.connect_ex(('127.0.0.1',int(port)))
             if result != 0:
-                cmd = self.get_shell_command(tool_type=tool_type, port=port)
+                cmd = get_shell_command(tool_type=tool_type, port=port)
                 os.chdir(ROOT_DIR)
                 use_shell = False
                 if os.name == 'nt':

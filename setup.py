@@ -3,13 +3,18 @@ from setuptools import setup
 import subprocess
 from setuptools.command.build_py import build_py as _build_py
 import shutil 
+import sys 
+
+base = None
+if sys.platform == "win32":
+    base = "Win32GUI"  # Use "Console" if you want a console window
 
 
 class BuildProtobuf(_build_py):
     def run(self) -> None:
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Root directory
         proto_src = os.path.join(base_dir, "interfaces")
-        grpc_interfaces_output_dir = os.path.join(base_dir, "tools", "grpc_interfaces")  # ✅ Correct output path
+        grpc_interfaces_output_dir = os.path.join(base_dir, "tools", "grpc_interfaces")  
 
         os.makedirs(grpc_interfaces_output_dir, exist_ok=True)
 
@@ -95,7 +100,7 @@ def find_tool_packages() -> list[str]:
     return packages
 
 setup(
-    name='galago_tools',
+    name='galago',
     version='0.9',
     packages=find_tool_packages(),
     package_dir={'': '.'},
@@ -104,8 +109,15 @@ setup(
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
     include_package_data=True,
-    #package_data={'tools': ['*.dll', "site_logo.png", "favicon.ico"]},
-    package_data={'tools': ['*.dll',"site_logo.png","favicon.ico",'grpc_interfaces/*.py']},
+    package_data={'tools': ["site_logo.png",
+                            'vcode/deps/*.dll',
+                            'plateloc/deps/*.dll',
+                            'vspin/deps/*.dll',
+                            'hig_centrifuge/deps/*.dll',
+                            'bravo/deps/*.dll',
+                            'minihub/deps/*.dll',
+                            "favicon.ico",
+                            'grpc_interfaces/*.py']},
     url='https://github.com/sciencecorp/galago-core',
     author='Science Corporation',
     python_requires=">=3.9",
@@ -113,8 +125,8 @@ setup(
     long_description_content_type="text/markdown",
     entry_points={
         'console_scripts': [
-            'galago-run=tools.cli:launch_all_servers', 
-            'galago-run-console=tools.cli:launch_console'
+            'galago=tools.cli:main', 
+            'galago-serve=tools.cli:serve',
         ],
     },
     classifiers=[
