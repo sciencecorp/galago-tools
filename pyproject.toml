@@ -22,5 +22,5 @@ disable_error_code = ["misc", "var-annotated"]
 exclude = ['.*pb2.*', 'pyi$', 'cytation.py', "teach_pendant","opentrons"]
 
 [[tool.mypy.overrides]]
-module = ""
+module = ["flet"]
 ignore_missing_imports = true
