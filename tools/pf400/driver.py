@@ -123,7 +123,6 @@ class MovementController:
         else:
             self.communicator.send_command(f"movec {motion_profile} {location.to_string()}")
         self.communicator.wait_for_completion()
-    
 
     def jog(self, axis: Axis, distance: float) -> None:
         """Jog robot along specified axis"""
@@ -448,11 +447,12 @@ class Pf400Driver(ABCToolDriver):
 
 # if __name__ == "__main__":
 #     driver = Pf400Driver(
-#         tcp_host="192.168.0.6",
+#         tcp_host="192.168.0.1",
 #         tcp_port=10100,
-#         joints=5,
+#         joints=6,
 #         gpl_version="v2"
 #     )
 #     driver.initialize()
+#     driver.jog("z",-200)
 #     time.sleep(3)
 #     driver.free()
