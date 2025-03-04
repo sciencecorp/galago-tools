@@ -117,9 +117,13 @@ class MovementController:
         """Move robot using Cartesian coordinates"""
         if self.state.is_free:
             self._ensure_not_free()
-            
-        self.communicator.send_command(f"movec {motion_profile} {location.to_string()}")
+        
+        if self.config.gpl_version == "v1":
+            self.communicator.send_command(f"movec {location.to_string()}")
+        else:
+            self.communicator.send_command(f"movec {motion_profile} {location.to_string()}")
         self.communicator.wait_for_completion()
+    
 
     def jog(self, axis: Axis, distance: float) -> None:
         """Jog robot along specified axis"""
