@@ -73,7 +73,10 @@ class Pf400Server(ToolServer):
             self.driver.close()
         self.driver = Pf400Driver(
             tcp_host=request.host,
-            tcp_port=request.port
+            tcp_port=request.port,
+            joints=request.joints,
+            gpl_version=request.gpl_version,
+
         )
         self.driver.initialize()
         logging.info("Successfully connected to PF400")
