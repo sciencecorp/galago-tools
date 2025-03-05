@@ -218,10 +218,8 @@ class RobotInitializer:
 
 
     def _ensure_power_on(self) -> None:
-        
         initial_state = self.communicator.get_state()
         if initial_state == "0 20":
-            logging.info(f"High power is enabled.")
             return 
 
         logging.info("Turning on power...")
@@ -231,12 +229,11 @@ class RobotInitializer:
         if state_after_hp != "0 20":
             logging.warning(f"First power on attempt failed: {state_after_hp}")
             self.communicator.send_command("hp 1 30")
-            logging.info(f"Retry with a higher timeout")
-
+            logging.warning("Retrying with a higher timeout")
             if self.communicator.get_state() == "0 20":
                 return 
             else:
-                raise Exception(f"Could not turn power on")
+                raise Exception("Could not turn power on")
             
 
     def _ensure_robot_attached(self) -> None:
@@ -285,11 +282,11 @@ class RobotInitializer:
 
 class Pf400Driver(ABCToolDriver):
     """Main driver class for the PF400 robot"""
-    def __init__(self, tcp_host: str, tcp_port: int, joints:int=5, gpl_version="v1") -> None:
+    def __init__(self, tcp_host: str, tcp_port: int, joints:int=5, gpl_version:str="v1") -> None:
         self.state = RobotState()
         self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port, joints=joints, gpl_version=gpl_version)
         self.tcp_ip: Optional[Pf400TcpIp] = None
-        self.communicator: Optional[RobotCommunicator] = None
+        self.communicator: RobotCommunicator 
         self.gripper: Optional[GripperController] = None
         self.initializer: Optional[RobotInitializer] = None
         self.movement: Optional[MovementController] = None
@@ -321,7 +318,6 @@ class Pf400Driver(ABCToolDriver):
                 except Exception as close_error:
                     logging.warning(f"Error while closing connection during cleanup: {close_error}")
             self.tcp_ip = None
-            self.communicator = None
             self.gripper = None
             self.initializer = None
             self.movement = None
@@ -449,7 +445,7 @@ class Pf400Driver(ABCToolDriver):
 #     driver = Pf400Driver(
 #         tcp_host="192.168.0.1",
 #         tcp_port=10100,
-#         joints=6,
+#         joints=6,F
 #         gpl_version="v2"
 #     )
 #     driver.initialize()
