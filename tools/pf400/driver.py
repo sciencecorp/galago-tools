@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import logging
-import time
 from enum import Enum
 from typing import Optional, List
 from tools.pf400.tcp_ip import Pf400TcpIp

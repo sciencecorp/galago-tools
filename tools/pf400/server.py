@@ -3,14 +3,13 @@ from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.pf400_pb2 import Command, Config
 from .driver import Pf400Driver
 import argparse
-from typing import Optional, Union
+from typing import Optional, Union 
 from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply, SUCCESS, ERROR_FROM_TOOL
 from google.protobuf.struct_pb2 import Struct
 import logging
 from tools.pf400.waypoints_models import (
     Waypoints,
     MotionProfiles,
-    MotionProfile,
     Grips,
     Location,
     Labwares,
@@ -214,7 +213,7 @@ class Pf400Server(ToolServer):
             else:
                 raise Exception("Invalid release params")
             
-        retrieve_sequence = []
+        retrieve_sequence : t.List[message.Message] = []
         if safe_location:
             retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
         retrieve_sequence.extend([
@@ -261,7 +260,7 @@ class Pf400Server(ToolServer):
         else:
             release = release_params
 
-        dropoff_sequence = []
+        dropoff_sequence :t.List[message.Message] = []
         if safe_location:
             dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
         dropoff_sequence.extend([
@@ -305,7 +304,7 @@ class Pf400Server(ToolServer):
 
     def PickLid(self, params: Command.PickLid) -> None:
         labware:Labware = self._getLabware(params.labware)
-        location: Location = self._getLocation(params.location)
+        location: Optional[Location] = self._getLocation(params.location)
         if not location:
             raise Exception(f"Location '{params.location}' not found")
         safe_location = self._getLocation(f"{location}_safe")
@@ -336,7 +335,7 @@ class Pf400Server(ToolServer):
         else:
             lid_height = labware.plate_lid_offset + labware.lid_offset
         
-        pick_lid_sequence = []
+        pick_lid_sequence :t.List[message.Message]= []
         if safe_location:
             pick_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
         pick_lid_sequence.extend([
@@ -353,7 +352,7 @@ class Pf400Server(ToolServer):
     
     def PlaceLid(self, params: Command.PlaceLid) -> None:
         labware:Labware = self._getLabware(params.labware)
-        location: Location = self._getLocation(params.location)
+        location: Optional[Location] = self._getLocation(params.location)
         if not location:
             raise Exception(f"Location '{params.location}' not found")
         safe_location = self._getLocation(f"{location}_safe")
@@ -372,7 +371,7 @@ class Pf400Server(ToolServer):
         else:
             lid_height = labware.plate_lid_offset + labware.lid_offset
         
-        place_lid_sequence = []
+        place_lid_sequence :t.List[message.Message] = [] 
         if safe_location:
             place_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
         place_lid_sequence.extend([
