@@ -93,6 +93,8 @@ class MovementController:
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
         
+        if self.config.joints == 5:
+            loc_values = loc_values[:5]
         loc_string = Location(loc_values).to_string()
         if self.config.gpl_version == "v1":
             self.communicator.send_command(f"movej {loc_string}")
@@ -108,7 +110,8 @@ class MovementController:
         loc_values = location.values
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
-        
+        if self.config.joints == 5:
+            loc_values = loc_values
         loc_string = Location(loc_values).to_string()
         self.communicator.send_command(f"movej {motion_profile} {loc_string}")
         self.communicator.wait_for_completion()
@@ -117,11 +120,14 @@ class MovementController:
         """Move robot using Cartesian coordinates"""
         if self.state.is_free:
             self._ensure_not_free()
-        
+        loc_values = location.values
+        if self.config.joints == 5:
+            loc_values = loc_values[:5]
+        loc_string = Location(loc_values).to_string()
         if self.config.gpl_version == "v1":
-            self.communicator.send_command(f"movec {location.to_string()}")
+            self.communicator.send_command(f"movec {loc_string}")
         else:
-            self.communicator.send_command(f"movec {motion_profile} {location.to_string()}")
+            self.communicator.send_command(f"movec {motion_profile} {loc_string}")
         self.communicator.wait_for_completion()
 
     def jog(self, axis: Axis, distance: float) -> None:
