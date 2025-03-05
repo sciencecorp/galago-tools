@@ -385,9 +385,6 @@ class Pf400Server(ToolServer):
             place_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))     
         self.runSequence(place_lid_sequence)
 
-    def Wait(self, params: Command.Wait) -> None:
-        self.driver.wait(duration=params.duration)
-
     def GetCurrentLocation(self, params: Command.GetCurrentLocation) -> ExecuteCommandReply:
         """Get current robot position"""
         response = ExecuteCommandReply()

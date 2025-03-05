@@ -439,10 +439,6 @@ class Pf400Driver(ABCToolDriver):
         logging.info(f"Registering motion profile {profile}...")
         self.communicator.send_command(f"profile {profile}")
 
-    def wait(self, duration: int) -> None:
-        """Wait for specified duration"""
-        time.sleep(duration)
-
     def __del__(self) -> None:
         """Cleanup when driver is destroyed"""
         self.close()
