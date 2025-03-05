@@ -78,10 +78,10 @@ class Pf400Server(ToolServer):
         self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
-    def _getLocation(self, location_name: str) -> Location:
-        location = next((x for x in self.waypoints.locations if x.name == location_name), None)
+    def _getLocation(self, location_name: str) -> Optional[Location]:
+        location = next((x for x in self.waypoints.locations if x.name.lower() == location_name.lower()), None)
         if not location:
-            raise Exception(f"Location '{location_name}' not found")
+            logging.warning(f"Location '{location_name.lower()}' not found")
         return location
     
     def _getLabware(self, labware_name: str) -> Labware:
@@ -189,6 +189,8 @@ class Pf400Server(ToolServer):
         """Execute a move command with the given coordinate and motion profile."""
         location_name = params.name 
         location = self._getLocation(location_name)
+        if location is None:
+            raise Exception(f"Location '{location_name}' not found")
         self.moveTo(location, params.z_offset, motion_profile_id=params.motion_profile_id)
 
     def GraspPlate(self, params: Command.GraspPlate) -> None:
@@ -208,6 +210,10 @@ class Pf400Server(ToolServer):
     ) -> None:
         source_location = self._getLocation(source_nest)
         safe_location = self._getLocation(f"{source_nest}_safe")
+        if not safe_location:
+            safe_location = self._getLocation(f"{source_nest} safe")
+        if not safe_location:
+            logging.warning(f"Safe location for {source_nest} not found.")
         labware = self._getLabware(f"{labware_name}")
         labware_offset = labware.z_offset
         labware_offset = int(labware_offset)
@@ -235,19 +241,21 @@ class Pf400Server(ToolServer):
                 adjust_gripper = tmp_adjust_gripper
             else:
                 raise Exception("Invalid release params")
-        self.runSequence(
-            [
-                Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id), #Move to the safe location 
-                adjust_gripper, #Adjust gripper
-                Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=z_offset), #Move to the source location plus offset
-                Command.Move(name=source_location.name, motion_profile_id=14, z_offset=labware_offset), #Move to the nest location down in a straight pattern
-                grasp, #Grasp the plate
-
-                Command.Move(name=source_location.name, motion_profile_id=14, z_offset=z_offset), #Move to the nest location up in a straight pattern
-                Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id),
-            ]
-        )
-
+            
+        retrieve_sequence = []
+        if safe_location:
+            retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+        retrieve_sequence.extend([
+            adjust_gripper,  # Adjust gripper
+            Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=z_offset),  # Move to source location plus offset
+            Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=labware_offset),  # Move down in straight pattern
+            grasp,  # Grasp the plate
+            Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=z_offset),  # Move up in straight pattern
+        ])
+        if safe_location:
+            retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+        
+        self.runSequence(retrieve_sequence)
 
     def dropoff_plate(
         self,
@@ -313,11 +321,6 @@ class Pf400Server(ToolServer):
             z_offset=5,
             labware_name=params.labware
         )
-
-
-
-
-
 
     def PickLid(self, params: Command.PickLid) -> None:
         labware:Labware = self._getLabware(params.labware)
