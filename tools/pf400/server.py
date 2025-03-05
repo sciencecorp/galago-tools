@@ -176,6 +176,8 @@ class Pf400Server(ToolServer):
         labware_name: str = "",
     ) -> None:
         source_location = self._getLocation(source_nest)
+        if not source_location:
+            raise Exception(f"Location '{source_nest}' not found")
         safe_location = self._getLocation(f"{source_nest}_safe")
         if not safe_location:
             safe_location = self._getLocation(f"{source_nest} safe")
@@ -233,6 +235,8 @@ class Pf400Server(ToolServer):
         labware_name: str = "",
     ) -> None:
         dest_location = self._getLocation(destination_nest)
+        if not dest_location:
+            raise Exception(f"Location '{destination_nest}' not found")
         safe_location = self._getLocation(f"{destination_nest}_safe")
         if not safe_location:
             safe_location = self._getLocation(f"{destination_nest} safe")
@@ -266,6 +270,7 @@ class Pf400Server(ToolServer):
         ])
         if safe_location:
             dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+        self.runSequence(dropoff_sequence)
 
     def RetrievePlate(self, params: Command.RetrievePlate) -> None:
         self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.z_offset, labware_name=params.labware)
@@ -298,7 +303,14 @@ class Pf400Server(ToolServer):
     def PickLid(self, params: Command.PickLid) -> None:
         labware:Labware = self._getLabware(params.labware)
         location: Location = self._getLocation(params.location)
+        if not location:
+            raise Exception(f"Location '{params.location}' not found")
         safe_location = self._getLocation(f"{location}_safe")
+        if not safe_location:
+            safe_location = self._getLocation(f"{location} safe")
+        if not safe_location:
+            logging.warning(f"Safe location for {location} not found")
+                            
         grasp: Command.GraspPlate
         tmp_grasp: Union[Command.GraspPlate,Command.ReleasePlate] = self.plate_handling_params[
             location.orientation
@@ -317,25 +329,30 @@ class Pf400Server(ToolServer):
             raise Exception("Invalid release params")
 
         if params.pick_from_plate:
-            lid_height = labware.height - 4 + labware.plate_lid_offset
+            lid_height = labware.height - 6 + labware.plate_lid_offset
         else:
             lid_height = labware.plate_lid_offset + labware.lid_offset
-            
-        self.runSequence(
-            [
-                adjust_gripper,
-                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location 
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
+        
+        pick_lid_sequence = []
+        if safe_location:
+            pick_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
+        pick_lid_sequence.extend([
+            adjust_gripper,
+            Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+8)), #Move to the location plus offset
                 Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height)), #Move to the calculated heigh
                 grasp,
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
-                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location
-            ]
-        )
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+8)), #Move to the location plus offset
+        ])
+        if safe_location:
+            pick_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
+        self.runSequence(pick_lid_sequence)
+
     
     def PlaceLid(self, params: Command.PlaceLid) -> None:
         labware:Labware = self._getLabware(params.labware)
         location: Location = self._getLocation(params.location)
+        if not location:
+            raise Exception(f"Location '{params.location}' not found")
         safe_location = self._getLocation(f"{location}_safe")
 
         release: Command.ReleasePlate
@@ -348,20 +365,22 @@ class Pf400Server(ToolServer):
             raise Exception("Invalid release params")
         
         if params.place_on_plate:
-            lid_height = labware.height - 4 + labware.plate_lid_offset
+            lid_height = labware.height - 6 + labware.plate_lid_offset
         else:
             lid_height = labware.plate_lid_offset + labware.lid_offset
-            
-        self.runSequence(
-            [
-                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location 
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
+        
+        place_lid_sequence = []
+        if safe_location:
+            place_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
+        place_lid_sequence.extend([
+             Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+8)), #Move to the location plus offset
                 Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height)), #Move to the calculated heigh
                 release,
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+6)), #Move to the location plus offset
-                Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id), #Move to the safe location
-            ]
-        )
+                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+8)), #Move to the location plus offset
+        ])
+        if safe_location:
+            place_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))     
+        self.runSequence(place_lid_sequence)
 
     def Wait(self, params: Command.Wait) -> None:
         self.driver.wait(duration=params.duration)
