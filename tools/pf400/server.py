@@ -469,9 +469,6 @@ class Pf400Server(ToolServer):
     def EstimateJog(self, params: Command.Jog) -> int:
         return 1
 
-    def EstimateWait(self, params: Command.Wait) -> int:
-        return 1
-
     def EstimatePickLid(self, params: Command.PickLid) -> int:
         return 1
     
