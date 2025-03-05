@@ -25,36 +25,6 @@ from google.protobuf import message
 import typing as t  
 from google.protobuf.json_format import Parse
 
-#Default motion profiles, use for retrieve and dropoff
-DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
-    #curved motion profile
-    MotionProfile(
-        name="default_curved",
-        id=13,
-        speed=80,
-        speed2=80,
-        acceleration=60,
-        deceleration=60,
-        accel_ramp=0.1,
-        decel_ramp=0.1,
-        inrange=0,
-        straight=0
-    ), 
-    #straight motion profile
-    MotionProfile(
-        name="default_straight",
-        id=14,
-        speed=80,
-        speed2=80,
-        acceleration=100,
-        deceleration=100,
-        accel_ramp=0.1,
-        decel_ramp=0.1,
-        inrange=0,
-        straight=1
-    ),
-]
-
 class Pf400Server(ToolServer):
     toolType = "pf400"
 
@@ -119,9 +89,6 @@ class Pf400Server(ToolServer):
         motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
         logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
         for motion_profile in motion_profiles.profiles:
-            self.driver.register_motion_profile(str(motion_profile))
-        #Register default motion profiles
-        for motion_profile in DEFAULT_MOTION_PROFILES:
             self.driver.register_motion_profile(str(motion_profile))
 
         # #Load Sequences 
@@ -267,6 +234,10 @@ class Pf400Server(ToolServer):
     ) -> None:
         dest_location = self._getLocation(destination_nest)
         safe_location = self._getLocation(f"{destination_nest}_safe")
+        if not safe_location:
+            safe_location = self._getLocation(f"{destination_nest} safe")
+        if not safe_location:
+            logging.warning(f"Safe location for {destination_nest} not found.")
         release: Command.ReleasePlate
         labware = self._getLabware(f"{labware_name}")
         labware_offset = int(labware.z_offset)
@@ -282,17 +253,19 @@ class Pf400Server(ToolServer):
                 raise Exception("Invalid release params")
         else:
             release = release_params
-        self.runSequence(
-            [
-                Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id), #Move to the safe location 
-                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, z_offset=int(z_offset)), #Move to the dest location plus offset
 
-                Command.Move(name=dest_location.name, motion_profile_id=14,z_offset=labware_offset), #Move to the nest location down in a straight pattern
+        dropoff_sequence = []
+        if safe_location:
+            dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+        dropoff_sequence.extend([
+              Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, z_offset=int(z_offset)), #Move to the dest location plus offset
+
+                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id,z_offset=labware_offset), #Move to the nest location down in a straight pattern
                 release, #Grasp the plate
-                Command.Move(name=dest_location.name, motion_profile_id=14, z_offset=int(z_offset)), #Move to the nest location up in a straight pattern
-                Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id), #Move back to the safe location 
-            ]
-        )
+                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, z_offset=int(z_offset)), #Move to the nest location up in a straight pattern
+        ])
+        if safe_location:
+            dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
 
     def RetrievePlate(self, params: Command.RetrievePlate) -> None:
         self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.z_offset, labware_name=params.labware)
