@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Optional, List
 from tools.pf400.tcp_ip import Pf400TcpIp
 from tools.base_server import ABCToolDriver
+import time 
 
 class RobotError(Enum):
     """Error codes for the PF400 robot"""
@@ -224,21 +225,22 @@ class RobotInitializer:
 
     def _ensure_power_on(self) -> None:
         initial_state = self.communicator.get_state()
-        if initial_state == "0 20":
+        if initial_state == "0 20": #power on
             return 
-
         logging.info("Turning on power...")
         self.communicator.send_command("hp 1 10")
         state_after_hp = self.communicator.get_state()
-
-        if state_after_hp != "0 20":
-            logging.warning(f"First power on attempt failed: {state_after_hp}")
-            self.communicator.send_command("hp 1 30")
-            logging.warning("Retrying with a higher timeout")
-            if self.communicator.get_state() == "0 20":
-                return 
-            else:
-                raise Exception("Could not turn power on")
+        if state_after_hp == "0 20":
+            logging.info("High power is on")
+            return 
+        
+        logging.warning(f"First power on attempt failed: {state_after_hp}")
+        self.communicator.send_command("hp 1 30")
+        logging.warning("Retrying with a higher timeout")
+        if self.communicator.get_state() == "0 20":
+            return 
+        else:
+            raise Exception("Could not turn power on")
             
 
     def _ensure_robot_attached(self) -> None:
@@ -442,14 +444,11 @@ class Pf400Driver(ABCToolDriver):
         """Cleanup when driver is destroyed"""
         self.close()
 
-# if __name__ == "__main__":
-#     driver = Pf400Driver(
-#         tcp_host="192.168.0.1",
-#         tcp_port=10100,
-#         joints=6,F
-#         gpl_version="v2"
-#     )
-#     driver.initialize()
-#     driver.jog("z",-200)
-#     time.sleep(3)
-#     driver.free()
+if __name__ == "__main__":
+    driver = Pf400Driver(
+        tcp_host="192.168.0.1",
+        tcp_port=10100,
+        joints=6,
+        gpl_version="v2"
+    )
+    driver.initialize()

@@ -11,6 +11,7 @@ from tools.pf400.waypoints_models import (
     Waypoints,
     MotionProfiles,
     Grips,
+    Grip,
     Location,
     Labwares,
     ArmSequences,
@@ -34,6 +35,7 @@ class Pf400Server(ToolServer):
         self.waypoints: Waypoints
         self.labwares : Labwares
         self.sequences : ArmSequences
+        self.grips : Grips
         self.plate_handling_params : dict[str, dict[str, Union[Command.GraspPlate, Command.ReleasePlate]]] = {}
 
     def _configure(self, request: Config) -> None:
@@ -49,6 +51,12 @@ class Pf400Server(ToolServer):
         )
         self.driver.initialize()
         logging.info("Successfully connected to PF400")
+
+    def _getGrip(self, grip_name:str) -> Grip:
+        grip = next((x for x in self.grips.grip_params if x.name.lower() == grip_name.lower()), None)
+        if not grip:
+            raise RuntimeError(f"Grip {grip_name} not defined.")
+        return grip
 
     def _getLocation(self, location_name: str) -> Optional[Location]:
         location = next((x for x in self.waypoints.locations if x.name.lower() == location_name.lower()), None)
@@ -79,11 +87,12 @@ class Pf400Server(ToolServer):
         #Load grips
         grips_list = waypoints_dictionary.get("grip_params")
         grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
+        self.grips = grip_params
         logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
         for grip in grip_params.grip_params:
             self.plate_handling_params[grip.name.lower()] = {
                 "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
-                "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
+                "release": Command.ReleasePlate(width=grip.width+10,speed=grip.speed)
             }
 
         logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
@@ -102,6 +111,7 @@ class Pf400Server(ToolServer):
         self.sequences = sequences
 
     def LoadLabware(self, params: Command.LoadLabware) -> None:
+        logging.info("Loading labware")
         labware_dictionary = MessageToDict(params.labwares)
         labware_lst = labware_dictionary.get("labwares")
         self.labwares = Labwares.parse_obj({"labwares": labware_lst})
@@ -215,19 +225,25 @@ class Pf400Server(ToolServer):
             else:
                 raise Exception("Invalid release params")
             
+        pre_grip_sequence : t.List[message.Message] = []
         retrieve_sequence : t.List[message.Message] = []
+
+        self.driver.state.gripper_axis_override_value = self._getGrip(source_location.orientation).width + 10
+
         if safe_location:
-            retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+            pre_grip_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+        pre_grip_sequence.append(adjust_gripper)
+        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=z_offset))
+        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=labware_offset))
+            
         retrieve_sequence.extend([
-            adjust_gripper,  # Adjust gripper
-            Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=z_offset),  # Move to source location plus offset
-            Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=labware_offset),  # Move down in straight pattern
             grasp,  # Grasp the plate
             Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, z_offset=z_offset),  # Move up in straight pattern
         ])
         if safe_location:
             retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
-        
+        self.runSequence(pre_grip_sequence)
+        self.driver.state.gripper_axis_override_value = None
         self.runSequence(retrieve_sequence)
 
     def dropoff_plate(
@@ -270,11 +286,20 @@ class Pf400Server(ToolServer):
 
                 Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id,z_offset=labware_offset), #Move to the nest location down in a straight pattern
                 release, #Grasp the plate
-                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, z_offset=int(z_offset)), #Move to the nest location up in a straight pattern
+              
         ])
+
+        post_dropoff_sequence = [
+              Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, z_offset=int(z_offset)), #Move to the nest location up in a straight pattern
+        ]
+
         if safe_location:
-            dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+            post_dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+
         self.runSequence(dropoff_sequence)
+        self.driver.state.gripper_axis_override_value = self._getGrip(dest_location.orientation).width + 10
+        self.runSequence(post_dropoff_sequence)
+        self.driver.state.gripper_axis_override_value = None
 
     def RetrievePlate(self, params: Command.RetrievePlate) -> None:
         self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.z_offset, labware_name=params.labware)
@@ -332,20 +357,22 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid release params")
 
+        logging.info("First stop")
         if params.pick_from_plate:
             lid_height = labware.height - 6 + labware.plate_lid_offset
         else:
             lid_height = labware.plate_lid_offset + labware.lid_offset
         
+        logging.info("Made it here")
         pick_lid_sequence :t.List[message.Message]= []
         if safe_location:
             pick_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
         pick_lid_sequence.extend([
             adjust_gripper,
-            Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+8)), #Move to the location plus offset
-                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height)), #Move to the calculated heigh
-                grasp,
-                Command.Move(name=location.coordinates, motion_profile_id=14, z_offset=int(lid_height+8)), #Move to the location plus offset
+            Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height+8)), #Move to the location plus offset
+            # Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height)), #Move to the calculated heigh
+            #grasp,
+            #Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, z_offset=int(lid_height+8)), #Move to the location plus offset
         ])
         if safe_location:
             pick_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
