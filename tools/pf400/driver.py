@@ -149,8 +149,7 @@ class MovementController:
             self._set_free_mode(-1)
             self.state.is_free = False
         except Exception as e:
-            logging.error(f"Failed to unfree arm: {e}")
-            raise
+            raise RuntimeError(f"Failed to unfree arm: {e}")
 
     def _get_current_cartesian_location(self) -> Location:
         """Get current Cartesian location"""
@@ -225,23 +224,21 @@ class RobotInitializer:
 
     def _ensure_power_on(self) -> None:
         initial_state = self.communicator.get_state()
-        if initial_state == "0 20": #power on
+        if initial_state == "0 20":
             return 
+
         logging.info("Turning on power...")
         self.communicator.send_command("hp 1 10")
         state_after_hp = self.communicator.get_state()
-        if state_after_hp == "0 20":
-            logging.info("High power is on")
-            return 
-        
-        logging.warning(f"First power on attempt failed: {state_after_hp}")
-        self.communicator.send_command("hp 1 30")
-        logging.warning("Retrying with a higher timeout")
-        if self.communicator.get_state() == "0 20":
-            return 
-        else:
-            raise Exception("Could not turn power on")
-            
+
+        if state_after_hp != "0 20":
+            logging.warning(f"First power on attempt failed: {state_after_hp}")
+            self.communicator.send_command("hp 1 30")
+            logging.warning("Retrying with a higher timeout")
+            if self.communicator.get_state() == "0 20":
+                return 
+            else:
+                raise Exception("Could not turn power on")
 
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
@@ -257,6 +254,7 @@ class RobotInitializer:
                 raise Exception(f"Could not verify robot attachment: {response}")
             
             logging.info("Attached to robot")
+
 
     def _ensure_robot_homed(self) -> None:
         """Ensure robot is homed by first attempting a move and then homing if needed"""

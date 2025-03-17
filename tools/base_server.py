@@ -314,7 +314,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
             )
         
 
-        
+
     def _estimateDuration(self, command: message.Message) -> tuple[Optional[int], t.Any]:
         method_name = f"Estimate{command.__class__.__name__}"
         try:

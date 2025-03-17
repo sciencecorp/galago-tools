@@ -132,7 +132,7 @@ class ToolsManager():
         for proc_key, process in self.server_processes.items():
             try:
                 self.kill_by_process_id(process.pid)
-                time.sleep(0.5)
+                time.sleep(0.1)
                 logging.info(f"Killed process {process.pid}")
                 self.log_text(f"Killed process {process.pid}")
                 del process

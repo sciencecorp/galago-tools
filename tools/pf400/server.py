@@ -172,7 +172,7 @@ class Pf400Server(ToolServer):
         location = self._getLocation(location_name)
         if location is None:
             raise Exception(f"Location '{location_name}' not found")
-        self.moveTo(location, params.z_offset, motion_profile_id=params.motion_profile_id)
+        self.moveTo(location, params.approach_height, motion_profile_id=params.motion_profile_id)
 
     def GraspPlate(self, params: Command.GraspPlate) -> None:
         self.driver.graspplate(params.width, params.force, params.speed)
@@ -302,10 +302,10 @@ class Pf400Server(ToolServer):
         self.driver.state.gripper_axis_override_value = None
 
     def RetrievePlate(self, params: Command.RetrievePlate) -> None:
-        self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.z_offset, labware_name=params.labware)
+        self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.approach_height, labware_name=params.labware)
 
     def DropOffPlate(self, params: Command.DropOffPlate) -> None:
-        self.dropoff_plate(destination_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.z_offset, labware_name=params.labware)
+        self.dropoff_plate(destination_nest=params.location, motion_profile_id=params.motion_profile_id, z_offset=params.approach_height, labware_name=params.labware)
 
     def Jog(self, params: Command.Jog) -> None:
         """Handle jog command from UI"""
