@@ -93,7 +93,7 @@ class Pf400Server(ToolServer):
         for grip in grip_params.grip_params:
             self.plate_handling_params[grip.name.lower()] = {
                 "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
-                "release": Command.ReleasePlate(width=grip.width+12,speed=grip.speed)
+                "release": Command.ReleasePlate(width=grip.width+10,speed=grip.speed)
             }
 
         logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
@@ -179,7 +179,7 @@ class Pf400Server(ToolServer):
         self.driver.graspplate(params.width, params.force, params.speed)
 
     def ReleasePlate(self, params: Command.ReleasePlate) -> None:
-        self.driver.releaseplate(params.width+10, params.speed)
+        self.driver.releaseplate(params.width, params.speed)
 
     def retrieve_plate(
         self,
