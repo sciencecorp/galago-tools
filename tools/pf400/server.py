@@ -178,7 +178,7 @@ class Pf400Server(ToolServer):
         self.driver.graspplate(params.width, params.force, params.speed)
 
     def ReleasePlate(self, params: Command.ReleasePlate) -> None:
-        self.driver.releaseplate(params.width, params.speed)
+        self.driver.releaseplate(params.width+10, params.speed)
 
     def retrieve_plate(
         self,
@@ -228,7 +228,7 @@ class Pf400Server(ToolServer):
         pre_grip_sequence : t.List[message.Message] = []
         retrieve_sequence : t.List[message.Message] = []
 
-        open_grip_width= self._getGrip(source_location.orientation).width + 20
+        open_grip_width= self._getGrip(source_location.orientation).width + 10
         logging.info(f"Overwriting grip coordinate with {open_grip_width}")
 
         if safe_location:
@@ -404,8 +404,7 @@ class Pf400Server(ToolServer):
         # Build pick sequence
         pick_sequence.extend([
             grasp,
-            Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
-                        approach_height=int(lid_height + 8)),
+            Command.Move(name=location.name, motion_profile_id=motion_profile_id, approach_height=int(labware.height + approach_height)),
         ])
         
         if safe_location:
