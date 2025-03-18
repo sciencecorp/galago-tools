@@ -86,9 +86,6 @@ class MovementController:
 
     def move_joints_v1(self, location: Location) -> None:
         """Move robot using joint coordinates"""
-        # if self.state.is_free:
-        #     self._ensure_not_free()
-
         loc_values = location.values
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
@@ -104,18 +101,13 @@ class MovementController:
 
     def move_joints_v2(self, location: Location, motion_profile: int = 1) -> None:
         """Move robot using joint coordinates"""
-        # if self.state.is_free:
-        #     self._ensure_not_free()
 
         loc_values = location.values
-        logging.info(f"Override value is {self.state.gripper_axis_override_value}")
-        logging.info(f"Old location value {loc_values}")
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
         if self.config.joints == 5:
             loc_values = loc_values
         loc_string = Location(loc_values).to_string()
-        logging.info(f"New location value {loc_string}")
         self.communicator.send_command(f"movej {motion_profile} {loc_string}")
         self.communicator.wait_for_completion()
 
@@ -200,10 +192,10 @@ class RobotInitializer:
         try:
             self._ensure_pc_mode()
             if self.config.gpl_version == "v1":
-                self._ensure_power_on_and_attached()
+                self._ensure_power_on_v1()
             else:
                 self._ensure_power_on_v2()
-                self._ensure_robot_attached_v2()
+                self._ensure_robot_attached()
             self._ensure_robot_homed()
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -226,74 +218,44 @@ class RobotInitializer:
             
             logging.info("Switched to PC mode")
 
-    def _ensure_power_on_and_attached(self) -> None:
-        initial_state = self.communicator.get_state()
-        logging.info(f"Initial robot state: {initial_state}")
-
-        if initial_state != "0 20":
-            logging.info("Turning on power...")
-            self.communicator.send_command("hp 1")  # First attempt with 10 second timeout
-            time.sleep(15)
-
-            # Check if power turned on
-            state_after_hp = self.communicator.get_state()
-            if state_after_hp not in ["0 20", "0 21"]:
-                # Retry with longer timeout
-                logging.warning(f"First power on attempt failed: {state_after_hp}")
-                self.communicator.send_command("hp 1 30")
-                logging.warning("Retrying with a higher timeout")
-                
-                state_after_retry = self.communicator.get_state()
-                if state_after_retry not in ["0 20", "0 21"]:
-                    raise Exception(f"Could not turn power on. Final state: {state_after_retry}")
-        self._ensure_robot_attached()
-    
+    def _ensure_power_on_v1(self, target_states=["20", "21"], timeout_seconds=30) -> None:
+        start_time = time.time()
+        
+        while True:
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout_seconds:
+                raise TimeoutError(f"Timed out waiting for system to reach states {target_states}. Current state: {state}")
+            
+            response = self.communicator.get_state()
+            state = response.split(' ')[1]
+            if state in target_states:
+                return
+            time.sleep(1)
+        
     def _ensure_power_on_v2(self) -> None:
         """Ensure robot power is on with shorter timeout"""
         response = self.communicator.send_command("hp")
         if response != "0 1":
             logging.info("Turning on power...")
-            response = self.communicator.send_command("hp 1 10")  # Reduced from 30 to 10
+            response = self.communicator.send_command("hp 1 30")
             if response != "0":
                 raise Exception(f"Could not turn power on: {response}")
             
-            # Add small delay before checking power state
-            time.sleep(0.5)
             response = self.communicator.send_command("hp")
             if response != "0 1":
                 raise Exception(f"Could not verify power state: {response}")
             
             logging.info("Turned power on")
         
-    def _ensure_robot_attached_v2(self) -> None:
-        """Ensure robot is attached"""
-        response = self.communicator.send_command("attach")
-        if response != "0 1":
-            logging.info("Attaching to robot...")
-            response = self.communicator.send_command("attach 1")
-            if response != "0":
-                raise Exception(f"Could not attach to robot: {response}")
-            
-            response = self.communicator.send_command("attach")
-            if response != "0 1":
-                raise Exception(f"Could not verify robot attachment: {response}")
-            
-            logging.info("Attached to robot")
-
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
         response = self.communicator.send_command("attach")
-        state = self.communicator.get_state()
-        logging.info(f"State before attach {state}")
-        if state == "0 21":
-            return 
-        
+        response_splitted = response.split(" ")
+        if response_splitted[0] != "0":
+            raise Exception(f"Attach failed. Message is {response}")
         if response != "0 1":
             logging.info("Attaching to robot...")
             response = self.communicator.send_command("attach 1")
-            state = self.communicator.get_state()
-            logging.info(f"State after attach {state}")
-            time.sleep(0.5)
             if response != "0":
                 raise Exception(f"Could not attach to robot: {response}")
             
@@ -486,6 +448,52 @@ class Pf400Driver(ABCToolDriver):
         logging.info(f"Registering motion profile {profile}...")
         self.communicator.send_command(f"profile {profile}")
 
+    def set_sys_speed(self, speed:int) ->  None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command(f"mspeed {speed}")
+
+    def get_sys_speed(self) -> str:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        return self.communicator.send_command("mspeed")
+    
+    def halt(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("halt")
+    
+    #If the gripper closed fully then no plate was grabbed/detected.
+    def gripper_closed_fully(self) -> None:
+        self.communicator.send_command("isfullyclosed")
+
+    def home_all(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("homeAll")
+
+    def home_if_noplate(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("homall_ifnoplate")
+
+    def move_to_safe(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("movetosafe")
+    
+    def set_gripper_open_position(self, width:float):
+        self.communicator.send_command(f"gripopenpos {width}")
+
+    def get_gripper_open_position(self):
+        return self.communicator.send_command("gripopenpos")
+
+    def set_gripper_close_position(self, width:float):
+        self.communicator.send_command(f"gripclosepos {width}")
+
+    def get_gripper_close_position(self):
+        return self.communicator.send_command("gripclosepos")
+
     def __del__(self) -> None:
         """Cleanup when driver is destroyed"""
         self.close()
@@ -498,3 +506,11 @@ if __name__ == "__main__":
         gpl_version="v2"
     )
     driver.initialize()
+
+    logging.info("Getting system speed")
+    driver.get_sys_speed()
+    logging.info("Getting close width")
+    driver.get_gripper_close_position()
+    logging.info("Getting open width")
+    driver.get_gripper_open_position()
+

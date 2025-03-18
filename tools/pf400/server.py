@@ -74,6 +74,7 @@ class Pf400Server(ToolServer):
         sequence = next((x for x in self.sequences.sequences if x.name == sequence_name), None)
         if not sequence:
             raise Exception(f"Sequence '{sequence_name}' not found")
+        logging.info(f"Found sequence! {sequence_name}")
         return sequence
 
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
@@ -229,7 +230,6 @@ class Pf400Server(ToolServer):
         retrieve_sequence : t.List[message.Message] = []
 
         open_grip_width= self._getGrip(source_location.orientation).width + 10
-        logging.info(f"Overwriting grip coordinate with {open_grip_width}")
 
         if safe_location:
             pre_grip_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
@@ -282,19 +282,16 @@ class Pf400Server(ToolServer):
             release = release_params
 
         dropoff_sequence :t.List[message.Message] = []
+        post_dropoff_sequence: t.List[message.Message] = []
         if safe_location:
             dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
         dropoff_sequence.extend([
                 Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, approach_height=int(approach_height)), #Move to the dest location plus offset
                 Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id,approach_height=labware_offset), #Move to the nest location down in a straight pattern
-                release, #Grasp the plate
-              
+                release #release the plate
         ])
 
-        post_dropoff_sequence = [
-              Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, approach_height=int(approach_height)), #Move to the nest location up in a straight pattern
-        ]
-
+        post_dropoff_sequence.append(Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, approach_height=int(approach_height))) #Move to the approach offset
         if safe_location:
             post_dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
 
@@ -311,7 +308,6 @@ class Pf400Server(ToolServer):
 
     def Jog(self, params: Command.Jog) -> None:
         """Handle jog command from UI"""
-        logging.info(f"Jogging {params.axis} by {params.distance}")
         if not self.driver:
             raise Exception("Driver not initialized")
         self.driver.jog(params.axis, params.distance)
@@ -385,11 +381,9 @@ class Pf400Server(ToolServer):
         
         # Configure gripper width
         open_grip_width = self._getGrip(location.orientation).width + 10
-        logging.info(f"Open grip width is {open_grip_width}")
         
         # Set gripper override
         self.driver.state.gripper_axis_override_value = open_grip_width
-        logging.info(f"Overwriting grip coordinate with {open_grip_width}")
         
         # Build pre-pick sequence
         if safe_location:
