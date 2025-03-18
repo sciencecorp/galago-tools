@@ -86,8 +86,8 @@ class MovementController:
 
     def move_joints_v1(self, location: Location) -> None:
         """Move robot using joint coordinates"""
-        if self.state.is_free:
-            self._ensure_not_free()
+        # if self.state.is_free:
+        #     self._ensure_not_free()
 
         loc_values = location.values
         if self.state.gripper_axis_override_value is not None:
@@ -104,22 +104,25 @@ class MovementController:
 
     def move_joints_v2(self, location: Location, motion_profile: int = 1) -> None:
         """Move robot using joint coordinates"""
-        if self.state.is_free:
-            self._ensure_not_free()
+        # if self.state.is_free:
+        #     self._ensure_not_free()
 
         loc_values = location.values
+        logging.info(f"Override value is {self.state.gripper_axis_override_value}")
+        logging.info(f"Old location value {loc_values}")
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
         if self.config.joints == 5:
             loc_values = loc_values
         loc_string = Location(loc_values).to_string()
+        logging.info(f"New location value {loc_string}")
         self.communicator.send_command(f"movej {motion_profile} {loc_string}")
         self.communicator.wait_for_completion()
 
     def move_cartesian(self, location: Location, motion_profile: int = 1) -> None:
         """Move robot using Cartesian coordinates"""
-        if self.state.is_free:
-            self._ensure_not_free()
+        # if self.state.is_free:
+        #     self._ensure_not_free()
         loc_values = location.values
         if self.config.joints == 5:
             loc_values = loc_values[:5]
@@ -183,7 +186,6 @@ class GripperController:
 
     def release_plate(self, plate_width: int, speed: int = 10) -> None:
         """Release a plate"""
-        self.state.gripper_axis_override_value = None
         self.communicator.send_command(f"releaseplate {plate_width} {speed}")
         self.communicator.wait_for_completion()
 
@@ -197,8 +199,8 @@ class RobotInitializer:
         """Initialize robot with optimized timeouts"""
         try:
             self._ensure_pc_mode()
-            self._ensure_power_on()
-            self._ensure_robot_attached()
+            self._ensure_power_on_and_attached()
+            #self._ensure_robot_attached()
             self._ensure_robot_homed()
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -221,31 +223,43 @@ class RobotInitializer:
             
             logging.info("Switched to PC mode")
 
-
-    def _ensure_power_on(self) -> None:
+    def _ensure_power_on_and_attached(self) -> None:
         initial_state = self.communicator.get_state()
-        if initial_state == "0 20":
-            return 
+        logging.info(f"Initial robot state: {initial_state}")
 
-        logging.info("Turning on power...")
-        self.communicator.send_command("hp 1 10")
-        state_after_hp = self.communicator.get_state()
+        if initial_state != "0 20":
+            logging.info("Turning on power...")
+            self.communicator.send_command("hp 1")  # First attempt with 10 second timeout
+            time.sleep(15)
 
-        if state_after_hp != "0 20":
-            logging.warning(f"First power on attempt failed: {state_after_hp}")
-            self.communicator.send_command("hp 1 30")
-            logging.warning("Retrying with a higher timeout")
-            if self.communicator.get_state() == "0 20":
-                return 
-            else:
-                raise Exception("Could not turn power on")
+            # Check if power turned on
+            state_after_hp = self.communicator.get_state()
+            if state_after_hp not in ["0 20", "0 21"]:
+                # Retry with longer timeout
+                logging.warning(f"First power on attempt failed: {state_after_hp}")
+                self.communicator.send_command("hp 1 30")
+                logging.warning("Retrying with a higher timeout")
+                
+                state_after_retry = self.communicator.get_state()
+                if state_after_retry not in ["0 20", "0 21"]:
+                    raise Exception(f"Could not turn power on. Final state: {state_after_retry}")
+        self._ensure_robot_attached()
+    
 
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
         response = self.communicator.send_command("attach")
+        state = self.communicator.get_state()
+        logging.info(f"State before attach {state}")
+        if state == "0 21":
+            return 
+        
         if response != "0 1":
             logging.info("Attaching to robot...")
             response = self.communicator.send_command("attach 1")
+            state = self.communicator.get_state()
+            logging.info(f"State after attach {state}")
+            time.sleep(0.5)
             if response != "0":
                 raise Exception(f"Could not attach to robot: {response}")
             
@@ -269,8 +283,8 @@ class RobotInitializer:
             message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
         # Robot not homed message (-1021)
         if message == "-1021":
-            logging.info("Homing robot...This may take a moment...")
-            message = self.communicator.send_command("home", timeout=30)
+            logging.warning("Homing robot...This may take a moment...")
+            message = self.communicator.send_command("home", timeout=40)
 
             if message != "0":
                 raise Exception(f"Got malformed message when homing robot. {message}")
