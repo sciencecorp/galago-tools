@@ -425,13 +425,31 @@ class Pf400Server(ToolServer):
             motion_profile_id=params.motion_profile_id
         )
     
-    def PlaceLid(self, params: Command.PlaceLid) -> None:
-        labware:Labware = self._getLabware(params.labware)
-        location: Optional[Location] = self._getLocation(params.location)
-        if not location:
-            raise Exception(f"Location '{params.location}' not found")
-        safe_location = self._getLocation(f"{location}_safe")
 
+    def _place_lid(
+        self,
+        location_name: str,
+        labware_name: str,
+        place_on_plate: bool = False,
+        approach_height: float = 0,
+        motion_profile_id: int = 1,
+    ) -> None:
+        # Get location
+        location: Optional[Location] = self._getLocation(location_name)
+        if not location:
+            raise Exception(f"Location '{location_name}' not found")
+        
+        # Look for safe location
+        safe_location = self._getLocation(f"{location_name}_safe")
+        if not safe_location:
+            safe_location = self._getLocation(f"{location_name} safe")
+        if not safe_location:
+            logging.warning(f"Safe location for {location_name} not found")
+        
+        # Get labware
+        labware: Labware = self._getLabware(labware_name)
+        
+        # Configure release parameters
         release: Command.ReleasePlate
         tmp_release: Union[Command.GraspPlate, Command.ReleasePlate] = self.plate_handling_params[
             location.orientation.lower()
@@ -441,23 +459,50 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid release params")
         
-        if params.place_on_plate:
+        # Calculate lid height
+        if place_on_plate:
             lid_height = labware.height - 6 + labware.plate_lid_offset
         else:
             lid_height = labware.plate_lid_offset + labware.lid_offset
         
-        place_lid_sequence :t.List[message.Message] = [] 
+        # Define sequences
+        place_lid_sequence: t.List[message.Message] = []
+        post_place_sequence: t.List[message.Message] = []
+        
+        # Build place lid sequence
         if safe_location:
-            place_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))
+            place_lid_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+        
         place_lid_sequence.extend([
-                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, approach_height=int(lid_height+8)), #Move to the location plus approach height
-                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, approach_height=int(lid_height)), #Move to the calculated heigh
-                release,
-                Command.Move(name=location.coordinates, motion_profile_id=params.motion_profile_id, approach_height=int(lid_height+8)), #Move to the location plus offset
+            Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+                        approach_height=int(labware.height + approach_height)),  # Move to the location plus approach height
+            Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+                        approach_height=int(lid_height)),  # Move to the calculated height
+            release,
         ])
+        
+        post_place_sequence.append(Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+                                            approach_height=int(labware.height + approach_height)))
+        
         if safe_location:
-            place_lid_sequence.append(Command.Move(name=safe_location.coordinates, motion_profile_id=params.motion_profile_id))     
+            post_place_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
+        
         self.runSequence(place_lid_sequence)
+        open_grip_width = self._getGrip(location.orientation).width + 10
+        self.driver.state.gripper_axis_override_value = open_grip_width
+        self.runSequence(post_place_sequence)
+        
+        self.driver.state.gripper_axis_override_value = None
+        
+    def PlaceLid(self, params: Command.PlaceLid) -> None:
+        """Place lid handler that delegates to the _place_lid implementation"""
+        self._place_lid(
+            location_name=params.location,
+            labware_name=params.labware,
+            place_on_plate=params.place_on_plate,
+            approach_height=params.approach_height,
+            motion_profile_id=params.motion_profile_id
+        )
 
     def GetCurrentLocation(self, params: Command.GetCurrentLocation) -> ExecuteCommandReply:
         """Get current robot position"""
