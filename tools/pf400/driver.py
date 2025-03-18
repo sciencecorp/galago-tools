@@ -199,8 +199,11 @@ class RobotInitializer:
         """Initialize robot with optimized timeouts"""
         try:
             self._ensure_pc_mode()
-            self._ensure_power_on_and_attached()
-            #self._ensure_robot_attached()
+            if self.config.gpl_version == "v1":
+                self._ensure_power_on_and_attached()
+            else:
+                self._ensure_power_on_v2()
+                self._ensure_robot_attached_v2()
             self._ensure_robot_homed()
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -245,6 +248,37 @@ class RobotInitializer:
                     raise Exception(f"Could not turn power on. Final state: {state_after_retry}")
         self._ensure_robot_attached()
     
+    def _ensure_power_on_v2(self) -> None:
+        """Ensure robot power is on with shorter timeout"""
+        response = self.communicator.send_command("hp")
+        if response != "0 1":
+            logging.info("Turning on power...")
+            response = self.communicator.send_command("hp 1 10")  # Reduced from 30 to 10
+            if response != "0":
+                raise Exception(f"Could not turn power on: {response}")
+            
+            # Add small delay before checking power state
+            time.sleep(0.5)
+            response = self.communicator.send_command("hp")
+            if response != "0 1":
+                raise Exception(f"Could not verify power state: {response}")
+            
+            logging.info("Turned power on")
+        
+    def _ensure_robot_attached_v2(self) -> None:
+        """Ensure robot is attached"""
+        response = self.communicator.send_command("attach")
+        if response != "0 1":
+            logging.info("Attaching to robot...")
+            response = self.communicator.send_command("attach 1")
+            if response != "0":
+                raise Exception(f"Could not attach to robot: {response}")
+            
+            response = self.communicator.send_command("attach")
+            if response != "0 1":
+                raise Exception(f"Could not verify robot attachment: {response}")
+            
+            logging.info("Attached to robot")
 
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
