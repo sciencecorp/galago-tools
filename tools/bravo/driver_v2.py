@@ -4,7 +4,22 @@ import time
 import comtypes.client as cc
 from tools.base_server import ABCToolDriver
 import logging 
+import subprocess 
+import sys 
 
+VWORKS_PROCESS = "VWorks.exe"
+
+def kill_vworks() -> None:
+    """force kill vworks"""
+    try:
+        subprocess.run(["taskkill", "/F", "/IM", VWORKS_PROCESS], 
+                        check=False, 
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.PIPE)
+        time.sleep(0.1)
+    except Exception as e:
+        logging.warning(f"Failed to kill VWorks on clean up")
+        
 if os.name == "nt":
     import pythoncom
     #from comtypes import GUID
@@ -91,39 +106,71 @@ else:
         pass
 
 class BravoDriver(ABCToolDriver):
-    def __init__(self) -> None:
+    def __init__(self, init_com=False) -> None:
         self.live = False
         self.event_queue = queue.Queue()
         self.event_connection = None
         self.driver = None
-        
     
         if os.name == "nt":
-            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
-            # Create the COM object
-            self.driver = cc.CreateObject("VWorks4.VWorks4API")
-            
-            # Create and connect event sink
-            self.event_sink = VWorksEventSink(self.event_queue)
-            self.event_connection = GetEvents(self.driver, self.event_sink)
-            self.login()
-    
+            kill_vworks()
+            if init_com:
+                pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
+                logging.info("COM initialized in the driver")
+            try:
+                self.driver = cc.CreateObject("VWorks4.VWorks4API")
+                self.event_sink = VWorksEventSink(self.event_queue)
+                self.event_connection = GetEvents(self.driver, self.event_sink)
+            except Exception as e:
+                logging.error(f"Failed to create VWorks COM object: {e}")
+                # Check if this is a COM initialization error
+                if "CoInitialize has not been called" in str(e):
+                    logging.error("COM not initialized. Make sure pythoncom.CoInitialize is called first")
+                raise
+
     def __del__(self):
-        """Destructor for cleanup"""
-        self.close()
-        if os.name == "nt":
-            print("Uninitializing COM")
-            pythoncom.CoUninitialize()
-        
+        try:
+            if hasattr(self, 'driver') and self.driver:
+                logging.info("Cleaning up BravoServer resources")
+                self.driver.close()
+                self.driver = None
+                
+            # Uninitialize COM in the same thread that initialized it
+            if os.name == "nt":
+                import pythoncom
+                logging.debug("Uninitializing COM in server thread")
+                pythoncom.CoUninitialize()
+        except Exception as e:
+            logging.error(f"Error during BravoServer cleanup: {e}")
+
     def login(self, user:str="administrator", psw:str="administrator") -> None:
         self.driver.Login(user, psw)
-        time.sleep(1)
+        time.sleep(2)
     
+    def logout(self)-> None:
+        if self.driver:
+            try:
+                self.driver.Logout()
+            except Exception as e:
+                logging.warning(f"Error during logout: {e}")
+
+    def close(self) -> None:
+        self.logout()
+
+    def show_vworks(self, show:bool=True) -> None:
+        logging.info(f"Showing VWorks window= {show}")
+        self.driver.ShowVWorks(show)
+
     def run_protocol(self, protocol:str) -> None:
+        
+        if os.path.splitext(protocol)[1] != ".pro":
+            raise RuntimeError("Invalid file type. Must be .pro")
+        
         if not os.path.exists(protocol):
             raise FileNotFoundError(f"{protocol} does not exist.")
         
         try:
+            self.show_vworks()
             logging.info(f"Loading protocol: {protocol}")
             self.driver.LoadProtocol(protocol)
             
@@ -133,6 +180,7 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"Waiting for protocol completion: {protocol}")
             success = self.wait_for_protocol_completion(protocol)
             
+            self.show_vworks(False)
             if not success:
                 raise RuntimeError(f"Protocol did not complete successfully: {protocol}")
                 
@@ -140,17 +188,19 @@ class BravoDriver(ABCToolDriver):
             raise RuntimeError(f"Error running protocol {protocol}: {e}")
     
     def run_runset(self, runset_file:str) -> None:
+        if os.path.splitext(runset_file)[1] != ".rst":
+            raise RuntimeError("Invalid file type. Must be .rst")
         if not os.path.exists(runset_file):
             raise FileNotFoundError(f"{runset_file} does not exist.")
-        self.login()
         try:
+            self.show_vworks()
             self.driver.LoadRunsetFile(runset_file)
             success = self.wait_for_protocol_completion(runset_file)
-            
+            self.show_vworks(False)
             if not success:
                 raise RuntimeError(f"Runset did not complete successfully: {runset_file}")
         except Exception as e:
-            raise RuntimeError(f"Error running runset {runset_file}: {e}")
+            raise RuntimeError(f"Error running runset {runset_file}:{e}")
     
     def wait_for_protocol_completion(self, protocol_name, timeout=300):
         start_time = time.time()
@@ -201,6 +251,9 @@ class BravoDriver(ABCToolDriver):
 
     def close(self):
         """Properly clean up resources"""
+        if self.driver:
+            self.driver.Logout()
+            self.event_connection = None
         if os.name == "nt":
             try:
                 # Try to logout first if logged in
@@ -209,7 +262,7 @@ class BravoDriver(ABCToolDriver):
                         self.driver.Logout()
                     except:
                         pass
-                    
+                kill_vworks()
                 # Give VWorks time to process the logout
                 time.sleep(2)
                     
@@ -221,17 +274,18 @@ class BravoDriver(ABCToolDriver):
             except Exception as e:
                 print(f"Error during cleanup: {e}")
 
-if __name__ == "__main__":
-
-    vworks = None
-    try:
-        vworks = BravoDriver()
-        vworks.run_runset("C:\\VWorks Workspace\\RunSet Files\\move_to_location_3.rst")
-        # Wait for any final messages to process
-        time.sleep(3)  
-    except Exception as e:
-        print(f"Error running protocol: {e}")
-    finally:
-        if vworks:
-            print("Cleaning up resources")
-            vworks.close()
+# if __name__ == "__main__":
+#    # kill_vworks()
+#     vworks = None
+#     # try:
+#     vworks = BravoDriver()
+#     vworks.login()
+#     vworks.run_runset("C:\\VWorks Workspace\\RunSet Files\\move_to_location_3.rst")
+#         # Wait for any final messages to process
+#     # except Exception as e:
+#     #     print(f"Error running protocol: {e}")
+#     # finally:
+#     #     if vworks:
+#     #         print("Cleaning up resources")
+#     #         vworks.close()
+#     #     sys.exit(0)

@@ -190,47 +190,47 @@ class RobotInitializer:
             
             logging.info("Switched to PC mode")
 
-    # def _ensure_power_on(self) -> None:
-    #     message = self.communicator.send_command("hp")
-    #     tokens = message.split(" ")
-    #     if tokens[0] != "0":
-    #         raise Exception(f"Got malformed message when requesting power state. {message}")
-    #     if tokens[1] != "1":
-    #         # Wait 10 seconds for power to come on.
-    #         logging.info("Turning on power...")
-    #         message = self.communicator.write_and_read("hp 1 30")
-    #         if message != "0":
-    #             raise Exception(f"Could not turn power on. {message}")
-    #         message = self.communicator.write_and_read("hp")
-    #         if message != "0 1":
-    #             raise Exception(f"Could not turn power on. {message}")
-
-    #         logging.info("Turned power on")
-    def ensure_power_on(self) -> None:
+    def _ensure_power_on(self) -> None:
         message = self.communicator.send_command("hp")
         tokens = message.split(" ")
-        
-        # Check for malformed message
-        if not tokens or tokens[0] != "0":
+        if tokens[0] != "0":
             raise Exception(f"Got malformed message when requesting power state. {message}")
+        if tokens[1] != "1":
+            # Wait 10 seconds for power to come on.
+            logging.info("Turning on power...")
+            message = self.communicator.write_and_read("hp 1 30")
+            if message != "0":
+                raise Exception(f"Could not turn power on. {message}")
+            message = self.communicator.write_and_read("hp")
+            if message != "0 1":
+                raise Exception(f"Could not turn power on. {message}")
+
+            logging.info("Turned power on")
+    # def ensure_power_on(self) -> None:
+    #     message = self.communicator.send_command("hp")
+    #     tokens = message.split(" ")
         
-        # Check if power is already on (tokens should be ["0", "1"])
-        if len(tokens) > 1 and tokens[1] == "1":
-            # Power is already on, nothing to do
-            return
+    #     # Check for malformed message
+    #     if not tokens or tokens[0] != "0":
+    #         raise Exception(f"Got malformed message when requesting power state. {message}")
         
-        # Power is off or status format unexpected, try to turn power on
-        logging.info("Turning on power...")
-        message = self.communicator.write_and_read("hp 1")
-        if message != "0":
-            raise Exception(f"Could not turn power on. {message}")
+    #     # Check if power is already on (tokens should be ["0", "1"])
+    #     if len(tokens) > 1 and tokens[1] == "1":
+    #         # Power is already on, nothing to do
+    #         return
         
-        # Verify power is now on
-        message = self.communicator.write_and_read("hp")
-        if message != "0 1":
-            raise Exception(f"Could not turn power on. {message}")
+    #     # Power is off or status format unexpected, try to turn power on
+    #     logging.info("Turning on power...")
+    #     message = self.communicator.write_and_read("hp 1")
+    #     if message != "0":
+    #         raise Exception(f"Could not turn power on. {message}")
         
-        logging.info("Turned power on")
+    #     # Verify power is now on
+    #     message = self.communicator.write_and_read("hp")
+    #     if message != "0 1":
+    #         raise Exception(f"Could not turn power on. {message}")
+        
+    #     logging.info("Turned power on")
 
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
