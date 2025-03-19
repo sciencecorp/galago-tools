@@ -59,9 +59,9 @@ class BravoDriver(ABCToolDriver):
             raise FileNotFoundError(f"{protocol} does not exist.")
         self.login()
         self.driver.LoadProtocol(protocol)
-       # time.sleep(5)
+        time.sleep(5)
         self.driver.RunProtocol(protocol, 1)
-        self.wait_for_protocol()
+        # self.wait_for_protocol()
 
     def run_runset(self, runset_file:str) -> None:
         if not os.path.exists(runset_file):
@@ -87,7 +87,7 @@ class BravoDriver(ABCToolDriver):
                 break
             time.sleep(1)
 
-# if __name__ == "__main__":
-#     vworks = BravoDriver(device_file="test")
-#     vworks.run_runset("C:\\VWorks Workspace\\Runset Files\\test.rst")
-#     #vworks.run_protocol("C:\\VWorks Workspace\\Protocol Files\\frt_test.pro")
+if __name__ == "__main__":
+    vworks = BravoDriver()
+    #vworks.run_runset("C:\\VWorks Workspace\\Runset Files\\test.rst")
+    vworks.run_protocol("C:\\VWorks Workspace\\Protocol Files\\test.pro")
