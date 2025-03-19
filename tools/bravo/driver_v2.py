@@ -1,36 +1,13 @@
 import os
-import threading
 import queue
 import time
 import comtypes.client as cc
 from tools.base_server import ABCToolDriver
-
-
-def find_vworks_progid():
-    possible_ids = [
-        "VWorks4.VWorks4API",
-        "VWorks.Application",
-        "Agilent.VWorks.Application",
-        "VWorks4COM.VWorks4Controller"
-    ]
-    
-    for progid in possible_ids:
-        print(f"Prog id {progid}")
-        try:
-            obj = cc.CreateObject(progid)
-            print(f"Found progid")
-            print(obj)
-            print(progid)
-            return progid
-        except:
-            continue
-    
-    raise RuntimeError("Could not find VWorks COM object")
+import logging 
 
 if os.name == "nt":
-    import clr
     import pythoncom
-    from comtypes import GUID
+    #from comtypes import GUID
     from comtypes.client import GetEvents
 
     class VWorksEventSink:
@@ -38,12 +15,12 @@ if os.name == "nt":
             self.event_queue = event_queue
 
         def InitializationComplete(self, *args):
-            print(f"Initialization complete: {args}")
+            logging.info(f"Initialization complete: {args}")
             self.event_queue.put(("InitializationComplete", args))
             return 0
             
         def InitializationCompleteWithCode(self, *args):
-            print(f"Initialization complete with code: {args}")
+            logging.info(f"Initialization complete with code: {args}")
             self.event_queue.put(("InitializationCompleteWithCode", args))
             return 0
 
@@ -72,25 +49,22 @@ if os.name == "nt":
             
         def ProtocolComplete(self, *args):
             protocol = args[1] if len(args) > 1 else "unknown"
-            print(f"Protocol completed: {protocol}")
+            logging.info(f"Protocol completed: {protocol}")
             self.event_queue.put(("ProtocolComplete", protocol))
-            return 0
 
         def ProtocolAborted(self, *args):
             protocol = args[1] if len(args) > 1 else "unknown"
-            print(f"Protocol aborted: {protocol}")
+            logging.error(f"Protocol aborted: {protocol}")
             self.event_queue.put(("ProtocolAborted", protocol))
-            return 0
 
         def UnrecoverableError(self, *args):
             description = args[1] if len(args) > 1 else "unknown error"
-            print(f"Unrecoverable error: {description}")
+            logging.error(f"Unrecoverable error: {description}")
             self.event_queue.put(("UnrecoverableError", description))
-            return 0
 
         def RecoverableError(self, *args):
             description = args[3] if len(args) > 3 else "unknown error"
-            print(f"Recoverable error: {description}")
+            logging.error(f"Recoverable error: {description}")
             self.event_queue.put(("RecoverableError", description))
             
             # If we have action parameters
@@ -104,8 +78,6 @@ if os.name == "nt":
                 if hasattr(vworksHandlesError, "value"):
                     vworksHandlesError.value = True  # Let VWorks handle the error
                     
-        
-    # GUID for the event interface - you might need to adjust this
     # This should match the GUID for _IVWorks4APIEvent in the registry
     # IVWorks4APIEvent = GUID("{EB350F99-1AC0-429E-8213-55D57DC010C1}")  # Example GUID, replace with correct one
 
@@ -134,9 +106,7 @@ class BravoDriver(ABCToolDriver):
             # Create and connect event sink
             self.event_sink = VWorksEventSink(self.event_queue)
             self.event_connection = GetEvents(self.driver, self.event_sink)
-            print("VWorks COM object created and events connected")
-
-            #self.driver = VWorks4API()
+            self.login()
     
     def __del__(self):
         """Destructor for cleanup"""
@@ -152,48 +122,82 @@ class BravoDriver(ABCToolDriver):
     def run_protocol(self, protocol:str) -> None:
         if not os.path.exists(protocol):
             raise FileNotFoundError(f"{protocol} does not exist.")
-        self.login()
-        self.driver.LoadProtocol(protocol)
-        self.driver.RunProtocol(protocol, 1)
-        self.wait_for_protocol_completion(protocol)
+        
+        try:
+            logging.info(f"Loading protocol: {protocol}")
+            self.driver.LoadProtocol(protocol)
+            
+            logging.info(f"Running protocol: {protocol}")
+            self.driver.RunProtocol(protocol, 1)
+            
+            logging.info(f"Waiting for protocol completion: {protocol}")
+            success = self.wait_for_protocol_completion(protocol)
+            
+            if not success:
+                raise RuntimeError(f"Protocol did not complete successfully: {protocol}")
+                
+        except Exception as e:
+            raise RuntimeError(f"Error running protocol {protocol}: {e}")
     
     def run_runset(self, runset_file:str) -> None:
         if not os.path.exists(runset_file):
             raise FileNotFoundError(f"{runset_file} does not exist.")
         self.login()
-        self.driver.LoadRunsetFile(runset_file)
-        self.wait_for_protocol_completion(runset_file)
+        try:
+            self.driver.LoadRunsetFile(runset_file)
+            success = self.wait_for_protocol_completion(runset_file)
+            
+            if not success:
+                raise RuntimeError(f"Runset did not complete successfully: {runset_file}")
+        except Exception as e:
+            raise RuntimeError(f"Error running runset {runset_file}: {e}")
     
     def wait_for_protocol_completion(self, protocol_name, timeout=300):
         start_time = time.time()
+        last_event_type = None
+        last_event_data = None
         
         # Message pump for COM events - keep processing Windows messages
         while True:
             pythoncom.PumpWaitingMessages()
-            
             # Check if we've received completion events
             try:
+                # Non-blocking queue check
                 event_type, event_data = self.event_queue.get_nowait()
-                if event_type == "ProtocolComplete" and protocol_name in event_data:
-                    print(f"Protocol completed: {protocol_name}")
+                print(f"Event received: {event_type} - Data: {event_data}")
+                
+                last_event_type = event_type
+                last_event_data = event_data
+                
+                # For matching protocol names
+                if event_type == "ProtocolComplete":
+                    print(f"Protocol completion event received: {event_data}")
                     return True
-                elif event_type == "ProtocolAborted" and protocol_name in event_data:
-                    print(f"Protocol aborted: {protocol_name}")
-                    return False
+                elif event_type == "ProtocolAborted":
+                    print(f"Protocol aborted: {event_data}")
+                    raise RuntimeError(f"Protocol was aborted: {protocol_name}")
                 elif event_type == "UnrecoverableError":
                     print(f"Unrecoverable error occurred: {event_data}")
                     raise RuntimeError(f"Unrecoverable error: {event_data}")
                 elif event_type == "RecoverableError":
                     print(f"Recoverable error occurred: {event_data}")
+                    # Continue execution for recoverable errors, but log it
             except queue.Empty:
+                # No events in the queue, continue waiting
                 pass
             
             # Check timeout
             if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timed out waiting for protocol completion: {protocol_name}")
+                # If we timed out, report the last event we received
+                error_msg = f"Timed out waiting for protocol completion: {protocol_name}"
+                if last_event_type:
+                    error_msg += f". Last event was {last_event_type}: {last_event_data}"
+                else:
+                    error_msg += ". No events were received"
+                raise TimeoutError(error_msg)
             
-            
-            time.sleep(0.1)
+            # Short sleep to avoid hammering the CPU
+            time.sleep(0.28)
 
     def close(self):
         """Properly clean up resources"""
@@ -219,11 +223,10 @@ class BravoDriver(ABCToolDriver):
 
 if __name__ == "__main__":
 
-    # print(find_vworks_progid())
     vworks = None
     try:
         vworks = BravoDriver()
-        vworks.run_protocol("C:\\VWorks Workspace\\Protocol Files\\generic\\move_to_location_3.pro")
+        vworks.run_runset("C:\\VWorks Workspace\\RunSet Files\\move_to_location_3.rst")
         # Wait for any final messages to process
         time.sleep(3)  
     except Exception as e:

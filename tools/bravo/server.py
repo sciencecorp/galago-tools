@@ -3,7 +3,7 @@ import os
 import argparse 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.bravo_pb2 import Command, Config
-from .driver import BravoDriver
+from .driver_v2 import BravoDriver
 
 class BravoServer(ToolServer):
     toolType = "bravo"
