@@ -29,6 +29,8 @@ class RobotConfig:
     tcp_host: str
     tcp_port: int
     grasp_plate_buffer_mm: int = 10
+    joints: int = 5
+    gpl_version: str = "v1"
 
 @dataclass
 class Location:
@@ -62,6 +64,9 @@ class RobotCommunicator:
         """Wait for end of movement signal"""
         self.tcp_ip.wait_for_eom()
 
+    def get_state(self) -> str:
+        return self.tcp_ip.write_and_read("sysState")
+    
 class RobotState:
     """Manages robot state"""
     def __init__(self) -> None:
@@ -74,11 +79,28 @@ class RobotState:
 
 class MovementController:
     """Handles robot movement operations"""
-    def __init__(self, communicator: RobotCommunicator, state: RobotState):
+    def __init__(self, communicator: RobotCommunicator, state: RobotState, config:RobotConfig):
         self.communicator = communicator
         self.state = state
+        self.config = config 
 
-    def move_joints(self, location: Location, motion_profile: int = 1) -> None:
+    def move_joints_v1(self, location: Location) -> None:
+        """Move robot using joint coordinates"""
+        if self.state.is_free:
+            self._ensure_not_free()
+
+        loc_values = location.values
+        if self.state.gripper_axis_override_value is not None:
+            loc_values[4] = self.state.gripper_axis_override_value
+        
+        loc_string = Location(loc_values).to_string()
+        if self.config.gpl_version == "v1":
+            self.communicator.send_command(f"movej {loc_string}")
+        else:
+            self.communicator.send_command(f"movej 1 {loc_string}")
+        self.communicator.wait_for_completion()
+
+    def move_joints_v2(self, location: Location, motion_profile: int = 1) -> None:
         """Move robot using joint coordinates"""
         if self.state.is_free:
             self._ensure_not_free()
@@ -95,8 +117,11 @@ class MovementController:
         """Move robot using Cartesian coordinates"""
         if self.state.is_free:
             self._ensure_not_free()
-            
-        self.communicator.send_command(f"movec {motion_profile} {location.to_string()}")
+        
+        if self.config.gpl_version == "v1":
+            self.communicator.send_command(f"movec {location.to_string()}")
+        else:
+            self.communicator.send_command(f"movec {motion_profile} {location.to_string()}")
         self.communicator.wait_for_completion()
 
     def jog(self, axis: Axis, distance: float) -> None:
@@ -159,8 +184,9 @@ class GripperController:
 
 class RobotInitializer:
     """Handles robot initialization"""
-    def __init__(self, communicator: RobotCommunicator):
+    def __init__(self, communicator: RobotCommunicator, config:RobotConfig ):
         self.communicator = communicator
+        self.config = config 
 
     def initialize(self) -> None:
         """Initialize robot with optimized timeouts"""
@@ -190,47 +216,25 @@ class RobotInitializer:
             
             logging.info("Switched to PC mode")
 
-    def _ensure_power_on(self) -> None:
-        message = self.communicator.send_command("hp")
-        tokens = message.split(" ")
-        if tokens[0] != "0":
-            raise Exception(f"Got malformed message when requesting power state. {message}")
-        if tokens[1] != "1":
-            # Wait 10 seconds for power to come on.
-            logging.info("Turning on power...")
-            message = self.communicator.write_and_read("hp 1 30")
-            if message != "0":
-                raise Exception(f"Could not turn power on. {message}")
-            message = self.communicator.write_and_read("hp")
-            if message != "0 1":
-                raise Exception(f"Could not turn power on. {message}")
 
-            logging.info("Turned power on")
-    # def ensure_power_on(self) -> None:
-    #     message = self.communicator.send_command("hp")
-    #     tokens = message.split(" ")
-        
-    #     # Check for malformed message
-    #     if not tokens or tokens[0] != "0":
-    #         raise Exception(f"Got malformed message when requesting power state. {message}")
-        
-    #     # Check if power is already on (tokens should be ["0", "1"])
-    #     if len(tokens) > 1 and tokens[1] == "1":
-    #         # Power is already on, nothing to do
-    #         return
-        
-    #     # Power is off or status format unexpected, try to turn power on
-    #     logging.info("Turning on power...")
-    #     message = self.communicator.write_and_read("hp 1")
-    #     if message != "0":
-    #         raise Exception(f"Could not turn power on. {message}")
-        
-    #     # Verify power is now on
-    #     message = self.communicator.write_and_read("hp")
-    #     if message != "0 1":
-    #         raise Exception(f"Could not turn power on. {message}")
-        
-    #     logging.info("Turned power on")
+    def _ensure_power_on(self) -> None:
+        initial_state = self.communicator.get_state()
+        if initial_state == "0 20":
+            return 
+
+        logging.info("Turning on power...")
+        self.communicator.send_command("hp 1 10")
+        state_after_hp = self.communicator.get_state()
+
+        if state_after_hp != "0 20":
+            logging.warning(f"First power on attempt failed: {state_after_hp}")
+            self.communicator.send_command("hp 1 30")
+            logging.warning("Retrying with a higher timeout")
+            if self.communicator.get_state() == "0 20":
+                return 
+            else:
+                raise Exception("Could not turn power on")
+            
 
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
@@ -254,8 +258,10 @@ class RobotInitializer:
         current_joint_loc = " ".join(current_loc.split(" ")[1:])
         
         # Try to move to current position to check if homed
-        message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
-
+        if self.config.gpl_version == "v1":
+            message = self.communicator.send_command(f"movej {current_joint_loc}")
+        else:
+            message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
         # Robot not homed message (-1021)
         if message == "-1021":
             logging.info("Homing robot...This may take a moment...")
@@ -264,8 +270,10 @@ class RobotInitializer:
             if message != "0":
                 raise Exception(f"Got malformed message when homing robot. {message}")
 
-            # Try move again after homing
-            message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
+            if self.config.gpl_version == "v1":
+                message = self.communicator.send_command(f"movej {current_joint_loc}")
+            else:
+                message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
 
             if message != "0":
                 raise Exception(f"Could not home robot. {message}")
@@ -274,12 +282,11 @@ class RobotInitializer:
 
 class Pf400Driver(ABCToolDriver):
     """Main driver class for the PF400 robot"""
-    def __init__(self, tcp_host: str, tcp_port: int) -> None:
+    def __init__(self, tcp_host: str, tcp_port: int, joints:int=5, gpl_version:str="v1") -> None:
         self.state = RobotState()
-        self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port)
-        # Initialize with Optional types
+        self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port, joints=joints, gpl_version=gpl_version)
         self.tcp_ip: Optional[Pf400TcpIp] = None
-        self.communicator: Optional[RobotCommunicator] = None
+        self.communicator: RobotCommunicator 
         self.gripper: Optional[GripperController] = None
         self.initializer: Optional[RobotInitializer] = None
         self.movement: Optional[MovementController] = None
@@ -289,18 +296,18 @@ class Pf400Driver(ABCToolDriver):
         try:
             # Establish new connection
             self.tcp_ip = Pf400TcpIp(self.config.tcp_host, self.config.tcp_port)
-            self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip)
+            self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip, )
             self.gripper = GripperController(
                 communicator=self.communicator,
                 state=self.state,
                 config=self.config
             )
-            self.initializer = RobotInitializer(self.communicator)
+            self.initializer = RobotInitializer(self.communicator, config=self.config)
             
             # Initialize robot state
             if self.initializer is not None:
                 self.initializer.initialize()
-            self.movement = MovementController(self.communicator, self.state)
+            self.movement = MovementController(self.communicator, self.state, self.config)
             logging.info("Successfully connected to PF400")
         except Exception as e:
             logging.error(f"Failed to connect to PF400: {str(e)}")
@@ -311,7 +318,6 @@ class Pf400Driver(ABCToolDriver):
                 except Exception as close_error:
                     logging.warning(f"Error while closing connection during cleanup: {close_error}")
             self.tcp_ip = None
-            self.communicator = None
             self.gripper = None
             self.initializer = None
             self.movement = None
@@ -334,7 +340,11 @@ class Pf400Driver(ABCToolDriver):
         """Move in joint space"""
         if self.movement is None:
             raise RuntimeError("Robot not initialized")
-        self.movement.move_joints(Location.from_string(loc_string), motion_profile)
+        if self.config.gpl_version == "v1":
+            self.set_profile_index(motion_profile)
+            self.movement.move_joints_v1(Location.from_string(loc_string))
+        else:
+            self.movement.move_joints_v2(Location.from_string(loc_string), motion_profile)
 
     def movec(self, loc_string: str, motion_profile: int = 1) -> None:
         """Move in Cartesian space"""
@@ -402,6 +412,13 @@ class Pf400Driver(ABCToolDriver):
             raise RuntimeError("Robot not initialized")
         return self.communicator.send_command("wherej")
 
+    def set_profile_index(self, profile_index:int ) -> None:
+        logging.info(f"Setting profile to index {profile_index}")
+        self.communicator.send_command(f"profidx {profile_index}")
+        #Get current profile 
+        profile_current = self.communicator.send_command("profidx")
+        logging.info(f"Profile current {profile_current}")
+
     def wherec(self) -> str:
         """Get current Cartesian position"""
         if self.communicator is None:
@@ -423,3 +440,15 @@ class Pf400Driver(ABCToolDriver):
     def __del__(self) -> None:
         """Cleanup when driver is destroyed"""
         self.close()
+
+# if __name__ == "__main__":
+#     driver = Pf400Driver(
+#         tcp_host="192.168.0.1",
+#         tcp_port=10100,
+#         joints=6,F
+#         gpl_version="v2"
+#     )
+#     driver.initialize()
+#     driver.jog("z",-200)
+#     time.sleep(3)
+#     driver.free()
