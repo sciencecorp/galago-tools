@@ -15,7 +15,8 @@ COMMANDS = {
     "status":"s", #Do not use this command for rapid polling bc it communicates with the aplifiers within the machine.
     "varstatus":"vs", #this command is appropiate for use withing driver. 
     "spin":"sp",
-    "manual":"m", #set to manual mode. 
+    "manual":"m", #set to manual mode. ,
+    "get_dimensions":"dimstatus"
 }
 class MicroServeDriver(ABCToolDriver):
     toolType = "microserve"
@@ -53,6 +54,8 @@ class MicroServeDriver(ABCToolDriver):
             else:
                 print("Skipping homing")
 
+    def get_dimensions(self) -> None:
+        self.send_command("dimstatus")
 
     def abort(self) -> None:
         self.send_command("abort")
@@ -112,19 +115,20 @@ if __name__ == "__main__":
     microserve = MicroServeDriver(ip="192.168.1.60")
     microserve.connect("192.168.1.60",1000)
     print("Homing microserve")
+    microserve.get_dimensions()
     #microserve.is_homed()
-    microserve.home()
-    print("Microserve homed")
-    print("Going to 3")
-    microserve.go_to(8)
-    # microserve.unload(3)
-    print("Microserve went to 8")
-    microserve.unload(8)
-    print("Microserve unload plate")
-    microserve.load(8)
-    print("Microserve loaded plate ")
-    microserve.set_to_manual()
-    print("Microserve is in manual mode")
+    # microserve.home()
+    # print("Microserve homed")
+    # print("Going to 3")
+    # microserve.go_to(8)
+    # # microserve.unload(3)
+    # print("Microserve went to 8")
+    # microserve.unload(8)
+    # print("Microserve unload plate")
+    # microserve.load(8)
+    # print("Microserve loaded plate ")
+    # microserve.set_to_manual()
+    # print("Microserve is in manual mode")
     # print("Microserve went to 5")
     # microserve.go_to(1)
     # print("Microserve went to 1")
