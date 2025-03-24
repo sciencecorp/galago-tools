@@ -1,6 +1,7 @@
 from tools.comms.tcpip import TcpIp
 from tools.base_server import ABCToolDriver
 import time 
+import logging 
 
 COMMANDS = {
     "home":"h",
@@ -12,11 +13,12 @@ COMMANDS = {
     "set_plate_height":"sph",
     "set_plate_dimensions":"spd",
     "set_plate_thickness":"spt",
-    "status":"s", #Do not use this command for rapid polling bc it communicates with the aplifiers within the machine.
+    # "status":"s", #Do not use this command for rapid polling bc it communicates with the aplifiers within the machine.
     "varstatus":"vs", #this command is appropiate for use withing driver. 
     "spin":"sp",
     "manual":"m", #set to manual mode. ,
-    "get_dimensions":"dimstatus"
+    "get_dimensions":"dimstatus",
+    "clear_error":"cba"
 }
 class MicroServeDriver(ABCToolDriver):
     toolType = "microserve"
@@ -26,80 +28,110 @@ class MicroServeDriver(ABCToolDriver):
         self.blocking = True
         self.port = port
         self.ip = ip
+        self.error = None
     
-    def connect(self, ip, port) -> None:
+    def connect(self) -> None:
+        logging.info(f"Connecting to microserve at ip: {self.ip} and port {self.port}")
         try:
-            self.tcp = TcpIp(ip, port)
+            self.tcp = TcpIp(self.ip, self.port)
             self.tcp.connect()
         except Exception as e:
             raise ValueError(f"Failed to connect to MicroServe: {e}")
 
+    def get_status(self) -> str:
+        return  self.send_command(COMMANDS["varstatus"])
+    
     def is_homed(self) -> bool:
-        response = self.send_command(COMMANDS["varstatus"])
+        logging.info(f"Checking if microserve is homed")
+        response = self.get_status()
+        logging.info(f"Home status {response}")
         time.sleep(0.1)
-        print("Checking agaisnt repsonse" + response)
-        print("Type is " + str(type(response)))
-        print("OK! status homed" in str(response))
         if "OK! status homed" in response:
+            logging.info(f"Microserve is already homed")
             return True
         else:
+            logging.info(f"Microserve is not homed")
             return False
 
-    def home(self, skip_if_homed=True) -> None:
+    def home(self, skip_if_homed:bool=False) -> None:
         if not skip_if_homed:
-            self.send_command("home")
+            self.send_command(COMMANDS["home"])
         else:
             if not self.is_homed():
-                self.send_command("home")
+                self.send_command(COMMANDS["home"])
             else:
-                print("Skipping homing")
+                logging.info("Skipping homing")
 
     def get_dimensions(self) -> None:
-        self.send_command("dimstatus")
+        self.send_command(COMMANDS["get_dimensions"])
 
     def abort(self) -> None:
-        self.send_command("abort")
+        self.send_command(COMMANDS["abort"])
 
     def retract(self) -> None:
-        self.send_command("retract")
+        self.send_command(COMMANDS["retract"])
 
-    def load(self, stack_id) -> None:
+    #Retracts the spatula if necessary, spins to stack id and raises spatula for plate to be placed
+    def load(self, stack_id:int, plate_height, plate_thickness, plate_stack_height) -> None:
+        if stack_id > 16:
+            raise RuntimeError(f"Invalid Stack Id. Range must be 0-16")
+        self.home(True)
         stack_id -= 1
-        self.send_command(f"l {stack_id}")
+        self.set_plate_dimensions(plate_stack_height, plate_thickness, plate_height)
+        try:
+            self.send_command(f"l {stack_id}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to Load plate into {stack_id}")
+        self.set_plate_dimensions(plate_stack_height, plate_thickness, plate_height)
         print(f"Loaded plate into stack {stack_id}")
 
-    def unload(self, stack_id) -> None:
+    #Presents the plate to be unloaded by the robot arm
+    def unload(self, stack_id:int, plate_height:float, plate_thickness:float, plate_stack_height:float) -> None:
+        if stack_id > 16:
+            raise RuntimeError(f"Invalid Stack Id. Range must be 0-16")
+        self.home(True)
         stack_id -= 1
-        self.send_command(f"u {stack_id}")
+        self.set_plate_dimensions(plate_stack_height, plate_thickness, plate_height)
+        try:
+            self.send_command(f"u {stack_id}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to unload plate from {stack_id}")
+        self.set_plate_dimensions(plate_stack_height, plate_thickness, plate_height)
         print(f"Unloaded plate from stack {stack_id}")
 
-    def go_to(self, stack_id) -> None:
+    def go_to(self, stack_id:int) -> None:
+        if stack_id > 16:
+            raise RuntimeError(f"Invalid Stack Id. Range must be 0-16")
         stack_id -= 1
-        self.send_command(f"sp {stack_id}", 30000)
+        logging.info(f"Spinning to stack {stack_id}")
+        cmd = COMMANDS["spin"]
+        self.send_command(f"{cmd} {stack_id}", 30000)
 
-    def set_plate_dimensions(self, plate_height, stack_height, plate_thickness) -> None:
-        self.send_command(f"spd {plate_height} {stack_height} {plate_thickness}", 10000)
+    def set_plate_dimensions(self, plate_height:float, stack_height:float, plate_thickness:float) -> None:
+        logging.info(f"Setting microserve plate dimensions")
+        logging.info(f"Plate height= {plate_height}")
+        logging.info(f"Stacked height= {stack_height}")
+        logging.info(f"Well Height= {plate_thickness}")
+        cmd = COMMANDS["set_plate_dimensions"]
+        self.send_command(f"{cmd} {plate_height} {stack_height} {plate_thickness}", 5000)
 
     def set_to_manual(self) -> None:
-        self.send_command("m")
+        self.send_command(COMMANDS["manual"])
 
     def disconnect(self) -> None:
         if self.tcp:
             self.tcp.disconnect()
 
-    def send_command(self, message, timeout=60000) -> str:
+    def send_command(self, message, timeout=30000) -> str:
         if not self.tcp:
             raise ConnectionError("Not connected to any server.")
-       # cmd = COMMANDS[message]
         self.tcp.clear_buffer()
         result = self.tcp.send_command(message)
-        print(f"First response is: {result}")
-        
+        logging.info(f"Acknowledgement response is {result}")
         if "ACK!" not in result:
             raise ValueError(f"Invalid response: {result}")
         
         wait_response = self.wait_for_command(timeout)
-        print(f"Second response is: {wait_response}")
         return wait_response
 
     def wait_for_command(self, timeout) -> None:
@@ -107,16 +139,18 @@ class MicroServeDriver(ABCToolDriver):
         if self.blocking and self.tcp:
             response = self.tcp.read_response(timeout=timeout)
             if response.lower().startswith(("error", "aborted")):
-                self.abort()
                 raise ValueError(f"Failed to complete command. Error: {response}")
         return response
     
 if __name__ == "__main__":
-    microserve = MicroServeDriver(ip="192.168.1.60")
-    microserve.connect("192.168.1.60",1000)
-    print("Homing microserve")
-    microserve.get_dimensions()
-    #microserve.is_homed()
+    microserve = MicroServeDriver(ip="192.168.1.60", port=1000)
+    microserve.connect()
+    microserve.is_homed()
+    microserve.get_status()
+    microserve.send_command("err")
+    # microserve.get_dimensions()
+    # microserve.set_plate_dimensions(15000,15000,13000)
+    # #microserve.is_homed()
     # microserve.home()
     # print("Microserve homed")
     # print("Going to 3")

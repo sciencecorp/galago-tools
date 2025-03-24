@@ -10,16 +10,21 @@ message Command {
     Abort abort = 4;
     Retract retract = 5;
     GoTo go_to =6;
-    SetPlateDimensions set_plate_dimensions = 7;
     SendRawCommand raw_command =8;
   }
 
     message Load {
         int32 stack_id = 1;
+        float plate_height = 2;
+        float stack_height = 3;
+        float plate_thickness = 4;
     }
 
     message Unload {
         int32 stack_id = 1;
+        float plate_height = 2;
+        float stack_height = 3;
+        float plate_thickness = 4;
     }
 
     message Home {}
@@ -28,11 +33,6 @@ message Command {
     message GoTo {
         int32 stack_id =1;
     }
-    message SetPlateDimensions {
-        float plate_height = 1;
-        float stack_height = 2;
-        float plate_thickness = 3;
-    }
     message SendRawCommand {
         string command = 1;
     }
@@ -40,6 +40,5 @@ message Command {
 
 message Config {
   string ip = 1;
-  int32 port = 2;
-  int32 stack_height=3;
+  optional int32 port = 2;
 }
