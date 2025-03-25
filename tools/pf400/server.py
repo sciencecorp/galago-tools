@@ -109,11 +109,13 @@ class Pf400Server(ToolServer):
         grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
         logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
         for grip in grip_params.grip_params:
-            self.plate_handling_params[grip.name] = {
+            self.plate_handling_params[grip.name.lower()] = {
                 "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
                 "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
             }
 
+        logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
+        logging.info(self.plate_handling_params)
         #Load and register profiles 
         motion_profiles_list = waypoints_dictionary.get("motion_profiles")
         motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
@@ -217,7 +219,7 @@ class Pf400Server(ToolServer):
         grasp: Command.GraspPlate
         if not grasp_params or (grasp_params.width == 0):
             tmp_grasp: Union[Command.GraspPlate,Command.ReleasePlate] = self.plate_handling_params[
-                source_location.orientation
+                source_location.orientation.lower()
             ]["grasp"]
             if isinstance(tmp_grasp, Command.GraspPlate):
                 grasp = tmp_grasp
@@ -229,7 +231,7 @@ class Pf400Server(ToolServer):
             adjust_gripper = Command.ReleasePlate(width=grip_width, speed=10)
         else:
             tmp_adjust_gripper = self.plate_handling_params[
-                source_location.orientation
+                source_location.orientation.lower()
             ]["release"]
             if isinstance(tmp_adjust_gripper, Command.ReleasePlate):
                 adjust_gripper = tmp_adjust_gripper
@@ -266,7 +268,7 @@ class Pf400Server(ToolServer):
 
         if not release_params or (release_params.width == 0):
             tmp_release: Union[Command.GraspPlate , Command.ReleasePlate] = self.plate_handling_params[
-                dest_location.orientation
+                dest_location.orientation.lower()
             ]["release"]
             if isinstance(tmp_release, Command.ReleasePlate):
                 release = tmp_release
@@ -325,7 +327,7 @@ class Pf400Server(ToolServer):
         safe_location = self._getLocation(f"{location}_safe")
         grasp: Command.GraspPlate
         tmp_grasp: Union[Command.GraspPlate,Command.ReleasePlate] = self.plate_handling_params[
-            location.orientation
+            location.orientation.lower()
         ]["grasp"]
         if isinstance(tmp_grasp, Command.GraspPlate):
             grasp = tmp_grasp
@@ -334,7 +336,7 @@ class Pf400Server(ToolServer):
         else:
             raise Exception("Invalid grasp params")
 
-        tmp_adjust_gripper = self.plate_handling_params[location.orientation]["release"]
+        tmp_adjust_gripper = self.plate_handling_params[location.orientation.lower()]["release"]
         if isinstance(tmp_adjust_gripper, Command.ReleasePlate):
             adjust_gripper = tmp_adjust_gripper
         else:
@@ -364,7 +366,7 @@ class Pf400Server(ToolServer):
 
         release: Command.ReleasePlate
         tmp_release: Union[Command.GraspPlate, Command.ReleasePlate] = self.plate_handling_params[
-            location.orientation
+            location.orientation.lower()
         ]["release"]
         if isinstance(tmp_release, Command.ReleasePlate):
             release = tmp_release
