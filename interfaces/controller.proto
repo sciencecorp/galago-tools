@@ -21,6 +21,7 @@ enum ToolType {
   alps3000 = 14;
   toolbox = 15;
   hamilton = 16;
+  microserve = 17;
 }
 
 message ToolConfig {

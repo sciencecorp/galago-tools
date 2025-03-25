@@ -19,6 +19,7 @@ import "tools/grpc_interfaces/xpeel.proto";
 import "tools/grpc_interfaces/alps3000.proto";
 import "tools/grpc_interfaces/toolbox.proto"; 
 import "tools/grpc_interfaces/hamilton.proto";
+import "tools/grpc_interfaces/microserve.proto";
 
 message Command {
   oneof tool_command {
@@ -38,6 +39,7 @@ message Command {
     tools.grpc_interfaces.alps3000.Command alps3000 = 14;
     tools.grpc_interfaces.toolbox.Command toolbox = 15;
     tools.grpc_interfaces.hamilton.Command hamilton = 16;
+    tools.grpc_interfaces.microserve.Command microserve = 17;
   }
 } 
 
@@ -60,6 +62,7 @@ message Config {
     tools.grpc_interfaces.alps3000.Config alps3000 = 33;
     tools.grpc_interfaces.toolbox.Config toolbox = 34;
     tools.grpc_interfaces.hamilton.Config hamilton = 35;
+    tools.grpc_interfaces.microserve.Config microserve = 36;
   }
 }
 
