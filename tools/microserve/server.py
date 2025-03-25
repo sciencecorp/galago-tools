@@ -1,13 +1,7 @@
 import logging
 import os
-import time
-
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.microserve_pb2 import Command, Config
-
-from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
-from tools.grpc_interfaces.tool_base_pb2 import SUCCESS
-
 from .driver import MicroServeDriver
 
 import argparse
@@ -47,8 +41,29 @@ class MicroserveServer(ToolServer):
 
     def SendRawCommand(self, params: Command.SendRawCommand) -> None:
         logging.info(f"Sending raw command {params.command}")
-        return self.driver.send_command(params.command)
+        self.driver.send_command(params.command)
 
+    def EstimatateLoad(self, params:Command.Load) -> int:
+        return 1 
+    
+    def EstimateUnload(self, params:Command.Unload) -> int:
+        return 1
+    
+    def EstimateHome(self, params:Command.Home) -> int:
+        return 1
+    
+    def EstimateRetract(self, params:Command.Retract) -> int:
+        return 1
+    
+    def EstimateGoTo(self, params:Command.GoTo) -> int:
+        return 1
+    
+    def EstimateAbort(self, params:Command.Abort) -> int:
+        return 1
+    
+    def EstimateSendRawCommand(self, params:Command.SendRawCommand) -> int:
+        return 1
+    
 if __name__ == "__main__":
     #logging.basicConfig(level=logging.DEBUG)
     logging.getLogger().setLevel(logging.INFO)

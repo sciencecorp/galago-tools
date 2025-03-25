@@ -206,7 +206,7 @@ class RobotInitializer:
     #             raise Exception(f"Could not turn power on. {message}")
 
     #         logging.info("Turned power on")
-    def ensure_power_on(self) -> None:
+    def _ensure_power_on(self) -> None:
         message = self.communicator.send_command("hp")
         tokens = message.split(" ")
         
@@ -221,12 +221,12 @@ class RobotInitializer:
         
         # Power is off or status format unexpected, try to turn power on
         logging.info("Turning on power...")
-        message = self.communicator.write_and_read("hp 1")
+        message = self.communicator.send_command("hp 1")
         if message != "0":
             raise Exception(f"Could not turn power on. {message}")
         
         # Verify power is now on
-        message = self.communicator.write_and_read("hp")
+        message = self.communicator.send_command("hp")
         if message != "0 1":
             raise Exception(f"Could not turn power on. {message}")
         
