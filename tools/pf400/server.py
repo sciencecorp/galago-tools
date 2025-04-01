@@ -31,9 +31,9 @@ class Pf400Server(ToolServer):
     def __init__(self) -> None:
         super().__init__()
         self.config : Config 
-        self.driver: Pf400Driver = []
-        self.waypoints: Waypoints = []
-        self.labwares : Labwares = []
+        self.driver: Pf400Driver
+        self.waypoints: Waypoints
+        self.labwares : Labwares
         self.sequences : ArmSequences
         self.grips : Grips
         self.plate_handling_params : dict[str, dict[str, Union[Command.GraspPlate, Command.ReleasePlate]]] = {}

@@ -191,11 +191,8 @@ class RobotInitializer:
         """Initialize robot with optimized timeouts"""
         try:
             self._ensure_pc_mode()
-            if self.config.gpl_version == "v1":
-                self._ensure_power_on_v1()
-            else:
-                self._ensure_power_on_v2()
-                self._ensure_robot_attached()
+            self._ensure_power_on_v1()
+            self._ensure_robot_attached()
             self._ensure_robot_homed()
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
@@ -218,9 +215,10 @@ class RobotInitializer:
             
             logging.info("Switched to PC mode")
 
-    def _ensure_power_on_v1(self, target_states=["20", "21"], timeout_seconds=30) -> None:
+    def _ensure_power_on_v1(self, target_states:List[str] =["20", "21"], timeout_seconds:int=30) -> None:
         start_time = time.time()
-        
+        state = self.communicator.get_state()
+
         while True:
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout_seconds:
@@ -229,8 +227,9 @@ class RobotInitializer:
             response = self.communicator.get_state()
             state = response.split(' ')[1]
             if state in target_states:
-                return
+                return None
             time.sleep(1)
+
         
     def _ensure_power_on_v2(self) -> None:
         """Ensure robot power is on with shorter timeout"""
@@ -482,16 +481,16 @@ class Pf400Driver(ABCToolDriver):
             raise RuntimeError("Robot not initialized")
         self.communicator.send_command("movetosafe")
     
-    def set_gripper_open_position(self, width:float):
+    def set_gripper_open_position(self, width:float) -> None:
         self.communicator.send_command(f"gripopenpos {width}")
 
-    def get_gripper_open_position(self):
+    def get_gripper_open_position(self) -> str:
         return self.communicator.send_command("gripopenpos")
 
-    def set_gripper_close_position(self, width:float):
+    def set_gripper_close_position(self, width:float) -> None:
         self.communicator.send_command(f"gripclosepos {width}")
 
-    def get_gripper_close_position(self):
+    def get_gripper_close_position(self) -> str:
         return self.communicator.send_command("gripclosepos")
 
     def __del__(self) -> None:
