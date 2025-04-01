@@ -26,3 +26,5 @@ slack-sdk==3.21.3
 slackclient==2.9.4
 cython==3.0.11
 pillow==11.0.0
+psutil==7.0.0
+comtypes==1.4.10
