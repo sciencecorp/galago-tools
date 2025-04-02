@@ -1,4 +1,4 @@
-from tools.toolbox.db import Db
+# from tools.toolbox.db import Db
 
-Db.check_connection()
-Db.ping(5)
+# Db.check_connection()
+# Db.ping(5)

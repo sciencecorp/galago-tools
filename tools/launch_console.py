@@ -33,13 +33,11 @@ class LaunchConsole():
         self.config_file = ""
         logging.info("Starting Galago Manager")
         self.config :Config = config
-        working_dir = "" if not config.app_config.data_folder else config.app_config.data_folder
+        working_dir = "" 
         self.log_folder = os.path.join(working_dir,"data","trace_logs", str(LOG_TIME))
-        self.workcell = config.app_config.workcell
         self.server_processes : dict[str,subprocess.Popen] = {}
         
         if not os.path.exists(self.log_folder):
-            logging.debug("folder does not exist. creating folder")
             os.makedirs(self.log_folder)
 
     def kill_all_processes(self) ->None:
@@ -142,7 +140,6 @@ class LaunchConsole():
     def run_all_tools(self) -> None:
         self.kill_all_processes()
         time.sleep(0.5)
-        self.config.load_app_config()
         self.load_tools()
         self.start_toolbox()
         if self.config.workcell_config is None:
@@ -185,7 +182,7 @@ def main() -> int:
 
     try:
         config = Config()
-        config.load_app_config()
+        #config.load_app_config()
         logging.info("Loading workcell config")
         config.load_workcell_config()
         manager = LaunchConsole(config)
