@@ -14,7 +14,10 @@ def run_python_script(script_content: str, blocking: bool = True) -> t.Optional[
     if os.path.exists("stdout.txt"):
         os.remove("stdout.txt")
     temp_file = "tmp_file.py"
-    script_content = script_content.encode("utf-8").decode("unicode_escape")
+    #script_content = script_content.encode("utf-8").decode("unicode_escape")
+    # Use a raw string to avoid escape sequence issues
+    # This preserves all whitespace and newlines as they are
+    script_content = r"{}".format(script_content)
     write_to_file(temp_file, script_content)
 
     if not os.path.exists(temp_file):
@@ -39,8 +42,9 @@ def run_python_script(script_content: str, blocking: bool = True) -> t.Optional[
         logging.error(f"There was an error while running script: {e}")
         raise
     finally:
-        os.remove(temp_file)
-        os.remove('stdout.txt')
+        logging.info("Cleaning up temporary files")
+        #os.remove(temp_file)
+        #os.remove('stdout.txt')
     return None
 
 
