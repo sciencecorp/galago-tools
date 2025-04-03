@@ -43,8 +43,8 @@ def run_python_script(script_content: str, blocking: bool = True) -> t.Optional[
         raise
     finally:
         logging.info("Cleaning up temporary files")
-        #os.remove(temp_file)
-        #os.remove('stdout.txt')
+        os.remove(temp_file)
+        os.remove('stdout.txt')
     return None
 
 
