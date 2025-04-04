@@ -118,6 +118,7 @@ class ToolsManager():
         self.log_text("------------------------------------------------------------------------------")
         self.log_text(ascii_art)
         self.log_text("------------------------------------------------------------------------------")
+        self.log_text("\n")
 
         # Add search and filter features
         self.search_frame = ttk.Frame(self.right_frame)
