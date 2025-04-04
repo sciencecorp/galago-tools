@@ -42,6 +42,7 @@ message Command {
     string location = 2;
     optional int32 motion_profile_id = 3;
     optional bool pick_from_plate = 4;
+    optional float approach_height = 5;
   }
 
   message PlaceLid {
@@ -49,19 +50,20 @@ message Command {
     string location = 2;
     optional int32 motion_profile_id = 3;
     optional bool place_on_plate = 4;
+    optional float approach_height = 5;
   }
 
   message RetrievePlate {
     string labware = 1;
     string location = 2;
-    optional float z_offset = 3;
+    optional float approach_height = 3;
     optional int32 motion_profile_id = 4;
   }
 
   message DropOffPlate {
     string labware = 1;
     string location = 2;
-    optional float z_offset = 3;
+    optional float approach_height = 3;
     optional int32 motion_profile_id = 5;
   }
 
@@ -80,7 +82,7 @@ message Command {
   message Move {
     string name = 1;
     optional int32 motion_profile_id = 2;
-    optional int32 z_offset=3;
+    optional int32 approach_height=3;
   }
 
   message GraspPlate {
@@ -95,7 +97,6 @@ message Command {
   }
 
   message Transfer {
-
     string source_nest = 1;
     string destination_nest = 2;
     string labware = 3;

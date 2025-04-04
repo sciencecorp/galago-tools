@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 import logging
-import time
 from enum import Enum
 from typing import Optional, List
 from tools.pf400.tcp_ip import Pf400TcpIp
 from tools.base_server import ABCToolDriver
+import time 
 
 class RobotError(Enum):
     """Error codes for the PF400 robot"""
@@ -86,13 +86,12 @@ class MovementController:
 
     def move_joints_v1(self, location: Location) -> None:
         """Move robot using joint coordinates"""
-        if self.state.is_free:
-            self._ensure_not_free()
-
         loc_values = location.values
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
         
+        if self.config.joints == 5:
+            loc_values = loc_values[:5]
         loc_string = Location(loc_values).to_string()
         if self.config.gpl_version == "v1":
             self.communicator.send_command(f"movej {loc_string}")
@@ -102,26 +101,26 @@ class MovementController:
 
     def move_joints_v2(self, location: Location, motion_profile: int = 1) -> None:
         """Move robot using joint coordinates"""
-        if self.state.is_free:
-            self._ensure_not_free()
 
         loc_values = location.values
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
-        
+        if self.config.joints == 5:
+            loc_values = loc_values
         loc_string = Location(loc_values).to_string()
         self.communicator.send_command(f"movej {motion_profile} {loc_string}")
         self.communicator.wait_for_completion()
 
     def move_cartesian(self, location: Location, motion_profile: int = 1) -> None:
         """Move robot using Cartesian coordinates"""
-        if self.state.is_free:
-            self._ensure_not_free()
-        
+        loc_values = location.values
+        if self.config.joints == 5:
+            loc_values = loc_values[:5]
+        loc_string = Location(loc_values).to_string()
         if self.config.gpl_version == "v1":
-            self.communicator.send_command(f"movec {location.to_string()}")
+            self.communicator.send_command(f"movec {loc_string}")
         else:
-            self.communicator.send_command(f"movec {motion_profile} {location.to_string()}")
+            self.communicator.send_command(f"movec {motion_profile} {loc_string}")
         self.communicator.wait_for_completion()
 
     def jog(self, axis: Axis, distance: float) -> None:
@@ -143,8 +142,7 @@ class MovementController:
             self._set_free_mode(-1)
             self.state.is_free = False
         except Exception as e:
-            logging.error(f"Failed to unfree arm: {e}")
-            raise
+            raise RuntimeError(f"Failed to unfree arm: {e}")
 
     def _get_current_cartesian_location(self) -> Location:
         """Get current Cartesian location"""
@@ -178,7 +176,6 @@ class GripperController:
 
     def release_plate(self, plate_width: int, speed: int = 10) -> None:
         """Release a plate"""
-        self.state.gripper_axis_override_value = None
         self.communicator.send_command(f"releaseplate {plate_width} {speed}")
         self.communicator.wait_for_completion()
 
@@ -216,29 +213,43 @@ class RobotInitializer:
             
             logging.info("Switched to PC mode")
 
-
-    def _ensure_power_on(self) -> None:
-        initial_state = self.communicator.get_state()
-        if initial_state == "0 20":
-            return 
-
-        logging.info("Turning on power...")
-        self.communicator.send_command("hp 1 10")
-        state_after_hp = self.communicator.get_state()
-
-        if state_after_hp != "0 20":
-            logging.warning(f"First power on attempt failed: {state_after_hp}")
-            self.communicator.send_command("hp 1 30")
-            logging.warning("Retrying with a higher timeout")
-            if self.communicator.get_state() == "0 20":
-                return 
-            else:
-                raise Exception("Could not turn power on")
+    def _ensure_power_on(self, target_states:List[str] =["20", "21"], timeout_seconds:int=40) -> None:
+        start_time = time.time()
+        state = self.communicator.get_state()
+        self.communicator.send_command("hp")
+        while True:
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout_seconds:
+                raise TimeoutError(f"Timed out waiting for system to reach states {target_states}. Current state: {state}")
             
+            response = self.communicator.get_state()
+            state = response.split(' ')[1]
+            if state in target_states:
+                return None
+            time.sleep(1)
 
+        
+    # def _ensure_power_on_v2(self) -> None:
+    #     """Ensure robot power is on with shorter timeout"""
+    #     response = self.communicator.send_command("hp")
+    #     if response != "0 1":
+    #         logging.info("Turning on power...")
+    #         response = self.communicator.send_command("hp 1 30")
+    #         if response != "0":
+    #             raise Exception(f"Could not turn power on: {response}")
+            
+    #         response = self.communicator.send_command("hp")
+    #         if response != "0 1":
+    #             raise Exception(f"Could not verify power state: {response}")
+            
+    #         logging.info("Turned power on")
+        
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
         response = self.communicator.send_command("attach")
+        response_splitted = response.split(" ")
+        if response_splitted[0] != "0":
+            raise Exception(f"Attach failed. Message is {response}")
         if response != "0 1":
             logging.info("Attaching to robot...")
             response = self.communicator.send_command("attach 1")
@@ -250,6 +261,7 @@ class RobotInitializer:
                 raise Exception(f"Could not verify robot attachment: {response}")
             
             logging.info("Attached to robot")
+
 
     def _ensure_robot_homed(self) -> None:
         """Ensure robot is homed by first attempting a move and then homing if needed"""
@@ -264,8 +276,8 @@ class RobotInitializer:
             message = self.communicator.send_command(f"movej 1 {current_joint_loc}")
         # Robot not homed message (-1021)
         if message == "-1021":
-            logging.info("Homing robot...This may take a moment...")
-            message = self.communicator.send_command("home", timeout=30)
+            logging.warning("Homing robot...This may take a moment...")
+            message = self.communicator.send_command("home", timeout=40)
 
             if message != "0":
                 raise Exception(f"Got malformed message when homing robot. {message}")
@@ -434,9 +446,61 @@ class Pf400Driver(ABCToolDriver):
         logging.info(f"Registering motion profile {profile}...")
         self.communicator.send_command(f"profile {profile}")
 
-    def wait(self, duration: int) -> None:
-        """Wait for specified duration"""
-        time.sleep(duration)
+    def set_sys_speed(self, speed:int) ->  None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command(f"mspeed {speed}")
+
+    def get_sys_speed(self) -> str:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        return self.communicator.send_command("mspeed")
+    
+    def halt(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("halt")
+    
+    #If the gripper closed fully then no plate was grabbed/detected.
+    def gripper_closed_fully(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("isfullyclosed")
+
+    def home_all(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("homeAll")
+
+    def home_if_noplate(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("homall_ifnoplate")
+
+    def move_to_safe(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command("movetosafe")
+    
+    def set_gripper_open_position(self, width:float) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command(f"gripopenpos {width}")
+
+    def get_gripper_open_position(self) -> str:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        return self.communicator.send_command("gripopenpos")
+
+    def set_gripper_close_position(self, width:float) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
+        self.communicator.send_command(f"gripclosepos {width}")
+
+    def get_gripper_close_position(self) -> str:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")        
+        return self.communicator.send_command("gripclosepos")
 
     def __del__(self) -> None:
         """Cleanup when driver is destroyed"""
@@ -446,10 +510,15 @@ class Pf400Driver(ABCToolDriver):
 #     driver = Pf400Driver(
 #         tcp_host="192.168.0.1",
 #         tcp_port=10100,
-#         joints=6,F
+#         joints=6,
 #         gpl_version="v2"
 #     )
 #     driver.initialize()
-#     driver.jog("z",-200)
-#     time.sleep(3)
-#     driver.free()
+
+#     logging.info("Getting system speed")
+#     driver.get_sys_speed()
+#     logging.info("Getting close width")
+#     driver.get_gripper_close_position()
+#     logging.info("Getting open width")
+#     driver.get_gripper_open_position()
+
