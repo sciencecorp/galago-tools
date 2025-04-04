@@ -27,8 +27,6 @@ import typing as t
 from google.protobuf.json_format import Parse
 
 
-
-
 #Default motion profiles, use for retrieve and dropoff
 DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
     #curved motion profile
@@ -138,22 +136,25 @@ class Pf400Server(ToolServer):
             logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
             
             
-            for motion_profile in motion_profiles.profiles:
-                logging.info(f"Registering motion profile {motion_profile.name}")
-                try:
-                    self.driver.register_motion_profile(str(motion_profile))
-                except Exception as e:
-                    logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
-                    raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
-    
-            #Register default motion profiles
-            for motion_profile in DEFAULT_MOTION_PROFILES:
-                logging.info(f"Registering default motion profiles {motion_profile.name}")
-                try:
-                    self.driver.register_motion_profile(str(motion_profile))
-                except Exception as e:
-                    logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
-                    raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+            if len(motion_profiles_list) > 0:
+                logging.info("Registering profiles")
+                for motion_profile in motion_profiles.profiles:
+                    logging.info(f"Registering motion profile {motion_profile.name}")
+                    try:
+                        self.driver.register_motion_profile(str(motion_profile))
+                    except Exception as e:
+                        logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                        raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+            else:
+                #Register default motion profiles
+                logging.info("No motion profiles loaded. Using default profiles.")
+                for motion_profile in DEFAULT_MOTION_PROFILES:
+                    logging.info(f"Registering default motion profiles {motion_profile.name}")
+                    try:
+                        self.driver.register_motion_profile(str(motion_profile))
+                    except Exception as e:
+                        logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                        raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
                 
             # #Load Sequences 
             sequences_list = waypoints_dictionary.get("sequences")
