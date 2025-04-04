@@ -135,8 +135,7 @@ class Pf400Server(ToolServer):
             motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
             logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
             
-            
-            if len(motion_profiles_list) > 0:
+            if motion_profiles_list and len(motion_profiles_list) > 0:
                 logging.info("Registering profiles")
                 for motion_profile in motion_profiles.profiles:
                     logging.info(f"Registering motion profile {motion_profile.name}")

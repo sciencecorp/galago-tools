@@ -465,6 +465,8 @@ class Pf400Driver(ABCToolDriver):
     
     #If the gripper closed fully then no plate was grabbed/detected.
     def gripper_closed_fully(self) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         self.communicator.send_command("isfullyclosed")
 
     def home_all(self) -> None:
@@ -483,15 +485,23 @@ class Pf400Driver(ABCToolDriver):
         self.communicator.send_command("movetosafe")
     
     def set_gripper_open_position(self, width:float) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         self.communicator.send_command(f"gripopenpos {width}")
 
     def get_gripper_open_position(self) -> str:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         return self.communicator.send_command("gripopenpos")
 
     def set_gripper_close_position(self, width:float) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         self.communicator.send_command(f"gripclosepos {width}")
 
     def get_gripper_close_position(self) -> str:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")        
         return self.communicator.send_command("gripclosepos")
 
     def __del__(self) -> None:
