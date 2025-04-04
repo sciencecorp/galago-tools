@@ -191,7 +191,7 @@ class RobotInitializer:
         """Initialize robot with optimized timeouts"""
         try:
             self._ensure_pc_mode()
-            self._ensure_power_on_v1()
+            self._ensure_power_on()
             self._ensure_robot_attached()
             self._ensure_robot_homed()
         except Exception as e:
@@ -215,7 +215,7 @@ class RobotInitializer:
             
             logging.info("Switched to PC mode")
 
-    def _ensure_power_on_v1(self, target_states:List[str] =["20", "21"], timeout_seconds:int=30) -> None:
+    def _ensure_power_on(self, target_states:List[str] =["20", "21"], timeout_seconds:int=30) -> None:
         start_time = time.time()
         state = self.communicator.get_state()
 
