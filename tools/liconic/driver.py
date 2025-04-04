@@ -3,8 +3,6 @@ import time
 import logging
 from tools.base_server import ABCToolDriver
 import threading 
-import os
-from datetime import datetime
 from typing import Optional, Union
 from tools.app_config import Config 
 
@@ -43,10 +41,9 @@ class LiconicStxDriver(ABCToolDriver):
     # Example: com_port can be "COM1"
     def __init__(self, com_port: str) -> None:
         self.config = Config()
-        self.config.load_app_config()
         self.config.load_workcell_config()
-        if self.config.app_config.data_folder:
-            self.co2_log_path = os.path.join(self.config.app_config.data_folder,"sensors","liconic")
+        # if self.config.app_config.data_folder:
+        #     self.co2_log_path = os.path.join(self.config.app_config.data_folder,"sensors","liconic")
         self.serial_port = serial.Serial(
             com_port, 9600, timeout=1, parity=serial.PARITY_EVEN
         )
@@ -237,53 +234,51 @@ class LiconicStxDriver(ABCToolDriver):
         self.monitor_thread.start()
         return None
 
-    def write_co2_log(self, value:str) -> None:
+    # def write_co2_log(self, value:str) -> None:
 
-        #Write to local files
-        if self.co2_log_path is None:
-            return
-        if(os.path.exists(self.co2_log_path) is False):
-            logging.debug("folder does not exist. creating folder")
-            os.mkdir(self.co2_log_path )
-        today =  datetime.today().strftime('%Y-%m-%d')
-        today_folder = os.path.join(self.co2_log_path ,today)
-        if(os.path.exists(today_folder) is False):
-            logging.debug("folder does not exist. creating folder")
-            os.mkdir(today_folder)
-        trace_file = os.path.join(today_folder, "liconic_co2.txt")
-        try:
-            if os.path.exists(trace_file) is False:
-                with open(trace_file, 'w+') as f:
-                    f.write('Time,Value\n')
-        except Exception as e:
-            logging.debug(e)
-            return
+    #     #Write to local files
+    #     if self.co2_log_path is None:
+    #         return
+    #     if(os.path.exists(self.co2_log_path) is False):
+    #         logging.debug("folder does not exist. creating folder")
+    #         os.mkdir(self.co2_log_path )
+    #     today =  datetime.today().strftime('%Y-%m-%d')
+    #     today_folder = os.path.join(self.co2_log_path ,today)
+    #     if(os.path.exists(today_folder) is False):
+    #         logging.debug("folder does not exist. creating folder")
+    #         os.mkdir(today_folder)
+    #     trace_file = os.path.join(today_folder, "liconic_co2.txt")
+    #     try:
+    #         if os.path.exists(trace_file) is False:
+    #             with open(trace_file, 'w+') as f:
+    #                 f.write('Time,Value\n')
+    #     except Exception as e:
+    #         logging.debug(e)
+    #         return
         
-        try:
-            with open(trace_file, 'a') as f:
-                f.write(f"{datetime.today()},{value}\n")
-        except Exception as e:
-            logging.debug(e)
-            return
+    #     try:
+    #         with open(trace_file, 'a') as f:
+    #             f.write(f"{datetime.today()},{value}\n")
+    #     except Exception as e:
+    #         logging.debug(e)
+    #         return
 
-    def check_last_co2_level(self, data_points:int) -> Optional[int]:
-        if self.co2_log_path is None:
-            return
-        today =  datetime.today().strftime('%Y-%m-%d')
-        today_file = os.path.join(self.co2_log_path,today,"liconic_co2.txt")
-        logging.info(today_file)
-        if(os.path.exists(today_file) is False):
-            logging.debug("folder does not exist.")
-            return None 
-        with open(today_file, "r") as f:
-            lines = f.readlines()
-            logging.info(F"length of lines {len(lines)}")
-            return None
+    # def check_last_co2_level(self, data_points:int) -> Optional[int]:
+    #     if self.co2_log_path is None:
+    #         return
+    #     today =  datetime.today().strftime('%Y-%m-%d')
+    #     today_file = os.path.join(self.co2_log_path,today,"liconic_co2.txt")
+    #     logging.info(today_file)
+    #     if(os.path.exists(today_file) is False):
+    #         logging.debug("folder does not exist.")
+    #         return None 
+    #     with open(today_file, "r") as f:
+    #         lines = f.readlines()
+    #         logging.info(F"length of lines {len(lines)}")
+    #         return None
 
     def monitor_co2_level(self) -> None:
         self.monitoring = True
-        config = Config()
-        config.load_app_config()
         try:
             while True:
                 if not self.is_busy:
@@ -293,9 +288,9 @@ class LiconicStxDriver(ABCToolDriver):
                         self.co2_out_of_range = True
                         error_message = f"CO2 level is low: {co2_level}%"
                         logging.warning(error_message)
-                    if co2_level > 4 and self.co2_out_of_range:
-                        if self.config.app_config.slack_error_channel:
-                              logging.warning(f"CO2 level is back to normal: {co2_level}%")
+                    # if co2_level > 4 and self.co2_out_of_range:
+                    #     if self.config.app_config.slack_error_channel:
+                    #           logging.warning(f"CO2 level is back to normal: {co2_level}%")
                         self.co2_out_of_range = False
                 time.sleep(300)
                 

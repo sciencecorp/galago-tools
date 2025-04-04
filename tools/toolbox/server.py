@@ -17,7 +17,6 @@ class ToolBoxServer(ToolServer):
      def __init__(self) -> None:
           super().__init__()
           self.app_config = GlobalConfig()
-          self.app_config.load_app_config()
           self.app_config.load_workcell_config()
           self.slack = Slack(self.app_config)
           self.setStatus(tool_base_pb2.READY)
@@ -25,12 +24,13 @@ class ToolBoxServer(ToolServer):
      def _configure(self, request:Config) -> None:
           return
      
-     def SlackMessage(self, params:Command.SlackMessage) -> None:
-          if self.app_config.app_config.slack_workcell_channel:
-               self.slack.slack_message(message=params.message, recipient=self.app_config.app_config.slack_workcell_channel)
+     # def SlackMessage(self, params:Command.SlackMessage) -> None:
+     #      if self.app_config.app_config.slack_workcell_channel:
+     #           self.slack.slack_message(message=params.message, recipient=self.app_config.app_config.slack_workcell_channel)
 
      def LogMediaExchange(self, params:Command.LogMediaExchange) -> None: 
-          Data.log_media_exchange(params.source_barcode, params.destination_name, params.destination_barcode,params.source_wells, params.percent_exchange,params.new_tips)
+         #Data.log_media_exchange(params.source_barcode, params.destination_name, params.destination_barcode,params.source_wells, params.percent_exchange,params.new_tips)
+          return None 
      
      def GetWorkcells(self, params:Command.GetWorkcells) -> ExecuteCommandReply:
           s  = Struct()
@@ -50,59 +50,62 @@ class ToolBoxServer(ToolServer):
 
           return response
      
-     def GetLiconicSensorData(self, params:Command.GetLiconicSensorData) -> ExecuteCommandReply:
-          s  = Struct()
-          response = ExecuteCommandReply()
-          response.return_reply = True
-          response.response = SUCCESS
-          try:
-               data = Data.get_liconic_sensor_data(params.tool_id, params.date)
-               if data:
-                    s.update(data)
-               else:
-                    s.update({'times':[],'co2_values':[]})
-               response.meta_data.CopyFrom(s)
-          except Exception as exc:
-               logging.exception(exc)
-               response.response = ERROR_FROM_TOOL
+     def GetLiconicSensorData(self, params:Command.GetLiconicSensorData) -> None:
+          return None 
+          # s  = Struct()
+          # response = ExecuteCommandReply()
+          # response.return_reply = True
+          # response.response = SUCCESS
+          # try:
+          #      data = Data.get_liconic_sensor_data(params.tool_id, params.date)
+          #      if data:
+          #           s.update(data)
+          #      else:
+          #           s.update({'times':[],'co2_values':[]})
+          #      response.meta_data.CopyFrom(s)
+          # except Exception as exc:
+          #      logging.exception(exc)
+          #      response.response = ERROR_FROM_TOOL
 
-          return response
+          # return response
 
      
-     def GetOT2ImagesByDate(self, params:Command.GetOT2ImagesByDate) -> ExecuteCommandReply:
-          s  = Struct()
-          response = ExecuteCommandReply()
-          response.return_reply = True
-          response.response = SUCCESS
-          try:
-               data = Data.get_ot2_images_by_date(params.date)
-               if data:
-                    logging.info("Result should be "+str(data))
-                    s.update({'images':data})
-               else:
-                    s.update({'images':[]})
-               response.meta_data.CopyFrom(s)
-          except Exception as exc:
-               logging.exception(exc)
-               response.response = ERROR_FROM_TOOL
-          return response
+     def GetOT2ImagesByDate(self, params:Command.GetOT2ImagesByDate) -> None:
+          return None 
+          #s  = Struct()
+          # response = ExecuteCommandReply()
+          # response.return_reply = True
+          # response.response = SUCCESS
+          # try:
+          #      data = Data.get_ot2_images_by_date(params.date)
+          #      if data:
+          #           logging.info("Result should be "+str(data))
+          #           s.update({'images':data})
+          #      else:
+          #           s.update({'images':[]})
+          #      response.meta_data.CopyFrom(s)
+          # except Exception as exc:
+          #      logging.exception(exc)
+          #      response.response = ERROR_FROM_TOOL
+          # return response
      
-     def GetOT2ImageBytes(self, params:Command.GetOT2ImageBytes) -> ExecuteCommandReply:
-          s  = Struct()
-          response = ExecuteCommandReply()
-          response.return_reply = True
-          response.response = SUCCESS
-          try:
-               data = Data.get_ot2_image_bites_by_file_name(params.date, params.image_file)
-               if data:
-                    s.update(data)
-               else:
-                   s.update({'created_on':'','img_bytes':''})
-               response.meta_data.CopyFrom(s)
-          except Exception as exc:
-               logging.exception(exc)
-               response.response = ERROR_FROM_TOOL
-          return response
+     def GetOT2ImageBytes(self, params:Command.GetOT2ImageBytes) -> None:
+          return None 
+          # s  = Struct()
+          # response = ExecuteCommandReply()
+          # response.return_reply = True
+          # response.response = SUCCESS
+          # try:
+          #      data = Data.get_ot2_image_bites_by_file_name(params.date, params.image_file)
+          #      if data:
+          #           s.update(data)
+          #      else:
+          #          s.update({'created_on':'','img_bytes':''})
+          #      response.meta_data.CopyFrom(s)
+          # except Exception as exc:
+          #      logging.exception(exc)
+          #      response.response = ERROR_FROM_TOOL
+          # return response
      
      def RunPythonScript(self, params:Command.RunPythonScript) -> ExecuteCommandReply:
           s  = Struct()
@@ -123,31 +126,33 @@ class ToolBoxServer(ToolServer):
                response.error_message = str(exc)
           return response
      
-     def SendSlackAlert(self, params:Command.SendSlackAlert) -> None:
-          if self.app_config.app_config.slack_error_channel:
-               self.slack.send_alert_slack(params.workcell, params.tool, params.protocol, params.error_message, self.app_config.app_config.slack_error_channel)
+     # def SendSlackAlert(self, params:Command.SendSlackAlert) -> None:
+     #      if self.app_config.app_config.slack_error_channel:
+     #           self.slack.send_alert_slack(params.workcell, params.tool, params.protocol, params.error_message, self.app_config.app_config.slack_error_channel)
      
      def ClearLastSlackAlert(self, params:Command.ClearLastSlackAlert) -> None:
-          if self.app_config.app_config.slack_error_channel:
-               self.slack.clear_last_error(self.app_config.app_config.slack_error_channel)
+          # if self.app_config.app_config.slack_error_channel:
+          #      self.slack.clear_last_error(self.app_config.app_config.slack_error_channel)
+          return None 
      
-     def GetLogMediaExchangeByDate(self, params:Command.GetLogMediaExchangeByDate) -> ExecuteCommandReply:
-          s  = Struct()
-          response = ExecuteCommandReply()
-          response.return_reply = True
-          response.response = SUCCESS
-          try:
-               data = Data.get_media_exchange_logs_by_date(params.date)
-               if data:
-                    logging.info(f"Data is {data}")
-                    s.update({'data':data})
-               else:
-                   s.update({})
-               response.meta_data.CopyFrom(s)
-          except Exception as exc:
-               logging.exception(exc)
-               response.response = ERROR_FROM_TOOL
-          return response
+     def GetLogMediaExchangeByDate(self, params:Command.GetLogMediaExchangeByDate) -> None:
+          return None 
+          # s  = Struct()
+          # response = ExecuteCommandReply()
+          # response.return_reply = True
+          # response.response = SUCCESS
+          # try:
+          #      data = Data.get_media_exchange_logs_by_date(params.date)
+          #      if data:
+          #           logging.info(f"Data is {data}")
+          #           s.update({'data':data})
+          #      else:
+          #          s.update({})
+          #      response.meta_data.CopyFrom(s)
+          # except Exception as exc:
+          #      logging.exception(exc)
+          #      response.response = ERROR_FROM_TOOL
+          # return response
      
      def ValidateFolder(self, params:Command.ValidateFolder) -> ExecuteCommandReply:
           logging.info("Running validate folder in the server")

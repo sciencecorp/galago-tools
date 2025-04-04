@@ -44,9 +44,7 @@ class Db:
     def ping(times:int) -> bool:
         for i in range(times):
             try:
-                logging.info(f"Pinging {API_URL} ... Attempt {i+1}")
                 response = requests.get(f"{API_URL}/health")
-                print(response.status_code)
                 logging.info(f"Response status code: {response.status_code}")
                 if response.status_code == 200:
                     return True

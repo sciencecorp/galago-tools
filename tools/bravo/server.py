@@ -25,11 +25,13 @@ class BravoServer(ToolServer):
                 # Initialize COM in the server thread
                 pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
                 logging.debug("COM initialized in server thread")
-            
-            self.driver = BravoDriver()  # Create the driver after COM is initialized
-            logging.debug("Logging into VWorks")
-            self.driver.login()
-            logging.info("VWorks login successful")
+                
+                self.driver = BravoDriver()  # Create the driver after COM is initialized
+                logging.debug("Logging into VWorks")
+                self.driver.login()
+                logging.info("VWorks login successful")
+            else:
+                raise RuntimeError("Bravo server is only supported on Windows.")
         except Exception as e:
             error_msg = f"Failed to initialize Bravo driver: {str(e)}"
             logging.error(error_msg)

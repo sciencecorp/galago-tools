@@ -300,7 +300,7 @@ class Pf400Driver(ABCToolDriver):
         self.state = RobotState()
         self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port, joints=joints, gpl_version=gpl_version)
         self.tcp_ip: Optional[Pf400TcpIp] = None
-        self.communicator: RobotCommunicator 
+        self.communicator: Optional[RobotCommunicator] = None 
         self.gripper: Optional[GripperController] = None
         self.initializer: Optional[RobotInitializer] = None
         self.movement: Optional[MovementController] = None
@@ -310,7 +310,7 @@ class Pf400Driver(ABCToolDriver):
         try:
             # Establish new connection
             self.tcp_ip = Pf400TcpIp(self.config.tcp_host, self.config.tcp_port)
-            self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip, )
+            self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip)
             self.gripper = GripperController(
                 communicator=self.communicator,
                 state=self.state,
@@ -427,9 +427,10 @@ class Pf400Driver(ABCToolDriver):
         return self.communicator.send_command("wherej")
 
     def set_profile_index(self, profile_index:int ) -> None:
+        if self.communicator is None:
+            raise RuntimeError("Robot not initialized")
         logging.info(f"Setting profile to index {profile_index}")
         self.communicator.send_command(f"profidx {profile_index}")
-        #Get current profile 
         profile_current = self.communicator.send_command("profidx")
         logging.info(f"Profile current {profile_current}")
 

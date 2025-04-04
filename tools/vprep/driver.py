@@ -1,7 +1,6 @@
 import os
 import queue
 import time
-import comtypes.client as cc #type: ignore
 from tools.base_server import ABCToolDriver
 import logging 
 import subprocess 
@@ -27,6 +26,7 @@ EventQueue = queue.Queue
 
 
 if os.name == "nt":
+    import comtypes.client as cc #type: ignore
     import pythoncom
     #from comtypes import GUID
     from comtypes.client import GetEvents

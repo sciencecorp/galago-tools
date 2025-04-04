@@ -6,7 +6,6 @@ from concurrent import futures
 import time
 import grpc
 from google.protobuf import message
-from google.protobuf.json_format import MessageToDict
 from tools.grpc_interfaces import tool_base_pb2, tool_driver_pb2_grpc, tool_driver_pb2
 from typing import Optional
 import logging.handlers
@@ -24,7 +23,6 @@ logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
-
 
 
 class ABCToolDriver:
@@ -91,11 +89,11 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
     def Configure(
         self, request: tool_base_pb2.Config, context: grpc.ServicerContext
     ) -> tool_base_pb2.ConfigureReply:
-        # logging.info(f"Received configuration: {request}")
+        logging.info(f"Received configuration: {request}")
         self.config = getattr(request, request.WhichOneof("config"))
-        config_dict = MessageToDict(self.config)
-        if "toolId" in config_dict:
-            self.toolId = config_dict["toolId"]
+        
+        if request.toolId:
+            self.toolId = request.toolId
         
         if not request.simulated and self.simulated:
             self.setSimulated(request.simulated)
@@ -113,10 +111,9 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 self.is_connected = True
                 return tool_base_pb2.ConfigureReply(response=tool_base_pb2.SUCCESS)
             except Exception as e:
-                logging.error(str(e))
                 self.setStatus(tool_base_pb2.FAILED)
                 self.last_error = str(e)
-                logging.error(f"Tool={self.toolId}-{str(e)}")
+                logging.error(f"Failed to configure Tool={self.toolId}-{str(e)}")
                 self.is_connected = False 
                 return tool_base_pb2.ConfigureReply(
                     response=tool_base_pb2.NOT_READY, error_message=str(e)
@@ -139,7 +136,6 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 response=tool_base_pb2.UNRECOGNIZED_COMMAND
             )
         if self.simulated:
-            # logging.info(f"Running simulated command {method_name}")
             duration, error = self._estimateDuration(command)
             if error is not None:
                 return tool_base_pb2.ExecuteCommandReply(response=error, return_reply=True)
@@ -162,11 +158,9 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                             error_message=response_tmp.error_message,
                             return_reply=response_tmp.return_reply,
                         )
-                    #logging.debug(f"Simulated response for return: {response}")
                     return response
                 except KeyError as e:
                     logging.debug(f"Simulated error: {str(e)}")
-                    logging.error(str(e))
                     return tool_base_pb2.ExecuteCommandReply(
                         response=tool_base_pb2.INVALID_ARGUMENTS, error_message=str(e), return_reply=True
                     )
@@ -194,35 +188,9 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                     response=tool_base_pb2.INVALID_ARGUMENTS, error_message=str(e)
                 )
 
-
-    def runSequence(self, sequence: list[message.Message]) -> list[tool_base_pb2.ExecuteCommandReply]:
-        results = []
-        for i, command in enumerate(sequence):
-            try:
-                result = self._dispatchCommand(command)
-                results.append(result)
-                
-                if result.response != tool_base_pb2.SUCCESS:
-                    logging.error(f"Command {i+1}/{len(sequence)} ({command.__class__.__name__}) failed: {result.error_message}")
-                    if result.response in [tool_base_pb2.DRIVER_ERROR, tool_base_pb2.INVALID_ARGUMENTS]:
-                        # For critical errors, stop the sequence
-                        raise Exception(f"Sequence halted due to critical error in command {i+1}: {result.error_message}")
-            except Exception as e:
-                # Log the error and re-raise to notify the caller
-                logging.error(f"Exception in command {i+1}/{len(sequence)} ({command.__class__.__name__}): {str(e)}")
-                # Append the error to results before raising
-                error_reply = tool_base_pb2.ExecuteCommandReply(
-                    response=tool_base_pb2.DRIVER_ERROR,
-                    error_message=f"Exception in command {command.__class__.__name__}: {str(e)}"
-                )
-                results.append(error_reply)
-                raise
-
-        return results
-    
-    # def runSequence(self, sequence: list[message.Message]) -> None:
-    #     for command in sequence:
-    #         self._dispatchCommand(command)
+    def runSequence(self, sequence: list[message.Message]) -> None:
+        for command in sequence:
+            self._dispatchCommand(command)
 
     def isReady(self) -> bool:
         if self.simulated:
@@ -239,7 +207,6 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
         try:
             tool_name = request.WhichOneof("tool_command")
             if tool_name != self.toolType:
-                #logging.error("Expected tool %s, got %s", self.toolType, tool_name)
                 return None, tool_base_pb2.WRONG_TOOL, None
             tool_command = getattr(request, tool_name)
 
@@ -256,64 +223,37 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
     def ExecuteCommand(
         self, request: tool_base_pb2.Command, context: grpc.ServicerContext
     ) -> tool_base_pb2.ExecuteCommandReply:
+        # logging.info(f"Received command: {str(request)}:100.100")
+        sys.stdout.flush()
+        command, error, error_msg = self.parseCommand(request)
 
-        try:
-            logging.info(f"Received command: {str(request)[:100]}...")
-            sys.stdout.flush()
-        except Exception as e:
-            logging.warning(f"Error logging command: {str(e)}")
-    
-        try:
-            # Validate that the request is properly initialized
-            if not request.IsInitialized():
-                logging.error("Command request is not properly initialized")
-                self.last_error = "Command request is not properly initialized"
-                return tool_base_pb2.ExecuteCommandReply(
-                    response=tool_base_pb2.INVALID_ARGUMENTS,
-                    error_message="Command request is not properly initialized"
-                )
-        
-            command, error, error_msg = self.parseCommand(request)
-
-            if error is not None:
-                logging.error(f"Tool{self.toolId}, Command:{command.__class__.__name__}, Error={error_msg}")
-                self.last_error = error_msg
-                return tool_base_pb2.ExecuteCommandReply(
-                    response=error, error_message=error_msg
-                )
-
-            if command is not None:
-                try:
-                    logging.debug("Setting tool to BUSY")
-                    self.setStatus(tool_base_pb2.BUSY)
-                    logging.info(f"Running command {command.__class__.__name__}")
-                    response = self._dispatchCommand(command)
-                    logged_response = str(response)
-                    logged_response = (logged_response[:100] + '...') if len(logged_response) > 100 else logged_response
-                    logging.debug(f"ExecuteCommand Response: {str(logged_response)}")
-                    return response
-                except Exception as e:
-                    logging.error(f"Tool{self.toolId}, Command:{command}, Error={error_msg}")
-                    self.last_error = str(e)
-                    return tool_base_pb2.ExecuteCommandReply(
-                        response=tool_base_pb2.DRIVER_ERROR, error_message=str(e)
-                    )
-                finally:
-                    self.setStatus(tool_base_pb2.READY)
-        
-            return tool_base_pb2.ExecuteCommandReply(response=tool_base_pb2.SUCCESS)
-
-        except Exception as e:
-            # Catch-all for any unexpected errors
-            error_details = str(e)
-            logging.error(f"Unexpected error during ExecuteCommand: {error_details}")
-            self.last_error = f"Unexpected error: {error_details}"
+        if error is not None:
+            logging.error(f"Failed o execute commad for Tool {self.toolId}, Error={error_msg}")
+            self.last_error = error_msg
             return tool_base_pb2.ExecuteCommandReply(
-                response=tool_base_pb2.DRIVER_ERROR, 
-                error_message=f"Unexpected error: {error_details}"
+                response=error, error_message=error_msg
             )
-        
 
+        if command is not None:
+            try:
+                logging.debug("Setting tool to BUSY")
+                self.setStatus(tool_base_pb2.BUSY)
+                logging.info(f"Running command {command.__class__.__name__}")
+                response = self._dispatchCommand(command)
+                logged_response = str(response)
+                logged_response = (logged_response[:100] + '...') if len(logged_response) > 100 else logged_response
+                logging.debug(f"ExecuteCommand Response: {str(logged_response)}")
+                return response
+            except Exception as e:
+                logging.error(f"Error on Tool ={self.toolId}")
+                self.last_error = str(e)
+                return tool_base_pb2.ExecuteCommandReply(
+                    response=tool_base_pb2.DRIVER_ERROR, error_message=str(e)
+                )
+            finally:
+                self.setStatus(tool_base_pb2.READY)
+                # logging.info(f"Setting {self.toolId} to READY")
+        return tool_base_pb2.ExecuteCommandReply(response=tool_base_pb2.SUCCESS)
 
     def _estimateDuration(self, command: message.Message) -> tuple[Optional[int], t.Any]:
         method_name = f"Estimate{command.__class__.__name__}"

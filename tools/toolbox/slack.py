@@ -12,8 +12,7 @@ slack_active = True
 
 class Slack():
     def __init__(self, config:Config) -> None:
-        logging.info(f"Bot token is {config.app_config.slack_bot_tocken}")
-        self.client = WebClient(token=config.app_config.slack_bot_tocken)
+        self.client = WebClient(token="")
 
     def slack_message(self, message:Optional[str], recipient:str) -> None:
         try:

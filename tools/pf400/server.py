@@ -10,6 +10,7 @@ import logging
 from tools.pf400.waypoints_models import (
     Waypoints,
     MotionProfiles,
+    MotionProfile,
     Grips,
     Grip,
     Location,
@@ -24,6 +25,40 @@ from google.protobuf import json_format
 from google.protobuf import message
 import typing as t  
 from google.protobuf.json_format import Parse
+
+
+
+
+#Default motion profiles, use for retrieve and dropoff
+DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
+    #curved motion profile
+    MotionProfile(
+        name="default_curved",
+        id=1,
+        speed=80,
+        speed2=80,
+        acceleration=60,
+        deceleration=60,
+        accel_ramp=0.1,
+        decel_ramp=0.1,
+        inrange=0,
+        straight=0
+    ), 
+    #straight motion profile
+    MotionProfile(
+        name="default_straight",
+        id=2,
+        speed=80,
+        speed2=80,
+        acceleration=100,
+        deceleration=100,
+        accel_ramp=0.1,
+        decel_ramp=0.1,
+        inrange=0,
+        straight=1
+    ),
+]
+
 
 class Pf400Server(ToolServer):
     toolType = "pf400"
@@ -78,39 +113,55 @@ class Pf400Server(ToolServer):
         return sequence
 
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
-        logging.info("Loading waypoints")
-        #Load locations
-        waypoints_dictionary: dict[str, t.Any] = json_format.MessageToDict(params.waypoints)
-        locations_list = waypoints_dictionary.get("locations", [])
-        self.waypoints = Waypoints.parse_obj({"locations": locations_list})
-        logging.info(f"Loaded {len(self.waypoints.locations)} locations")
-        
-        #Load grips
-        grips_list = waypoints_dictionary.get("grip_params")
-        grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
-        self.grips = grip_params
-        logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
-        for grip in grip_params.grip_params:
-            self.plate_handling_params[grip.name.lower()] = {
-                "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
-                "release": Command.ReleasePlate(width=grip.width+10,speed=grip.speed)
-            }
+            logging.info("Loading waypoints")
+            #Load locations
+            waypoints_dictionary: dict[str, t.Any] = json_format.MessageToDict(params.waypoints)
+            locations_list = waypoints_dictionary.get("locations", [])
+            self.waypoints = Waypoints.parse_obj({"locations": locations_list})
+            logging.info(f"Loaded {len(self.waypoints.locations)} locations")
+            
+            #Load grips
+            grips_list = waypoints_dictionary.get("grip_params")
+            grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
+            logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
+            for grip in grip_params.grip_params:
+                self.plate_handling_params[grip.name.lower()] = {
+                    "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
+                    "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
+                }
 
-        logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
-        logging.info(self.plate_handling_params)
-        #Load and register profiles 
-        motion_profiles_list = waypoints_dictionary.get("motion_profiles")
-        motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
-        logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
-        for motion_profile in motion_profiles.profiles:
-            self.driver.register_motion_profile(str(motion_profile))
+            logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
+            logging.info(self.plate_handling_params)
+            #Load and register profiles 
+            motion_profiles_list = waypoints_dictionary.get("motion_profiles")
+            motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
+            logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
+            
+            
+            for motion_profile in motion_profiles.profiles:
+                logging.info(f"Registering motion profile {motion_profile.name}")
+                try:
+                    self.driver.register_motion_profile(str(motion_profile))
+                except Exception as e:
+                    logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                    raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+    
+            #Register default motion profiles
+            for motion_profile in DEFAULT_MOTION_PROFILES:
+                logging.info(f"Registering default motion profiles {motion_profile.name}")
+                try:
+                    self.driver.register_motion_profile(str(motion_profile))
+                except Exception as e:
+                    logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                    raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+                
+            # #Load Sequences 
+            sequences_list = waypoints_dictionary.get("sequences")
+            sequences = ArmSequences.parse_obj({"sequences":sequences_list})
+            logging.info(f"Loaded {len(sequences.sequences)} sequences")
+            self.sequences = sequences
 
-        # #Load Sequences 
-        sequences_list = waypoints_dictionary.get("sequences")
-        sequences = ArmSequences.parse_obj({"sequences":sequences_list})
-        logging.info(f"Loaded {len(sequences.sequences)} sequences")
-        self.sequences = sequences
-
+    
     def LoadLabware(self, params: Command.LoadLabware) -> None:
         logging.info("Loading labware")
         labware_dictionary = MessageToDict(params.labwares)
