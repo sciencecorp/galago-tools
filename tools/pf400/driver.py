@@ -113,8 +113,6 @@ class MovementController:
 
     def move_cartesian(self, location: Location, motion_profile: int = 1) -> None:
         """Move robot using Cartesian coordinates"""
-        # if self.state.is_free:
-        #     self._ensure_not_free()
         loc_values = location.values
         if self.config.joints == 5:
             loc_values = loc_values[:5]
@@ -192,10 +190,6 @@ class RobotInitializer:
         try:
             self._ensure_pc_mode()
             self._ensure_power_on()
-            # if self.config.gpl_version == "v1":
-            #     self._ensure_power_on()
-            # else:
-            #     self._ensure_power_on_v2()
             self._ensure_robot_attached()
             self._ensure_robot_homed()
         except Exception as e:
@@ -512,19 +506,19 @@ class Pf400Driver(ABCToolDriver):
         """Cleanup when driver is destroyed"""
         self.close()
 
-if __name__ == "__main__":
-    driver = Pf400Driver(
-        tcp_host="192.168.0.1",
-        tcp_port=10100,
-        joints=6,
-        gpl_version="v2"
-    )
-    driver.initialize()
+# if __name__ == "__main__":
+#     driver = Pf400Driver(
+#         tcp_host="192.168.0.1",
+#         tcp_port=10100,
+#         joints=6,
+#         gpl_version="v2"
+#     )
+#     driver.initialize()
 
-    logging.info("Getting system speed")
-    driver.get_sys_speed()
-    logging.info("Getting close width")
-    driver.get_gripper_close_position()
-    logging.info("Getting open width")
-    driver.get_gripper_open_position()
+#     logging.info("Getting system speed")
+#     driver.get_sys_speed()
+#     logging.info("Getting close width")
+#     driver.get_gripper_close_position()
+#     logging.info("Getting open width")
+#     driver.get_gripper_open_position()
 
