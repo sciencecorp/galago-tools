@@ -129,12 +129,16 @@ class Pf400Server(ToolServer):
             except Exception as e:
                 logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
                 raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
-            #self.driver.register_motion_profile(str(motion_profile))
-        # #Register default motion profiles
-        # for motion_profile in DEFAULT_MOTION_PROFILES:
-        #     logging.info(f"Registering motion profile 2 {motion_profile.name}")
-        #     #self.driver.register_motion_profile(str(motion_profile))
-
+   
+        #Register default motion profiles
+        for motion_profile in DEFAULT_MOTION_PROFILES:
+            logging.info(f"Registering default motion profiles {motion_profile.name}")
+            try:
+                self.driver.register_motion_profile(str(motion_profile))
+            except Exception as e:
+                logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+            
         # #Load Sequences 
         sequences_list = waypoints_dictionary.get("sequences")
         sequences = ArmSequences.parse_obj({"sequences":sequences_list})
