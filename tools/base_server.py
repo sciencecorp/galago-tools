@@ -6,7 +6,6 @@ from concurrent import futures
 import time
 import grpc
 from google.protobuf import message
-from google.protobuf.json_format import MessageToDict
 from tools.grpc_interfaces import tool_base_pb2, tool_driver_pb2_grpc, tool_driver_pb2
 from typing import Optional
 import logging.handlers
@@ -25,87 +24,6 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S', 
 )
 
-
-# Custom formatter to make logs more readable and detailed
-class DetailedFormatter(logging.Formatter):
-    """Formatter that includes tool ID and more detailed error information."""
-    
-    def format(self, record):
-        # Add tool ID to the log if available
-        if hasattr(record, 'toolId'):
-            record.toolIdStr = f"Tool[{record.toolId}] "
-        else:
-            record.toolIdStr = ""
-            
-        # Format the record
-        result = super().format(record)
-        
-        # Add traceback for errors
-        if record.levelno >= logging.ERROR and hasattr(record, 'exc_info') and record.exc_info:
-            result += "\n" + self.formatException(record.exc_info)
-            
-        return result
-    
-def setup_logging(log_level=logging.DEBUG, log_file=None):
-    """
-    Set up logging with more detailed formatting.
-    
-    Args:
-        log_level: The logging level to use
-        log_file: Optional file path to write logs to
-    """
-    # Create formatter
-    formatter = DetailedFormatter(
-        '%(asctime)s | %(levelname)-8s | %(toolIdStr)s%(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    
-    # Set up root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
-    
-    # Clear existing handlers
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-    
-    # Add console handler
-    console = logging.StreamHandler(sys.stdout)
-    console.setFormatter(formatter)
-    root_logger.addHandler(console)
-    
-    # Add file handler if specified
-    if log_file:
-        file_handler = logging.handlers.RotatingFileHandler(
-            log_file, maxBytes=10*1024*1024, backupCount=5
-        )
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
-    
-    return root_logger
-
-
-def log_with_tool(logger, level, tool_id, message, *args, **kwargs):
-    """
-    Log a message with tool ID included.
-    
-    Args:
-        logger: The logger to use
-        level: The log level (e.g., logging.INFO)
-        tool_id: The ID of the tool
-        message: The message to log
-        *args, **kwargs: Additional arguments for the logger
-    """
-    record = logging.LogRecord(
-        name=logger.name,
-        level=level,
-        pathname='',
-        lineno=0,
-        msg=message,
-        args=args,
-        exc_info=kwargs.get('exc_info'),
-    )
-    record.toolId = tool_id
-    logger.handle(record)
 
 class ABCToolDriver:
     """
