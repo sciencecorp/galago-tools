@@ -286,7 +286,7 @@ class Pf400Driver(ABCToolDriver):
         self.state = RobotState()
         self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port, joints=joints, gpl_version=gpl_version)
         self.tcp_ip: Optional[Pf400TcpIp] = None
-        self.communicator: RobotCommunicator 
+        self.communicator: RobotCommunicator = None 
         self.gripper: Optional[GripperController] = None
         self.initializer: Optional[RobotInitializer] = None
         self.movement: Optional[MovementController] = None
@@ -296,7 +296,7 @@ class Pf400Driver(ABCToolDriver):
         try:
             # Establish new connection
             self.tcp_ip = Pf400TcpIp(self.config.tcp_host, self.config.tcp_port)
-            self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip, )
+            self.communicator = RobotCommunicator(tcp_ip=self.tcp_ip)
             self.gripper = GripperController(
                 communicator=self.communicator,
                 state=self.state,

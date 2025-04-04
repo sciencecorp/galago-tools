@@ -26,6 +26,86 @@ logging.basicConfig(
 )
 
 
+# Custom formatter to make logs more readable and detailed
+class DetailedFormatter(logging.Formatter):
+    """Formatter that includes tool ID and more detailed error information."""
+    
+    def format(self, record):
+        # Add tool ID to the log if available
+        if hasattr(record, 'toolId'):
+            record.toolIdStr = f"Tool[{record.toolId}] "
+        else:
+            record.toolIdStr = ""
+            
+        # Format the record
+        result = super().format(record)
+        
+        # Add traceback for errors
+        if record.levelno >= logging.ERROR and hasattr(record, 'exc_info') and record.exc_info:
+            result += "\n" + self.formatException(record.exc_info)
+            
+        return result
+    
+def setup_logging(log_level=logging.DEBUG, log_file=None):
+    """
+    Set up logging with more detailed formatting.
+    
+    Args:
+        log_level: The logging level to use
+        log_file: Optional file path to write logs to
+    """
+    # Create formatter
+    formatter = DetailedFormatter(
+        '%(asctime)s | %(levelname)-8s | %(toolIdStr)s%(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Set up root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    
+    # Clear existing handlers
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    
+    # Add console handler
+    console = logging.StreamHandler(sys.stdout)
+    console.setFormatter(formatter)
+    root_logger.addHandler(console)
+    
+    # Add file handler if specified
+    if log_file:
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=10*1024*1024, backupCount=5
+        )
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+    
+    return root_logger
+
+
+def log_with_tool(logger, level, tool_id, message, *args, **kwargs):
+    """
+    Log a message with tool ID included.
+    
+    Args:
+        logger: The logger to use
+        level: The log level (e.g., logging.INFO)
+        tool_id: The ID of the tool
+        message: The message to log
+        *args, **kwargs: Additional arguments for the logger
+    """
+    record = logging.LogRecord(
+        name=logger.name,
+        level=level,
+        pathname='',
+        lineno=0,
+        msg=message,
+        args=args,
+        exc_info=kwargs.get('exc_info'),
+    )
+    record.toolId = tool_id
+    logger.handle(record)
 
 class ABCToolDriver:
     """
@@ -91,11 +171,11 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
     def Configure(
         self, request: tool_base_pb2.Config, context: grpc.ServicerContext
     ) -> tool_base_pb2.ConfigureReply:
-        # logging.info(f"Received configuration: {request}")
+        logging.info(f"Received configuration: {request}")
         self.config = getattr(request, request.WhichOneof("config"))
-        config_dict = MessageToDict(self.config)
-        if "toolId" in config_dict:
-            self.toolId = config_dict["toolId"]
+        
+        if request.toolId:
+            self.toolId = request.toolId
         
         if not request.simulated and self.simulated:
             self.setSimulated(request.simulated)
@@ -113,10 +193,9 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 self.is_connected = True
                 return tool_base_pb2.ConfigureReply(response=tool_base_pb2.SUCCESS)
             except Exception as e:
-                logging.error(str(e))
                 self.setStatus(tool_base_pb2.FAILED)
                 self.last_error = str(e)
-                logging.error(f"Tool={self.toolId}-{str(e)}")
+                logging.error(f"Failed to configure Tool={self.toolId}-{str(e)}")
                 self.is_connected = False 
                 return tool_base_pb2.ConfigureReply(
                     response=tool_base_pb2.NOT_READY, error_message=str(e)
@@ -139,7 +218,6 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 response=tool_base_pb2.UNRECOGNIZED_COMMAND
             )
         if self.simulated:
-            # logging.info(f"Running simulated command {method_name}")
             duration, error = self._estimateDuration(command)
             if error is not None:
                 return tool_base_pb2.ExecuteCommandReply(response=error, return_reply=True)
@@ -162,11 +240,9 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                             error_message=response_tmp.error_message,
                             return_reply=response_tmp.return_reply,
                         )
-                    #logging.debug(f"Simulated response for return: {response}")
                     return response
                 except KeyError as e:
                     logging.debug(f"Simulated error: {str(e)}")
-                    logging.error(str(e))
                     return tool_base_pb2.ExecuteCommandReply(
                         response=tool_base_pb2.INVALID_ARGUMENTS, error_message=str(e), return_reply=True
                     )
@@ -213,7 +289,6 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
         try:
             tool_name = request.WhichOneof("tool_command")
             if tool_name != self.toolType:
-                #logging.error("Expected tool %s, got %s", self.toolType, tool_name)
                 return None, tool_base_pb2.WRONG_TOOL, None
             tool_command = getattr(request, tool_name)
 
@@ -235,7 +310,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
         command, error, error_msg = self.parseCommand(request)
 
         if error is not None:
-            logging.error(f"Tool{self.toolId}, Command:{command.__class__.__name__}, Error={error_msg}")
+            logging.error(f"Failed o execute commad for Tool {self.toolId}, Error={error_msg}")
             self.last_error = error_msg
             return tool_base_pb2.ExecuteCommandReply(
                 response=error, error_message=error_msg
@@ -252,7 +327,7 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
                 logging.debug(f"ExecuteCommand Response: {str(logged_response)}")
                 return response
             except Exception as e:
-                logging.error(f"Tool{self.toolId}, Command:{command}, Error={error_msg}")
+                logging.error(f"Error on Tool ={self.toolId}")
                 self.last_error = str(e)
                 return tool_base_pb2.ExecuteCommandReply(
                     response=tool_base_pb2.DRIVER_ERROR, error_message=str(e)

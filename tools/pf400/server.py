@@ -75,7 +75,7 @@ class Pf400Server(ToolServer):
             tcp_host=request.host,
             tcp_port=request.port
         )
-        self.driver.initialize()
+        #self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
     def _getLocation(self, location_name: str) -> Location:
@@ -120,11 +120,20 @@ class Pf400Server(ToolServer):
         motion_profiles_list = waypoints_dictionary.get("motion_profiles")
         motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
         logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
+        
+        
         for motion_profile in motion_profiles.profiles:
-            self.driver.register_motion_profile(str(motion_profile))
-        #Register default motion profiles
-        for motion_profile in DEFAULT_MOTION_PROFILES:
-            self.driver.register_motion_profile(str(motion_profile))
+            logging.info(f"Registering motion profile {motion_profile.name}")
+            try:
+                self.driver.register_motion_profile(str(motion_profile))
+            except Exception as e:
+                logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+            #self.driver.register_motion_profile(str(motion_profile))
+        # #Register default motion profiles
+        # for motion_profile in DEFAULT_MOTION_PROFILES:
+        #     logging.info(f"Registering motion profile 2 {motion_profile.name}")
+        #     #self.driver.register_motion_profile(str(motion_profile))
 
         # #Load Sequences 
         sequences_list = waypoints_dictionary.get("sequences")
