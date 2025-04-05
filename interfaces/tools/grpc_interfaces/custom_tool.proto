@@ -6,7 +6,7 @@ import "google/protobuf/struct.proto";
 
 message Command {
   oneof command {
-    Execute execute = 1;
+    ExecuteCommand execute = 1;
   }
 
 message ExecuteCommand {
