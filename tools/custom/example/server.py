@@ -1,12 +1,13 @@
 from tools.base_server import ABCToolDriver
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.custom_tool_pb2 import Command, Config
-from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
 import argparse 
 from tools.utils import struct_to_dict
+import logging 
+import os 
+
 class ExampleDriver(ABCToolDriver):
     def __init__(self, robot_ip: str, robot_port: int) -> None:
-        super().__init__(robot_ip, robot_port)
         self.robot_ip = robot_ip
         self.robot_port = robot_port
 
@@ -30,44 +31,41 @@ class ExampleDriver(ABCToolDriver):
 
 
 class ExampleServer(ToolServer):
-    toolType = "example"
+    toolType = "custom_tool"
     driver: ExampleDriver
+    config: Config
 
     def __init__(self) -> None:
         super().__init__()
         self.driver: ExampleDriver
-        self.process_images: bool = True 
 
     #Abstract class where initialize/connect logic should be implemented
     def _configure(self, request: Config) -> None:
-        self.config = struct_to_dict(request)
-        
-        self.driver = ExampleDriver(self.config.get("ip"), self.config.get("port"))
+        self.config = request
+        self.config_dict = struct_to_dict(request.config)
+        self.driver = ExampleDriver(str(self.config_dict.get("ip")), int(self.config_dict.get("port")))
         self.driver.ping()
         self.driver.connect()
-
     
     #Abstract class to implement the logic for the command
-    def ExecuteCommand(self, params:Command.ExecuteCommand) -> None:
+    def RunCommand(self, params:Command.RunCommand) -> None:
         command = params.command
         params = struct_to_dict(params.params)
-        args = struct_to_dict(params.args)
 
-        print(f"Executing command: {command} with args: {args}")
+        print(f"Executing command: {command} with params: {params}")
         
         if command == "set_temperature":
-            self.driver.set_temperature(args.get("temperature"), args.get("time"))
+            self.driver.set_temperature(params.get("temperature"), params.get("time"))
         elif command == "move_to_location":
-            self.driver.move_to_location(args.get("location"))
+            self.driver.move_to_location(params.get("location"))
         else:
             print(f"Unknown command: {command}")
 
-    def EstimateExecuteCommand(self, params:Command.ExecuteCommand) -> int:
+    def EstimateRunCommand(self, params:Command.RunCommand) -> int:
         command = params.command
         params = struct_to_dict(params.params)
-        args = struct_to_dict(params.args)
 
-        print(f"Estimating command: {command} with args: {args}")
+        print(f"Estimating command: {command} with params: {params}")
         
         if command == "set_temperature":
             return 1
@@ -76,3 +74,13 @@ class ExampleServer(ToolServer):
         else:
             print(f"Unknown command: {command}")
             return 0
+        
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port')
+    args = parser.parse_args()
+    if not args.port:
+         raise RuntimeWarning("Port must be provided...")
+    serve(ExampleDriver(),os.environ.get("PORT",str(args.port)))

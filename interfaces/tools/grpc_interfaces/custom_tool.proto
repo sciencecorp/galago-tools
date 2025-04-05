@@ -6,10 +6,10 @@ import "google/protobuf/struct.proto";
 
 message Command {
   oneof command {
-    ExecuteCommand execute = 1;
+    RunCommand run_command = 1;
   }
 
-message ExecuteCommand {
+message RunCommand {
     string command  = 1;
     google.protobuf.Struct params = 2;
 }

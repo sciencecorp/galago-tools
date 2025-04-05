@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Optional
 import sys 
 from google.protobuf.struct_pb2 import Struct
-import typing as t
 
 class LogType(Enum):
     ERROR = "ERROR",
