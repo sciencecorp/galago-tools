@@ -23,6 +23,7 @@ enum ToolType {
   hamilton = 16;
   microserve = 17;
   vprep = 18;
+  custom_tool = 19;
 }
 
 message ToolConfig {

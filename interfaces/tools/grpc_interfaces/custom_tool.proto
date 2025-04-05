@@ -1,0 +1,20 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.custom_tool;
+import "google/protobuf/struct.proto";
+
+
+message Command {
+  oneof command {
+    Execute execute = 1;
+  }
+
+message Execute {
+    string name  = 1;
+      google.protobuf.Struct params = 2;
+}
+
+}
+message Config {
+    optional google.protobuf.Struct config = 1;
+}
