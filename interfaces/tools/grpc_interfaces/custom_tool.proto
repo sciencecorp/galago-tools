@@ -9,9 +9,9 @@ message Command {
     Execute execute = 1;
   }
 
-message Execute {
-    string name  = 1;
-      google.protobuf.Struct params = 2;
+message ExecuteCommand {
+    string command  = 1;
+    google.protobuf.Struct params = 2;
 }
 
 }
