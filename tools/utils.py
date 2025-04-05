@@ -4,6 +4,8 @@ import logging
 from enum import Enum 
 from typing import Optional
 import sys 
+from google.protobuf.struct_pb2 import Struct
+import typing as t
 
 class LogType(Enum):
     ERROR = "ERROR",
@@ -59,3 +61,12 @@ def write_trace_log(log_path:Optional[str], log_type:LogType, tool:str,value:str
     except Exception as e:
         logging.debug(e)
         return
+
+def struct_to_dict(struct: Struct) -> dict:
+    out = {}
+    for key, value in struct.items():
+        if isinstance(value, Struct):
+            out[key] = struct_to_dict(value)
+        else:
+            out[key] = value
+    return out
