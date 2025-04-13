@@ -9,7 +9,6 @@ from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.opentrons2_pb2 import Command, Config
 from google.protobuf import json_format
 from tools.app_config import Config as AppConfig 
-from datetime import datetime
 from .driver import Ot2Driver
 import argparse
 
@@ -21,7 +20,6 @@ class Opentrons2Server(ToolServer):
     def __init__(self) -> None:
           super().__init__()
           self.app_config = AppConfig()
-          self.app_config.load_app_config()
           self.driver_config : Config 
           self.process_images : bool = True 
           
@@ -50,9 +48,9 @@ class Opentrons2Server(ToolServer):
             return f.name
 
     def RunProgram(self, params: Command.RunProgram) -> None:
-        today : str = datetime.today().strftime('%Y-%m-%d')
-        pre_run_name = f"ot2_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_pre_run.jpg"
-        self.driver.take_picture(pre_run_name, os.path.join(self.app_config.app_config.data_folder,"images","ot2",today))
+        #today : str = datetime.today().strftime('%Y-%m-%d')
+        #pre_run_name = f"ot2_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_pre_run.jpg"
+        #self.driver.take_picture(pre_run_name, os.path.join(self.app_config.app_config.data_folder,"images","ot2",today))
         if params.program_name == "universal_opentrons_json_executor":
             program_dir = os.path.dirname(os.path.abspath(__file__))
         else:
@@ -63,8 +61,8 @@ class Opentrons2Server(ToolServer):
         params_dict = json_format.MessageToDict(program_params)
         program = self._createProgramFromTemplate(templatePath=program_path, params=params_dict)
         self.driver.start_protocol(protocol_file=program)
-        post_run_name = f"ot2_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_pre_run.jpg"
-        self.driver.take_picture(post_run_name, os.path.join(self.app_config.app_config.data_folder,"images","ot2",today))
+       # post_run_name = f"ot2_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_pre_run.jpg"
+        #self.driver.take_picture(post_run_name, os.path.join(self.app_config.app_config.data_folder,"images","ot2",today))
     
     def Sleep(self, params: Command.Sleep) -> None:
         logging.info(f"Sleeping for {params.seconds} seconds")
