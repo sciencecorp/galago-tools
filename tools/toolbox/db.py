@@ -23,6 +23,9 @@ class Db:
     @staticmethod
     def get_by_id_or_name(id:Union[int,str], model:str) -> Any:
         response = requests.get(f"{API_URL}/{model}/{id}")
+        if response.status_code == 404:
+            logging.warning(f"Resource with id/name {id} not found in {model}.")
+            return None
         return response.json()
     
     @staticmethod
