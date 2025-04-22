@@ -86,6 +86,11 @@ class Pf400Server(ToolServer):
         logging.info("Successfully connected to PF400")
 
     def _getGrip(self, grip_name:str) -> Grip:
+        logging.info(f"Getting grip {grip_name}") 
+        try:
+            logging.info(f"Grips: {self.grips.grip_params}")
+        except Exception as e:
+            logging.info(f"Error getting grips: {e}")
         grip = next((x for x in self.grips.grip_params if x.name.lower() == grip_name.lower()), None)
         if not grip:
             raise RuntimeError(f"Grip {grip_name} not defined.")
@@ -127,7 +132,7 @@ class Pf400Server(ToolServer):
                     "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
                     "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
                 }
-
+            self.grips = grip_params
             logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
             logging.info(self.plate_handling_params)
             #Load and register profiles 
@@ -288,8 +293,8 @@ class Pf400Server(ToolServer):
         if safe_location:
             pre_grip_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
         pre_grip_sequence.append(adjust_gripper)
-        # pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height))
-        # pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=labware_offset))
+        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height))
+        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=labware_offset))
         logging.info(f"mADE IT HERE 2")
         retrieve_sequence.extend([
             grasp,  # Grasp the plate
@@ -302,8 +307,13 @@ class Pf400Server(ToolServer):
         logging.info(f"{pre_grip_sequence}")
         self.runSequence(pre_grip_sequence)
         logging.info(f"mADE IT HERE 4")
-        # self.driver.state.gripper_axis_override_value = None
-        # self.runSequence(retrieve_sequence)
+        self.driver.state.gripper_axis_override_value = None
+        logging.info(f"made it here 5")
+        try:
+            self.runSequence(retrieve_sequence)
+        except Exception as e:
+            logging.info(f"Error running sequence: {e}")
+        logging.info(f"made it here 6")
 
     def dropoff_plate(
         self,
