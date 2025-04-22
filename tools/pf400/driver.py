@@ -189,7 +189,10 @@ class RobotInitializer:
         """Initialize robot with optimized timeouts"""
         try:
             self._ensure_pc_mode()
-            self._ensure_power_on()
+            if self.config.gpl_version == "v1":
+                self._ensure_power_on()
+            else:
+                self._ensure_power_on_v2()
             self._ensure_robot_attached()
             self._ensure_robot_homed()
         except Exception as e:
@@ -229,20 +232,20 @@ class RobotInitializer:
             time.sleep(1)
 
         
-    # def _ensure_power_on_v2(self) -> None:
-    #     """Ensure robot power is on with shorter timeout"""
-    #     response = self.communicator.send_command("hp")
-    #     if response != "0 1":
-    #         logging.info("Turning on power...")
-    #         response = self.communicator.send_command("hp 1 30")
-    #         if response != "0":
-    #             raise Exception(f"Could not turn power on: {response}")
+    def _ensure_power_on_v2(self) -> None:
+        """Ensure robot power is on with shorter timeout"""
+        response = self.communicator.send_command("hp")
+        if response != "0 1":
+            logging.info("Turning on power...")
+            response = self.communicator.send_command("hp 1 30")
+            if response != "0":
+                raise Exception(f"Could not turn power on: {response}")
             
-    #         response = self.communicator.send_command("hp")
-    #         if response != "0 1":
-    #             raise Exception(f"Could not verify power state: {response}")
+            response = self.communicator.send_command("hp")
+            if response != "0 1":
+                raise Exception(f"Could not verify power state: {response}")
             
-    #         logging.info("Turned power on")
+            logging.info("Turned power on")
         
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""
