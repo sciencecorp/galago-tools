@@ -16,6 +16,7 @@ from os.path import join, dirname
 from typing import Optional, Any, Callable
 from tkinter.scrolledtext import ScrolledText
 from tools.utils import get_shell_command 
+from pyfiglet import Figlet # type: ignore
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
 LOG_TIME = int(time.time())
@@ -35,22 +36,22 @@ sys.path = [
 class ToolsManager():
 
     def __init__(self, app_root:tk.Tk, config:Config) -> None:
+        logging.info("Starting Galago Manager")
         self.root = app_root
         self.root.title("Tools Server Manager")
         self.set_icon()
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.geometry('1000x700')  
         
+
+
         self.running_tools = 0
         self.config_file = ""
-        logging.info("Starting Galago Manager")
         self.config :Config = config
-        working_dir = "" if not config.app_config.data_folder else config.app_config.data_folder
+        working_dir = ""
         self.log_folder = os.path.join(working_dir,"data","trace_logs", str(LOG_TIME))
-        self.workcell = config.app_config.workcell
 
         if not os.path.exists(self.log_folder):
-            logging.debug("folder does not exist. creating folder")
             os.makedirs(self.log_folder)
 
         #Build databases if they do not exist
@@ -96,6 +97,10 @@ class ToolsManager():
         self.right_frame = tk.Frame(self.paned_window, width=(self.root.winfo_width()/5)*4)
         self.right_frame.pack(fill=tk.BOTH, expand=True)
         
+        f = Figlet(font='small')
+        ascii_art = f.renderText('Galago Tools Manager')
+
+
         # Add the right frame to the paned window
         self.paned_window.add(self.left_frame, weight=1)
         self.paned_window.add(self.right_frame, weight=10)
@@ -110,6 +115,10 @@ class ToolsManager():
 
         self.update_interval = 100
         self.update_log_text()
+        self.log_text("------------------------------------------------------------------------------")
+        self.log_text(ascii_art)
+        self.log_text("------------------------------------------------------------------------------")
+        self.log_text("\n")
 
         # Add search and filter features
         self.search_frame = ttk.Frame(self.right_frame)
@@ -128,11 +137,10 @@ class ToolsManager():
         self.clear_button.pack(side=tk.LEFT, padx=(5, 0))
 
     def kill_all_processes(self) ->None:
-        logging.info("Killing all processes")
         for proc_key, process in self.server_processes.items():
             try:
                 self.kill_by_process_id(process.pid)
-                time.sleep(0.5)
+                time.sleep(0.28)
                 logging.info(f"Killed process {process.pid}")
                 self.log_text(f"Killed process {process.pid}")
                 del process
@@ -283,7 +291,6 @@ class ToolsManager():
                 use_shell = False
                 if os.name == 'nt':
                     use_shell = True
-                logging.info(f"log folder is {self.log_folder}")
                 if self.log_folder:
                     output_file = join(self.log_folder, str(tool_name)) + ".log"
                     process = subprocess.Popen(cmd, stdout=open(output_file,'w'), stderr=subprocess.STDOUT,  universal_newlines=True)
@@ -386,7 +393,6 @@ class ToolsManager():
     
 
     def start_toolbox(self) -> None:
-        logging.info("Launching Toolbox")
         try:
             self.run_subprocess("toolbox", "Tool Box",1010,False)
         except subprocess.CalledProcessError:
@@ -395,8 +401,6 @@ class ToolsManager():
     def run_all_tools(self) -> None:
         self.kill_all_processes()
         time.sleep(0.5)
-        self.config.load_app_config()
-        
         self.load_tools()
         self.start_toolbox()
 
@@ -445,6 +449,8 @@ class ToolsManager():
         self.output_text.config(state='normal')
         self.output_text.delete("1.0", tk.END)
         self.output_text.config(state='disabled')
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description='Launch Galago Tools Manager')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode with detailed logging')
@@ -466,14 +472,10 @@ def main() -> int:
         )
 
     try:
-        logging.info("Starting Galago Tools Manager")
         root = tk.Tk()
-        logging.info(f"Is root None? {root is None}")
         config = Config()
-        logging.info("Loading app config")
-        config.load_app_config()
-        logging.info("Loading workcell config")
-        config.load_workcell_config()
+        f = Figlet(font='slant')
+        print(f.renderText('Galago Tools Manager'))
         manager = ToolsManager(root, config)
         manager.show_gui()
         return 0

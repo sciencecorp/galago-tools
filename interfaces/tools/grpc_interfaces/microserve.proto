@@ -1,0 +1,44 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.microserve;
+
+message Command {
+  oneof command {
+    Load load = 1;
+    Unload unload = 2;
+    Home home = 3;
+    Abort abort = 4;
+    Retract retract = 5;
+    GoTo go_to =6;
+    SendRawCommand raw_command =8;
+  }
+
+    message Load {
+        int32 stack_id = 1;
+        float plate_height = 2;
+        float stack_height = 3;
+        float plate_thickness = 4;
+    }
+
+    message Unload {
+        int32 stack_id = 1;
+        float plate_height = 2;
+        float stack_height = 3;
+        float plate_thickness = 4;
+    }
+
+    message Home {}
+    message Abort {}
+    message Retract {}
+    message GoTo {
+        int32 stack_id =1;
+    }
+    message SendRawCommand {
+        string command = 1;
+    }
+}
+
+message Config {
+  string ip = 1;
+  int32 port = 2;
+}
