@@ -219,7 +219,7 @@ class RobotInitializer:
     def _ensure_power_on(self, target_states:List[str] =["20", "21"], timeout_seconds:int=40) -> None:
         start_time = time.time()
         state = self.communicator.get_state()
-        self.communicator.send_command("hp")
+        self.communicator.send_command("hp 1")
         while True:
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout_seconds:
@@ -232,7 +232,6 @@ class RobotInitializer:
             time.sleep(1)
 
         
-<<<<<<< HEAD
     def _ensure_power_on_v2(self) -> None:
         """Ensure robot power is on with shorter timeout"""
         response = self.communicator.send_command("hp")
@@ -247,22 +246,6 @@ class RobotInitializer:
                 raise Exception(f"Could not verify power state: {response}")
             
             logging.info("Turned power on")
-=======
-    # def _ensure_power_on_v2(self) -> None:
-    #     """Ensure robot power is on with shorter timeout"""
-    #     response = self.communicator.send_command("hp")
-    #     if response != "0 1":
-    #         logging.info("Turning on power...")
-    #         response = self.communicator.send_command("hp 1 30")
-    #         if response != "0":
-    #             raise Exception(f"Could not turn power on: {response}")
-            
-    #         response = self.communicator.send_command("hp")
-    #         if response != "0 1":
-    #             raise Exception(f"Could not verify power state: {response}")
-            
-    #         logging.info("Turned power on")
->>>>>>> main
         
     def _ensure_robot_attached(self) -> None:
         """Ensure robot is attached"""

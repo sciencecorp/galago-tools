@@ -86,14 +86,11 @@ class Pf400Server(ToolServer):
         logging.info("Successfully connected to PF400")
 
     def _getGrip(self, grip_name:str) -> Grip:
-<<<<<<< HEAD
         logging.info(f"Getting grip {grip_name}") 
         try:
             logging.info(f"Grips: {self.grips.grip_params}")
         except Exception as e:
             logging.info(f"Error getting grips: {e}")
-=======
->>>>>>> main
         grip = next((x for x in self.grips.grip_params if x.name.lower() == grip_name.lower()), None)
         if not grip:
             raise RuntimeError(f"Grip {grip_name} not defined.")
@@ -135,7 +132,6 @@ class Pf400Server(ToolServer):
                     "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
                     "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
                 }
-<<<<<<< HEAD
             self.grips = grip_params
             logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
             logging.info(self.plate_handling_params)
@@ -170,42 +166,6 @@ class Pf400Server(ToolServer):
             logging.info(f"Loaded {len(sequences.sequences)} sequences")
             self.sequences = sequences
 
-=======
-
-            logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
-            logging.info(self.plate_handling_params)
-            #Load and register profiles 
-            motion_profiles_list = waypoints_dictionary.get("motion_profiles")
-            motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
-            logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
-            
-            if motion_profiles_list and len(motion_profiles_list) > 0:
-                logging.info("Registering profiles")
-                for motion_profile in motion_profiles.profiles:
-                    logging.info(f"Registering motion profile {motion_profile.name}")
-                    try:
-                        self.driver.register_motion_profile(str(motion_profile))
-                    except Exception as e:
-                        logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
-                        raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
-            else:
-                #Register default motion profiles
-                logging.info("No motion profiles loaded. Using default profiles.")
-                for motion_profile in DEFAULT_MOTION_PROFILES:
-                    logging.info(f"Registering default motion profiles {motion_profile.name}")
-                    try:
-                        self.driver.register_motion_profile(str(motion_profile))
-                    except Exception as e:
-                        logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
-                        raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
-                
-            # #Load Sequences 
-            sequences_list = waypoints_dictionary.get("sequences")
-            sequences = ArmSequences.parse_obj({"sequences":sequences_list})
-            logging.info(f"Loaded {len(sequences.sequences)} sequences")
-            self.sequences = sequences
-
->>>>>>> main
     
     def LoadLabware(self, params: Command.LoadLabware) -> None:
         logging.info("Loading labware")
@@ -321,7 +281,6 @@ class Pf400Server(ToolServer):
                 adjust_gripper = tmp_adjust_gripper
             else:
                 raise Exception("Invalid release params")
-<<<<<<< HEAD
         logging.info(f"Retrieving plate from {source_nest} with approach height {approach_height}")
         logging.info(f"Motion profile id: {motion_profile_id}")
         logging.info(f"Grip width: {grip_width}")
@@ -331,31 +290,18 @@ class Pf400Server(ToolServer):
         logging.info(f"Source location: {source_location}")
         open_grip_width= self._getGrip(source_location.orientation).width + 10
         logging.info(f"mADE IT HERE")
-=======
-            
-        pre_grip_sequence : t.List[message.Message] = []
-        retrieve_sequence : t.List[message.Message] = []
-
-        open_grip_width= self._getGrip(source_location.orientation).width + 10
-
->>>>>>> main
         if safe_location:
             pre_grip_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
         pre_grip_sequence.append(adjust_gripper)
         pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height))
         pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=labware_offset))
-<<<<<<< HEAD
         logging.info(f"mADE IT HERE 2")
-=======
-            
->>>>>>> main
         retrieve_sequence.extend([
             grasp,  # Grasp the plate
             Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height),  # Move up in straight pattern
         ])
         if safe_location:
             retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
-<<<<<<< HEAD
         logging.info(f"mADE IT HERE 3")
         self.driver.state.gripper_axis_override_value = open_grip_width
         logging.info(f"{pre_grip_sequence}")
@@ -368,13 +314,6 @@ class Pf400Server(ToolServer):
         except Exception as e:
             logging.info(f"Error running sequence: {e}")
         logging.info(f"made it here 6")
-=======
-
-        self.driver.state.gripper_axis_override_value = open_grip_width
-        self.runSequence(pre_grip_sequence)
-        self.driver.state.gripper_axis_override_value = None
-        self.runSequence(retrieve_sequence)
->>>>>>> main
 
     def dropoff_plate(
         self,
