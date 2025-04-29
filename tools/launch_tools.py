@@ -17,6 +17,15 @@ from typing import Optional, Any, Callable
 from tkinter.scrolledtext import ScrolledText
 from tools.utils import get_shell_command 
 from pyfiglet import Figlet # type: ignore
+import appdirs  # type: ignore
+
+# Configuration flags
+USE_APP_DATA_DIR = True  # Set to False for local development/testing
+
+# Use appdirs to get platform-specific data directory
+APP_NAME = "galago"
+APP_AUTHOR = "galago"
+DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
 LOG_TIME = int(time.time())
@@ -42,17 +51,32 @@ class ToolsManager():
         self.set_icon()
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.geometry('1000x700')  
-        
-
 
         self.running_tools = 0
         self.config_file = ""
         self.config :Config = config
-        working_dir = ""
-        self.log_folder = os.path.join(working_dir,"data","trace_logs", str(LOG_TIME))
+        
+        # Set appropriate log directory based on configuration
+        if USE_APP_DATA_DIR:
+            # Use platform-specific app data directory (for production)
+            self.log_folder = os.path.join(DATA_DIR, "trace_logs", str(LOG_TIME))
+            logging.info(f"Using app data directory for logs: {self.log_folder}")
+        else:
+            # Use directory relative to ROOT_DIR (for local development/testing)
+            self.log_folder = os.path.join(ROOT_DIR, "data", "trace_logs", str(LOG_TIME))
+            logging.info(f"Using local directory for logs: {self.log_folder}")
 
-        if not os.path.exists(self.log_folder):
-            os.makedirs(self.log_folder)
+        # Ensure the log directory exists
+        try:
+            if not os.path.exists(self.log_folder):
+                os.makedirs(self.log_folder, exist_ok=True)
+            logging.info(f"Created log directory: {self.log_folder}")
+        except Exception as e:
+            logging.error(f"Failed to create log directory: {self.log_folder}. Error: {str(e)}")
+            # Fallback to a directory we know should work
+            self.log_folder = os.path.join(os.path.expanduser("~"), "galago_logs", str(LOG_TIME))
+            logging.warning(f"Using fallback log directory: {self.log_folder}")
+            os.makedirs(self.log_folder, exist_ok=True)
 
         #Build databases if they do not exist
         self.server_processes : dict[str,subprocess.Popen] = {}
@@ -107,7 +131,6 @@ class ToolsManager():
         self.log_files_modified_times = {}
         self.log_files_last_read_positions = {}
 
-        # Replace the Treeview with ScrolledText
         self.output_text = ScrolledText(self.right_frame, state='disabled', wrap='word')
         self.output_text.pack(fill=tk.BOTH, expand=True)
         self.output_text.tag_config('error', foreground='red') 
@@ -119,6 +142,7 @@ class ToolsManager():
         self.log_text(ascii_art)
         self.log_text("------------------------------------------------------------------------------")
         self.log_text("\n")
+        self.log_text(f"Log directory: {self.log_folder}")
 
         # Add search and filter features
         self.search_frame = ttk.Frame(self.right_frame)
@@ -299,6 +323,7 @@ class ToolsManager():
                 self.server_processes[tool_name] = process
                 self.log_files_modified_times[output_file] = os.path.getmtime(output_file)
             else:
+                self.log_text(f"Port {port} for {tool_name} is already occupied. kill process if you want to use this tool", "warning")
                 logging.warning(f"Port {port} for {tool_name} is already occupied")
         except subprocess.CalledProcessError:
             logging.info("There was an error launching tool server.")
