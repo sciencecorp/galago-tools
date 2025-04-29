@@ -107,7 +107,7 @@ class ToolBoxServer(ToolServer):
           #      response.response = ERROR_FROM_TOOL
           # return response
      
-     def RunPythonScript(self, params:Command.RunPythonScript) -> ExecuteCommandReply:
+     def RunScript(self, params:Command.RunScript) -> ExecuteCommandReply:
           s  = Struct()
           response = ExecuteCommandReply()
           response.return_reply = True
