@@ -281,34 +281,24 @@ class Pf400Server(ToolServer):
                 adjust_gripper = tmp_adjust_gripper
             else:
                 raise Exception("Invalid release params")
-        logging.info(f"Retrieving plate from {source_nest} with approach height {approach_height}")
-        logging.info(f"Motion profile id: {motion_profile_id}")
-        logging.info(f"Grip width: {grip_width}")
-        logging.info(f"Labware offset: {labware_offset}")
         pre_grip_sequence : t.List[message.Message] = []
         retrieve_sequence : t.List[message.Message] = []
-        logging.info(f"Source location: {source_location}")
         open_grip_width= self._getGrip(source_location.orientation).width + 10
-        logging.info(f"mADE IT HERE")
         if safe_location:
             pre_grip_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
         pre_grip_sequence.append(adjust_gripper)
         pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height))
         pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=labware_offset))
-        logging.info(f"mADE IT HERE 2")
         retrieve_sequence.extend([
             grasp,  # Grasp the plate
             Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height),  # Move up in straight pattern
         ])
         if safe_location:
             retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
-        logging.info(f"mADE IT HERE 3")
         self.driver.state.gripper_axis_override_value = open_grip_width
         logging.info(f"{pre_grip_sequence}")
         self.runSequence(pre_grip_sequence)
-        logging.info(f"mADE IT HERE 4")
         self.driver.state.gripper_axis_override_value = None
-        logging.info(f"made it here 5")
         try:
             self.runSequence(retrieve_sequence)
         except Exception as e:
