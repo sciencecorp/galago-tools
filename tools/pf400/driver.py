@@ -217,6 +217,7 @@ class RobotInitializer:
             logging.info("Switched to PC mode")
 
     def _ensure_power_on(self, target_states:List[str] =["20", "21"], timeout_seconds:int=40) -> None:
+        
         start_time = time.time()
         state = self.communicator.get_state()
         self.communicator.send_command("hp 1")
