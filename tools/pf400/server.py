@@ -149,6 +149,7 @@ class Pf400Server(ToolServer):
                         "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
                     }
 
+            self.grips = grip_params
             logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
             logging.info(self.plate_handling_params)
             
