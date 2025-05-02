@@ -14,13 +14,14 @@ def bump_version(version_type):
     with open(setup_path, 'r') as f:
         content = f.read()
     
-    # Find current version
-    version_match = re.search(r"version='(\d+)\.(\d+)\.(\d+)'", content)
+    # Find current version - handle both two-part and three-part versions
+    version_match = re.search(r"version='(\d+)\.(\d+)(?:\.(\d+))?'", content)
     if not version_match:
         print("Could not find version in setup.py")
         sys.exit(1)
     
-    major, minor, patch = map(int, version_match.groups())
+    major, minor = map(int, version_match.groups()[:2])
+    patch = int(version_match.group(3)) if version_match.group(3) else 0
     
     # Bump version according to input
     if version_type == 'major':
@@ -37,11 +38,12 @@ def bump_version(version_type):
         sys.exit(1)
     
     new_version = f"{major}.{minor}.{patch}"
-    print(f"Bumping version from {version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)} to {new_version}")
+    current_version = f"{major}.{minor}" if not version_match.group(3) else f"{major}.{minor}.{patch - 1}"
+    print(f"Bumping version from {current_version} to {new_version}")
     
-    # Replace version in setup.py
+    # Replace version in setup.py - always use three-part version going forward
     new_content = re.sub(
-        r"version='(\d+)\.(\d+)\.(\d+)'", 
+        r"version='(\d+)\.(\d+)(?:\.(\d+))?'", 
         f"version='{new_version}'", 
         content
     )
