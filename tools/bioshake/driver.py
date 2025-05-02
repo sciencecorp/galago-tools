@@ -139,10 +139,10 @@ class BioshakeDriver(ABCToolDriver):
         self.ungrip()
 
     def _set_shake_speed(self, speed: int) -> None:
-        if 0 < speed < 999999:
+        if 0 < speed < 9999:
             self._send_command("ssts" + str(speed))
         else:
-            logging.error("Please enter a valid target speed. (Non-negative and no larger than 6 digits.)")
+            raise ValueError("Please enter a valid target speed. (Non-negative and no larger than 4 digits.)")
 
     def _set_acceleration(self, acceleration: int) -> None:
         if 0 < acceleration <= 99:
@@ -211,10 +211,7 @@ class BioshakeDriver(ABCToolDriver):
         if not self.is_gripper_closed():
             self.grip()
 
-        current_speed_str = self._send_command("gsts")
-        current_speed = float(current_speed_str)
-        if int(current_speed) == 0:
-            logging.error(f"Shake speed is: {current_speed}. Please set to a positive nonzero value!")
+      
         else:
             self._send_command("son")
 
@@ -232,21 +229,6 @@ class BioshakeDriver(ABCToolDriver):
             time.sleep(0.5)
 
 
-
-    """Temperature Commmands"""
-    def temp_on(self) -> None:
-        self._send_command("ton")
-
-    def temp_off(self) -> None:
-        self._send_command("toff")
-
-    def set_tmp(self, temp: int) -> None:
-        if 0 < temp < 990:
-            self._send_command("stt" + str(temp))
-        else:
-            logging.error(f"Enter a valid temperature target {temp/10}. Must be a three digit number in the range 0-99.")
-
-
     def set_shake_target_speed(self, rpm: int) -> None:
         self._set_shake_speed(rpm)
 
@@ -256,6 +238,10 @@ class BioshakeDriver(ABCToolDriver):
         if not self.is_gripper_closed():
             self.grip()
         if speed is not None:
+            current_speed_str = self._send_command("gsts")
+            current_speed = float(current_speed_str)
+            if int(current_speed) == 0:
+                raise ValueError("Shake speed is 0. Please set to a positive nonzero value!")
             self._set_shake_speed(speed)
         if acceleration is not None:
             self._set_acceleration(acceleration)
@@ -270,9 +256,19 @@ class BioshakeDriver(ABCToolDriver):
         return self._get_remaining_time()
 
 
-    # For compatibility with the blank template.
-    def shake_with_time(self, duration: int, speed: int) -> None:
-        self.shake_on_with_runtime(seconds=duration, speed=speed)
+    """Temperature Commmands"""
+    def temp_on(self) -> None:
+        self._send_command("ton")
+
+    def temp_off(self) -> None:
+        self._send_command("toff")
+
+    def set_tmp(self, temp: int) -> None:
+        if 0 < temp < 990:
+            self._send_command("stt" + str(temp))
+        else:
+            logging.error(f"Enter a valid temperature target {temp}. Must be a three digit number in the range 0-999.")
+
 
 
 if __name__ == "__main__":

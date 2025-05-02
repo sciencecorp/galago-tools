@@ -42,23 +42,25 @@ class BioShakeServer(ToolServer):
     def StartShake(self, params: Command.StartShake) -> None:
         if not self.driver:
             raise Exception("Bioshake driver not connected")
-        self.driver.set_shake_target_speed(rpm=params.speed)
         if params.duration > 0:
-            # Note, this is not blocking meaning that command will return
-            # And next command will be executed immediately
-            # This enables shaking to happen asynchronously which enables
-            # stop commands to be issued, but also means that workcell can
-            # do other things while shaking is happening
-            # However, this also means that when we want to wait for
-            # shaking to finish, we need to use WaitForShakeToFinish
-            self.driver.shake_on_with_runtime(seconds=params.duration)
+            self.driver.shake_on_with_runtime(seconds=params.duration, 
+                                              speed=params.speed,
+                                              acceleration=params.acceleration)
+            if params.duration > 0:
+                logging.info(f"Shake started for {params.duration} seconds")
+                self.driver.shake_on_with_runtime(
+                    seconds=params.duration,
+                    speed=params.speed,
+                    acceleration=params.acceleration,
+                )
+        #If a negative duration is give, initialize non blicking shake
         else:
-            self.driver.shake_on()
+            self.driver.start_shake()
 
     def StopShake(self, params: Command.StopShake) -> None:
         if not self.driver:
             raise Exception("Bioshake driver not connected")
-        self.driver.shake_off()
+        self.driver.stop_shake()
         time.sleep(4)
 
     def WaitForShakeToFinish(self, params: Command.WaitForShakeToFinish) -> None:

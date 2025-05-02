@@ -29,8 +29,8 @@ def run_python_script(script_content: str, blocking: bool = True) -> t.Optional[
         if blocking:
             process.wait()
             if process.returncode != 0:
-                # with open('stdout.txt', 'r') as f:
-                #     error_output = f.read()
+                with open('stdout.txt', 'r') as f:
+                    error_output = f.read()
                 raise RuntimeError(f"Script failed with return code {process.returncode}. Output:\n{error_output}")
             else:
                 with open('stdout.txt', 'r') as f:
@@ -43,8 +43,8 @@ def run_python_script(script_content: str, blocking: bool = True) -> t.Optional[
         raise
     finally:
         logging.info("Cleaning up temporary files")
-        # os.remove(temp_file)
-        # os.remove('stdout.txt')
+        os.remove(temp_file)
+        os.remove('stdout.txt')
     return None
 
 
