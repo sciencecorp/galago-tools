@@ -88,7 +88,7 @@ class BioShakeServer(ToolServer):
     def Reset(self, params: Command.Reset) -> None:
         if not self.driver:
             raise Exception("Bioshake driver not connected")
-        self.driver.reset_device()
+        self.driver.reset()
 
     def EstimateGrip(self, params: Command.Grip) -> int:
         return 1
