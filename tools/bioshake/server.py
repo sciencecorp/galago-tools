@@ -37,11 +37,10 @@ class BioShakeServer(ToolServer):
     def Home(self, params: Command.Home) -> None:
         if not self.driver:
             raise Exception("Bioshake driver not connected")
-        self.driver.shake_go_home()
+        self.driver.home()
 
     def StartShake(self, params: Command.StartShake) -> None:
-        if not self.driver:
-            raise Exception("Bioshake driver not connected")
+
         if params.duration > 0:
             self.driver.shake_on_with_runtime(seconds=params.duration, 
                                               speed=params.speed,
@@ -53,45 +52,30 @@ class BioShakeServer(ToolServer):
                     speed=params.speed,
                     acceleration=params.acceleration,
                 )
-        #If a negative duration is give, initialize non blicking shake
+        #If a negative duration is give, initialize non blocking shake
         else:
             self.driver.start_shake()
 
     def StopShake(self, params: Command.StopShake) -> None:
-        if not self.driver:
-            raise Exception("Bioshake driver not connected")
         self.driver.stop_shake()
-        time.sleep(4)
 
     def WaitForShakeToFinish(self, params: Command.WaitForShakeToFinish) -> None:
-        """Note, this is a blocking command that waits for shake to finish
-        for a maximum of params.timeout seconds. If shake is not finished
-        within that time, it will return None. If it is desired for shake to
-        end, then a stop shake command will need to be sent. Alternatively,
-        the shake will stop once the time originally given to it has elapsed.
-        """
-        if not self.driver:
-            raise Exception("Bioshake driver not connected")
-        start_time = time.time()
-        while time.time() - start_time < params.timeout:
-            remaining_time = self.driver.get_shake_remaining_time()
-            shake_state = self.driver.get_shake_state_as_string()
-            logging.info(
-                f"Current status: {shake_state}... Shake remaining time: {remaining_time}"
-            )
-            if remaining_time == 0 or shake_state in ["STOP", "ESTOP"]:
-                logging.info("Shake finished")
-                return None
-            else:
-                time.sleep(5)
-        logging.warning("Timeout reached shake not finished")
-        return None
+        self.driver.wait_for_shake(timeout=params.timeout)
 
     def Reset(self, params: Command.Reset) -> None:
         if not self.driver:
             raise Exception("Bioshake driver not connected")
         self.driver.reset()
 
+    def TemperatureOn(self, params: Command.TemperatureOn) -> None:
+        self.driver.temp_on()
+
+    def TemperatureOff(self, params: Command.TemperatureOff) -> None:
+        self.driver.temp_off()
+
+    def SetTemperature(self, params: Command.SetTemperature) -> None:
+        self.driver.set_tmp(params.temperature)
+    
     def EstimateGrip(self, params: Command.Grip) -> int:
         return 1
 

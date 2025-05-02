@@ -224,11 +224,18 @@ class BioshakeDriver(ABCToolDriver):
     def set_elm_unlock_pos(self) -> None:
         self.ungrip()
     
-    def wait_for_shake(self) -> None:
-        while self._get_shake_state() != "Home":
+    def wait_for_shake(self, timeout: int) -> None:
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            shake_state = self._get_shake_state()
+            if shake_state == "Home":
+                logging.info("Shake finished")
+                return None
             time.sleep(0.5)
-
-
+        
+        raise TimeoutError(f"Shake operation timed out after {timeout} seconds")
+    
+    
     def set_shake_target_speed(self, rpm: int) -> None:
         self._set_shake_speed(rpm)
 
