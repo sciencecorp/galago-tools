@@ -72,6 +72,15 @@ class BuildProtobuf(_build_py):
         super().run()
 
 def readme() -> str:
+    """
+    Use PYPI.md for PyPI documentation if it exists,
+    otherwise fall back to README.md
+    """
+    pypi_path = os.path.join(os.path.dirname(__file__), "PYPI.md")
+    if os.path.exists(pypi_path):
+        return open(pypi_path).read()
+    
+    # Fallback to README.md
     readme_path = os.path.join(os.path.dirname(__file__), "README.md")
     if os.path.exists(readme_path):
         return open(readme_path).read()
