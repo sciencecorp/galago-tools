@@ -1,7 +1,4 @@
 import logging
-import time
-import typing as t
-
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.bioshake_pb2 import Command, Config
 
@@ -13,7 +10,7 @@ class BioShakeServer(ToolServer):
 
     def __init__(self) -> None:
         super().__init__()
-        self.driver: t.Optional[BioshakeDriver] = None
+        self.driver: BioshakeDriver
 
     def _configure(self, config: Config) -> None:
         self.config = config
@@ -40,7 +37,6 @@ class BioShakeServer(ToolServer):
         self.driver.home()
 
     def StartShake(self, params: Command.StartShake) -> None:
-
         if params.duration > 0:
             self.driver.shake_on_with_runtime(seconds=params.duration, 
                                               speed=params.speed,
