@@ -100,7 +100,7 @@ def find_tool_packages() -> list[str]:
     return packages
 
 setup(
-    name='galago',
+    name='galago-tools',
     version='0.9',
     packages=find_tool_packages(),
     package_dir={'': '.'},
@@ -118,15 +118,15 @@ setup(
                             'minihub/deps/*.dll',
                             "favicon.ico",
                             'grpc_interfaces/*.py']},
-    url='https://github.com/sciencecorp/galago-core',
+    url='https://github.com/sciencecorp/galago-tools',
     author='Science Corporation',
     python_requires=">=3.9",
     author_email='',
     long_description_content_type="text/markdown",
     entry_points={
         'console_scripts': [
-            'galago=tools.cli:main', 
-            'galago-serve=tools.cli:serve',
+            'galago-tools=tools.cli:main', 
+            'galago-tools-serve=tools.cli:serve',
         ],
     },
     classifiers=[
