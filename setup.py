@@ -113,7 +113,7 @@ setup(
     version='0.9',
     packages=find_tool_packages(),
     package_dir={'': '.'},
-    license='Apache-2.0',
+    license='Apache-2.0',  # Standard SPDX identifier
     description='Open Source Lab Automation GRPC Library',
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
@@ -141,6 +141,7 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
+        "License :: OSI Approved :: Apache Software License",  # Standard classifier for Apache
     ],
     cmdclass={
         'build_py': BuildProtobuf

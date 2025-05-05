@@ -2,3 +2,4 @@ recursive-include tools *.dll
 include requirements.txt
 include LICENSE
 recursive-include interfaces *.proto
+include *.md
