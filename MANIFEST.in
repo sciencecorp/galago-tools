@@ -1,2 +1,3 @@
 recursive-include tools *.dll
 include requirements.txt
+include LICENSE

@@ -2,6 +2,9 @@
 requires = ["setuptools", "wheel", "pydantic","grpcio-tools==1.51.1","cython"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+license-files = ["LICENSE"]
+
 [tool.ruff]
 target-version = "py39"
 line-length = 100
