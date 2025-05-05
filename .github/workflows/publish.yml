@@ -44,6 +44,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U packaging
           pip install build setuptools wheel
+          # Pin twine to 6.0.1 to avoid 'license-file' metadata validation error: https://github.com/pypa/twine/issues/1216
           pip install twine==6.0.1
       
       - name: Build package
@@ -114,5 +115,6 @@ jobs:
       - name: Check package (no publish)
         run: |
           echo "TESTING ONLY - Package would be published to PyPI"
+          # Pin twine to 6.0.1 to avoid 'license-file' metadata validation error: https://github.com/pypa/twine/issues/1216
           pip install twine==6.0.1
           twine check dist/*
