@@ -1,8 +1,16 @@
+# This workflow will upload a Python Package to PyPI when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
 name: Publish Python Package
 
 on:
   release:
-    types: [created]
+    types: [published]
   workflow_dispatch:
     inputs:
       test_mode:
@@ -16,41 +24,91 @@ on:
         default: true
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine setuptools wheel
+      
+      - name: Build package
+        run: python -m build
+      
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    # Only run when triggered by release or when not in test mode
+    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.test_mode && !inputs.use_test_pypi) }}
+    permissions:
+      id-token: write
     
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine setuptools wheel
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+          
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  publish-test-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.use_test_pypi }}
+    permissions:
+      id-token: write
     
-    - name: Build package
-      run: python -m build
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+          
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+  test-no-publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.test_mode && !inputs.use_test_pypi }}
     
-    - name: Publish package to PyPI
-      if: ${{ (!inputs.test_mode && !inputs.use_test_pypi) || (github.event_name == 'release') }}
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
-        
-    - name: Publish package to Test PyPI
-      if: ${{ inputs.use_test_pypi && github.event_name == 'workflow_dispatch' }}
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        repository-url: https://test.pypi.org/legacy/
-        
-    - name: Test package (no publish)
-      if: ${{ inputs.test_mode && !inputs.use_test_pypi && github.event_name == 'workflow_dispatch' }}
-      run: |
-        echo "TESTING ONLY - Package would be published to PyPI"
-        twine check dist/* 
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+          
+      - name: Check package (no publish)
+        run: |
+          echo "TESTING ONLY - Package would be published to PyPI"
+          pip install twine
+          twine check dist/*
