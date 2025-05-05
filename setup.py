@@ -7,7 +7,7 @@ import sys
 
 base = None
 if sys.platform == "win32":
-    base = "Win32GUI"  # Use "Console" if you want a console window
+    base = "Win32GUI"  # Use "Console" if you want a console window 
 
 
 class BuildProtobuf(_build_py):
