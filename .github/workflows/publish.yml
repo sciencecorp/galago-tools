@@ -23,6 +23,8 @@ on:
         required: true
         default: true
         type: boolean
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -54,7 +56,7 @@ jobs:
   publish-pypi:
     needs: build
     runs-on: ubuntu-latest
-    # Only run when triggered by release or when not in test mode
+    # Only run when triggered by release or when not in test mode via workflow_dispatch
     if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.test_mode && !inputs.use_test_pypi) }}
     permissions:
       id-token: write
@@ -98,7 +100,7 @@ jobs:
   test-no-publish:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.test_mode && !inputs.use_test_pypi }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.test_mode && !inputs.use_test_pypi) || github.event_name == 'pull_request' }}
     
     steps:
       - name: Retrieve release distributions
