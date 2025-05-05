@@ -16,58 +16,89 @@ class BuildProtobuf(_build_py):
         proto_src = os.path.join(base_dir, "interfaces")
         grpc_interfaces_output_dir = os.path.join(base_dir, "tools", "grpc_interfaces")  
 
+        # Create output directory
         os.makedirs(grpc_interfaces_output_dir, exist_ok=True)
 
+        # Check if proto source directory exists
+        if not os.path.exists(proto_src):
+            print(f"Warning: Proto source directory {proto_src} not found. Skipping proto compilation.")
+            super().run()
+            return
+
         grpc_proto_dir = os.path.join(proto_src, "tools", "grpc_interfaces")
-        if not os.path.exists(grpc_proto_dir):
-            raise FileNotFoundError(f"Expected proto directory {grpc_proto_dir} not found!")
+        grpc_proto_files = []
+        
+        # Only process grpc_proto_files if the directory exists
+        if os.path.exists(grpc_proto_dir):
+            grpc_proto_files = [
+                os.path.join(grpc_proto_dir, proto_file)
+                for proto_file in os.listdir(grpc_proto_dir)
+                if proto_file.endswith(".proto")
+            ]
+        else:
+            print(f"Warning: Proto directory {grpc_proto_dir} not found. Skipping grpc proto compilation.")
 
-        grpc_proto_files = [
-            os.path.join(grpc_proto_dir, proto_file)
-            for proto_file in os.listdir(grpc_proto_dir)
-            if proto_file.endswith(".proto")
-        ]
+        # Get root proto files if they exist
+        root_proto_files = []
+        if os.path.exists(proto_src):
+            root_proto_files = [
+                os.path.join(proto_src, proto_file)
+                for proto_file in os.listdir(proto_src)
+                if proto_file.endswith(".proto")
+            ]
 
-        root_proto_files = [
-            os.path.join(proto_src, proto_file)
-            for proto_file in os.listdir(proto_src)
-            if proto_file.endswith(".proto")
-        ]
-
+        # Process grpc proto files if they exist
         if grpc_proto_files:
-            subprocess.run(
-                [
-                    "python", "-m", "grpc_tools.protoc",
-                    f"-I{proto_src}",
-                    f"--python_out={grpc_interfaces_output_dir}/",
-                    f"--pyi_out={grpc_interfaces_output_dir}/",
-                    f"--grpc_python_out={grpc_interfaces_output_dir}/",
-                    *grpc_proto_files,
-                ],
-                check=True,
-            )
+            try:
+                subprocess.run(
+                    [
+                        "python", "-m", "grpc_tools.protoc",
+                        f"-I{proto_src}",
+                        f"--python_out={grpc_interfaces_output_dir}/",
+                        f"--pyi_out={grpc_interfaces_output_dir}/",
+                        f"--grpc_python_out={grpc_interfaces_output_dir}/",
+                        *grpc_proto_files,
+                    ],
+                    check=True,
+                )
+            except subprocess.CalledProcessError as e:
+                print(f"Warning: Failed to compile grpc proto files: {e}")
 
+        # Move generated files if they exist
         grpc_generated_path = os.path.join(grpc_interfaces_output_dir, "tools", "grpc_interfaces")
         if os.path.exists(grpc_generated_path):
             for file in os.listdir(grpc_generated_path):
                 if file.endswith(".py") or file.endswith(".pyi"):
-                    shutil.move(
-                        os.path.join(grpc_generated_path, file),
-                        os.path.join(grpc_interfaces_output_dir, file),
-                    )
+                    try:
+                        shutil.move(
+                            os.path.join(grpc_generated_path, file),
+                            os.path.join(grpc_interfaces_output_dir, file),
+                        )
+                    except (shutil.Error, OSError) as e:
+                        print(f"Warning: Failed to move file {file}: {e}")
 
+        # Process root proto files if they exist
         if root_proto_files:
-            subprocess.run(
-                [
-                    "python", "-m", "grpc_tools.protoc",
-                    f"-I{proto_src}",
-                    f"--python_out={grpc_interfaces_output_dir}/",
-                    f"--pyi_out={grpc_interfaces_output_dir}/",
-                    f"--grpc_python_out={grpc_interfaces_output_dir}/",
-                    *root_proto_files,
-                ],
-                check=True,
-            )
+            try:
+                subprocess.run(
+                    [
+                        "python", "-m", "grpc_tools.protoc",
+                        f"-I{proto_src}",
+                        f"--python_out={grpc_interfaces_output_dir}/",
+                        f"--pyi_out={grpc_interfaces_output_dir}/",
+                        f"--grpc_python_out={grpc_interfaces_output_dir}/",
+                        *root_proto_files,
+                    ],
+                    check=True,
+                )
+            except subprocess.CalledProcessError as e:
+                print(f"Warning: Failed to compile root proto files: {e}")
+
+        # Create __init__.py in grpc_interfaces directory if it doesn't exist
+        init_py_path = os.path.join(grpc_interfaces_output_dir, "__init__.py")
+        if not os.path.exists(init_py_path):
+            with open(init_py_path, 'w') as f:
+                f.write("# Auto-generated __init__.py for grpc_interfaces\n")
 
         super().run()
 
