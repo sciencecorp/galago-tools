@@ -3,6 +3,18 @@ name: Publish Python Package
 on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run in test mode (no actual PyPI publish)'
+        required: true
+        default: true
+        type: boolean
+      use_test_pypi:
+        description: 'Publish to Test PyPI instead of production PyPI'
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   deploy:
@@ -22,8 +34,23 @@ jobs:
     - name: Build package
       run: python -m build
     
-    - name: Publish package
+    - name: Publish package to PyPI
+      if: ${{ (!inputs.test_mode && !inputs.use_test_pypi) || (github.event_name == 'release') }}
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }} 
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        
+    - name: Publish package to Test PyPI
+      if: ${{ inputs.use_test_pypi && github.event_name == 'workflow_dispatch' }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository-url: https://test.pypi.org/legacy/
+        
+    - name: Test package (no publish)
+      if: ${{ inputs.test_mode && !inputs.use_test_pypi && github.event_name == 'workflow_dispatch' }}
+      run: |
+        echo "TESTING ONLY - Package would be published to PyPI"
+        twine check dist/* 
