@@ -114,5 +114,5 @@ jobs:
       - name: Check package (no publish)
         run: |
           echo "TESTING ONLY - Package would be published to PyPI"
-          pip install twine
+          pip install twine==6.0.1
           twine check dist/*
