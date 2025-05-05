@@ -134,6 +134,7 @@ setup(
     packages=find_tool_packages(),
     package_dir={'': '.'},
     license='Apache License 2.0',  # More specific license name
+    license_files=['LICENSE'],  # Explicitly list the license file
     description='Open Source Lab Automation GRPC Library',
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),

@@ -2,8 +2,15 @@
 requires = ["setuptools", "wheel", "pydantic","grpcio-tools==1.51.1","cython"]
 build-backend = "setuptools.build_meta"
 
+# Using setuptools.build_meta without [project] means we're using setup.py for metadata
+# This tells setuptools not to look for project metadata in pyproject.toml
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tools*"]
+
 [tool.setuptools]
-license-files = ["LICENSE"]
+include-package-data = true
 
 [tool.ruff]
 target-version = "py39"
