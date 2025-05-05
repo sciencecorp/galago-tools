@@ -113,7 +113,7 @@ setup(
     version='0.9',
     packages=find_tool_packages(),
     package_dir={'': '.'},
-    license='Apache License 2.0',
+    license='Apache-2.0',
     description='Open Source Lab Automation GRPC Library',
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
@@ -140,7 +140,6 @@ setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: Apache Software License", 
         "Operating System :: OS Independent",
     ],
     cmdclass={
