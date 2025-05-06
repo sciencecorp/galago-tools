@@ -11,6 +11,7 @@ jobs:
     if: contains(github.event.head_commit.message, 'Bump version')
     permissions:
       contents: write
+      actions: write
     
     steps:
       - uses: actions/checkout@v4
@@ -35,4 +36,11 @@ jobs:
           name: Version ${{ steps.extract_version.outputs.version }}
           draft: false
           prerelease: false
-          generate_release_notes: true 
+          generate_release_notes: true
+      
+      - name: Trigger Publish Workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Publish Python Package
+          token: ${{ github.token }}
+          inputs: '{"test_mode": false, "use_test_pypi": false}' 
