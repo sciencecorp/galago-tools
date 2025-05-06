@@ -12,7 +12,7 @@ message Command {
     Wait wait = 5;
     Release release = 6;
     Engage engage =7;
-    Unwind unwind = 8;
+    Retract retract = 8;
     RunSequence run_sequence = 9;
     RetrievePlate retrieve_plate = 10;
     DropOffPlate dropoff_plate = 11;
@@ -40,7 +40,7 @@ message Command {
   message PickLid {
     string labware = 1;
     string location = 2;
-    optional int32 motion_profile_id = 3;
+    optional string motion_profile = 3;
     optional bool pick_from_plate = 4;
     optional float approach_height = 5;
   }
@@ -48,7 +48,7 @@ message Command {
   message PlaceLid {
     string labware = 1;
     string location = 2;
-    optional int32 motion_profile_id = 3;
+    optional string motion_profile = 3;
     optional bool place_on_plate = 4;
     optional float approach_height = 5;
   }
@@ -57,14 +57,14 @@ message Command {
     string labware = 1;
     string location = 2;
     optional float approach_height = 3;
-    optional int32 motion_profile_id = 4;
+    optional string motion_profile = 4;
   }
 
   message DropOffPlate {
     string labware = 1;
     string location = 2;
     optional float approach_height = 3;
-    optional int32 motion_profile_id = 5;
+    optional string motion_profile = 5;
   }
 
   message RunSequence {
@@ -76,12 +76,12 @@ message Command {
 
   message Release {}
 
-  message Unwind {
+  message Retract {
   } 
 
   message Move {
     string name = 1;
-    optional int32 motion_profile_id = 2;
+    optional string motion_profile = 2;
     optional int32 approach_height=3;
   }
 
@@ -100,7 +100,7 @@ message Command {
     string source_nest = 1;
     string destination_nest = 2;
     string labware = 3;
-    optional int32 motion_profile_id = 4;
+    optional string motion_profile = 4;
   }
 
   message Wait {
@@ -134,4 +134,3 @@ message Config {
   int32 joints = 3;
   string gpl_version = 4;
 }
-
