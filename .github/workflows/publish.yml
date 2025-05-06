@@ -16,12 +16,12 @@ on:
       test_mode:
         description: 'Run in test mode (no actual PyPI publish)'
         required: true
-        default: true
+        default: false
         type: boolean
       use_test_pypi:
         description: 'Publish to Test PyPI instead of production PyPI'
         required: true
-        default: true
+        default: false
         type: boolean
   pull_request:
     branches: [ main ]
