@@ -12,7 +12,7 @@ message Command {
     Wait wait = 5;
     Release release = 6;
     Engage engage =7;
-    Retract retract = 8;
+    Unwind unwind = 8;
     RunSequence run_sequence = 9;
     RetrievePlate retrieve_plate = 10;
     DropOffPlate dropoff_plate = 11;
@@ -76,7 +76,7 @@ message Command {
 
   message Release {}
 
-  message Retract {
+  message Unwind {
   } 
 
   message Move {

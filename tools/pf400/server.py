@@ -80,6 +80,7 @@ class Pf400Server(ToolServer):
         self.waypoints: Waypoints
         self.labwares : Labwares
         self.sequences : ArmSequences
+        self.motion_profiles : MotionProfiles
         self.grips : Grips
         self.plate_handling_params : dict[str, dict[str, Union[Command.GraspPlate, Command.ReleasePlate]]] = {}
 
@@ -121,6 +122,23 @@ class Pf400Server(ToolServer):
             raise Exception(f"Sequence '{sequence_name}' not found")
         logging.info(f"Found sequence! {sequence_name}")
         return sequence
+    
+    def _getProfile(self, profile_name:str) -> MotionProfile:
+        try:
+            logging.info(f"Fetching profile {profile_name}")
+            logging.info(f"Profiles: {self.motion_profiles.profiles}")
+            profile = next((x for x in self.motion_profiles.profiles if x.name.lower() == profile_name.lower()), None)
+            logging.info(f"Profile IS: {profile}")
+            if not profile:
+                error_message = f"Profile '{profile_name}' not found"
+                logging.error(error_message)
+                raise RuntimeError(error_message)
+            return profile
+        except Exception as e:
+            # Log the error and re-raise it to be caught by the calling method
+            logging.error(f"Error in _getProfile: {str(e)}")
+            raise
+
 
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
             logging.info("Loading waypoints")
@@ -150,8 +168,15 @@ class Pf400Server(ToolServer):
             #Load and register profiles 
             motion_profiles_list = waypoints_dictionary.get("motion_profiles")
             motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
+            self.motion_profiles = motion_profiles
             logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
-            
+            logging.info(f"Profiles dictionary: {motion_profiles_list}")
+
+
+            logging.info(f"Testing fetching profile")
+            logging.info(f"{self._getProfile('default')}")
+            logging.info(f"{self._getProfile('default_test')}")
+
             if motion_profiles_list and len(motion_profiles_list) > 0:
                 logging.info("Registering profiles")
                 for motion_profile in motion_profiles.profiles:
@@ -213,7 +238,7 @@ class Pf400Server(ToolServer):
     def moveTo(
         self,
         loc: Location,
-        approach_height: float = 0, #x, y, z offset
+        approach_height: float = 0, #Height to move to before moving to the specified location
         motion_profile_id: int = 1,
     ) -> None:
         if self.driver is None:
@@ -239,9 +264,12 @@ class Pf400Server(ToolServer):
         """Execute a move command with the given coordinate and motion profile."""
         location_name = params.name 
         location = self._getLocation(location_name)
+        profile_id = self._getProfile(params.motion_profile)
+        if not profile_id:
+            raise Exception(f"Motion profile '{params.motion_profile}' not found")
         if location is None:
             raise Exception(f"Location '{location_name}' not found")
-        self.moveTo(location, params.approach_height, motion_profile_id=params.motion_profile_id)
+        self.moveTo(location, params.approach_height, motion_profile_id=profile_id)
 
     def GraspPlate(self, params: Command.GraspPlate) -> None:
         self.driver.graspplate(params.width, params.force, params.speed)
@@ -254,25 +282,21 @@ class Pf400Server(ToolServer):
         source_nest: str,
         grasp_params: Optional[Command.GraspPlate] = None,
         approach_height: float = 0,
-        motion_profile_id: int = 1,
+        motion_profile: str = "default",
         grip_width: int = 0,
         labware_name: str = "",
     ) -> None:
         source_location = self._getLocation(source_nest)
         if not source_location:
             raise Exception(f"Location '{source_nest}' not found")
-        safe_location = self._getLocation(f"{source_nest}_safe")
-        if not safe_location:
-            safe_location = self._getLocation(f"{source_nest} safe")
-        if not safe_location:
-            logging.warning(f"Safe location for {source_nest} not found.")
+
         labware = self._getLabware(f"{labware_name}")
         labware_offset = labware.z_offset
         labware_offset = int(labware_offset)
-        motion_profile_id = int(motion_profile_id)
         grip_width = int(grip_width)
         approach_height = int(approach_height)
         grasp: Command.GraspPlate
+
         if not grasp_params or (grasp_params.width == 0):
             grap_param_exists = self.plate_handling_params.get(source_location.orientation.lower())
             if not grap_param_exists:
@@ -302,18 +326,14 @@ class Pf400Server(ToolServer):
 
         open_grip_width= self._getGrip(source_location.orientation).width + 10
 
-        if safe_location:
-            pre_grip_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=14)) #default motion profile to a curved motion profile
         pre_grip_sequence.append(adjust_gripper)
-        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height))
-        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=labware_offset))
+        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile=motion_profile, approach_height=approach_height))
+        pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile=motion_profile, approach_height=labware_offset))
             
         retrieve_sequence.extend([
             grasp,  # Grasp the plate
-            Command.Move(name=source_location.name, motion_profile_id=motion_profile_id, approach_height=approach_height),  #Move up in straight pattern
+            Command.Move(name=source_location.name, motion_profile=motion_profile, approach_height=approach_height)
         ])
-        if safe_location:
-            retrieve_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=14)) #default motion profile to a curved motion profile
 
         self.driver.state.gripper_axis_override_value = open_grip_width
         self.runSequence(pre_grip_sequence)
@@ -325,21 +345,16 @@ class Pf400Server(ToolServer):
         destination_nest: str,
         release_params: Optional[Command.ReleasePlate] = None,
         approach_height: float = 0,
-        motion_profile_id: int = 1,
+        motion_profile: str = "default",
         labware_name: str = "",
     ) -> None:
         dest_location = self._getLocation(destination_nest)
         if not dest_location:
             raise Exception(f"Location '{destination_nest}' not found")
-        safe_location = self._getLocation(f"{destination_nest}_safe")
-        if not safe_location:
-            safe_location = self._getLocation(f"{destination_nest} safe")
-        if not safe_location:
-            logging.warning(f"Safe location for {destination_nest} not found.") 
+
         release: Command.ReleasePlate
         labware = self._getLabware(f"{labware_name}")
         labware_offset = int(labware.z_offset)
-        motion_profile_id = int(motion_profile_id)
 
         if not release_params or (release_params.width == 0):
             release_param_exists = self.plate_handling_params.get(dest_location.orientation.lower())
@@ -358,18 +373,13 @@ class Pf400Server(ToolServer):
         dropoff_sequence :t.List[message.Message] = []
         post_dropoff_sequence: t.List[message.Message] = []
         
-        if safe_location:
-            dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=14)) #default motion profile to a curved motion profile
-
         dropoff_sequence.extend([
-                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, approach_height=int(approach_height)), #Move to the dest location plus offset
-                Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id,approach_height=labware_offset), #Move to the nest location down in a straight pattern
+                Command.Move(name=dest_location.name, motion_profile=motion_profile, approach_height=int(approach_height)), #Move to the dest location plus offset
+                Command.Move(name=dest_location.name, motion_profile=motion_profile,approach_height=labware_offset), #Move to the nest location down in a straight pattern
                 release #release the plate
         ])
 
-        post_dropoff_sequence.append(Command.Move(name=dest_location.name, motion_profile_id=motion_profile_id, approach_height=int(approach_height))) #Move to the approach offset
-        if safe_location:
-            post_dropoff_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=14)) #default motion profile to a curved motion profile
+        post_dropoff_sequence.append(Command.Move(name=dest_location.name, motion_profile=motion_profile, approach_height=int(approach_height))) #Move to the approach offset
 
         self.runSequence(dropoff_sequence)
         self.driver.state.gripper_axis_override_value = self._getGrip(dest_location.orientation).width + 10
@@ -377,10 +387,10 @@ class Pf400Server(ToolServer):
         self.driver.state.gripper_axis_override_value = None
 
     def RetrievePlate(self, params: Command.RetrievePlate) -> None:
-        self.retrieve_plate(source_nest=params.location, motion_profile_id=params.motion_profile_id, approach_height=params.approach_height, labware_name=params.labware)
+        self.retrieve_plate(source_nest=params.location, motion_profile=params.motion_profile, approach_height=params.approach_height, labware_name=params.labware)
 
     def DropOffPlate(self, params: Command.DropOffPlate) -> None:
-        self.dropoff_plate(destination_nest=params.location, motion_profile_id=params.motion_profile_id, approach_height=params.approach_height, labware_name=params.labware)
+        self.dropoff_plate(destination_nest=params.location, motion_profile=params.motion_profile, approach_height=params.approach_height, labware_name=params.labware)
 
     def Jog(self, params: Command.Jog) -> None:
         """Handle jog command from UI"""
@@ -391,14 +401,14 @@ class Pf400Server(ToolServer):
     def Transfer(self, params: Command.Transfer) -> None:
         self.retrieve_plate(
             source_nest=params.source_nest,
-            motion_profile_id=params.motion_profile_id,
+            motion_profile = params.motion_profile,
             approach_height=5,
             labware_name=params.labware
         )
         self._unwind()
         self.dropoff_plate(
             destination_nest=params.destination_nest,
-            motion_profile_id=params.motion_profile_id,
+            motion_profile=params.motion_profile,
             approach_height=5,
             labware_name=params.labware
         )
@@ -410,18 +420,11 @@ class Pf400Server(ToolServer):
         labware_name: str,
         pick_from_plate: bool = False,
         approach_height: float = 0,
-        motion_profile_id: int = 1,
+        motion_profile: int = "default",
     ) -> None:
         location: Optional[Location] = self._getLocation(location_name)
         if not location:
             raise Exception(f"Location '{location_name}' not found")
-        
-        # Look for safe location
-        safe_location = self._getLocation(f"{location_name}_safe")
-        if not safe_location:
-            safe_location = self._getLocation(f"{location_name} safe")
-        if not safe_location:
-            logging.warning(f"Safe location for {location_name} not found")
         
         # Get labware
         labware: Labware = self._getLabware(labware_name)
@@ -461,24 +464,18 @@ class Pf400Server(ToolServer):
         # Set gripper override
         self.driver.state.gripper_axis_override_value = open_grip_width
         
-        # Build pre-pick sequence
-        if safe_location:
-            pre_pick_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
-        
         pre_pick_sequence.append(adjust_gripper)
-        pre_pick_sequence.append(Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+        pre_pick_sequence.append(Command.Move(name=location.name, motion_profile=motion_profile, 
                                             approach_height=int(labware.height + approach_height)))
-        pre_pick_sequence.append(Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+        pre_pick_sequence.append(Command.Move(name=location.name, motion_profile=motion_profile, 
                                             approach_height=int(lid_height)))
         
         # Build pick sequence
         pick_sequence.extend([
             grasp,
-            Command.Move(name=location.name, motion_profile_id=motion_profile_id, approach_height=int(labware.height + approach_height)),
+            Command.Move(name=location.name, motion_profile=motion_profile, approach_height=int(labware.height + approach_height)),
         ])
         
-        if safe_location:
-            pick_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
         
         # Execute sequences
         self.runSequence(pre_pick_sequence)
@@ -492,7 +489,7 @@ class Pf400Server(ToolServer):
             labware_name=params.labware,
             pick_from_plate=params.pick_from_plate,
             approach_height=params.approach_height,
-            motion_profile_id=params.motion_profile_id
+            motion_profile=params.motion_profile
         )
     
 
@@ -502,19 +499,12 @@ class Pf400Server(ToolServer):
         labware_name: str,
         place_on_plate: bool = False,
         approach_height: float = 0,
-        motion_profile_id: int = 1,
+        motion_profile: str = "default",
     ) -> None:
         # Get location
         location: Optional[Location] = self._getLocation(location_name)
         if not location:
             raise Exception(f"Location '{location_name}' not found")
-        
-        # Look for safe location
-        safe_location = self._getLocation(f"{location_name}_safe")
-        if not safe_location:
-            safe_location = self._getLocation(f"{location_name} safe")
-        if not safe_location:
-            logging.warning(f"Safe location for {location_name} not found")
         
         # Get labware
         labware: Labware = self._getLabware(labware_name)
@@ -538,25 +528,18 @@ class Pf400Server(ToolServer):
         # Define sequences
         place_lid_sequence: t.List[message.Message] = []
         post_place_sequence: t.List[message.Message] = []
-        
-        # Build place lid sequence
-        if safe_location:
-            place_lid_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
-        
+
         place_lid_sequence.extend([
-            Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+            Command.Move(name=location.name, motion_profile=motion_profile, 
                         approach_height=int(labware.height + approach_height)),  # Move to the location plus approach height
-            Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+            Command.Move(name=location.name, motion_profile=motion_profile, 
                         approach_height=int(lid_height)),  # Move to the calculated height
             release,
         ])
         
-        post_place_sequence.append(Command.Move(name=location.name, motion_profile_id=motion_profile_id, 
+        post_place_sequence.append(Command.Move(name=location.name, motion_profile=motion_profile, 
                                             approach_height=int(labware.height + approach_height)))
-        
-        if safe_location:
-            post_place_sequence.append(Command.Move(name=safe_location.name, motion_profile_id=motion_profile_id))
-        
+
         self.runSequence(place_lid_sequence)
         open_grip_width = self._getGrip(location.orientation).width + 10
         self.driver.state.gripper_axis_override_value = open_grip_width
@@ -571,7 +554,7 @@ class Pf400Server(ToolServer):
             labware_name=params.labware,
             place_on_plate=params.place_on_plate,
             approach_height=params.approach_height,
-            motion_profile_id=params.motion_profile_id
+            motion_profile=params.motion_profile
         )
 
     def GetCurrentLocation(self, params: Command.GetCurrentLocation) -> ExecuteCommandReply:
