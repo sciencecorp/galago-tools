@@ -7,7 +7,7 @@ import sys
 
 base = None
 if sys.platform == "win32":
-    base = "Win32GUI"  # Use "Console" if you want a console window
+    base = "Win32GUI"  # Use "Console" if you want a console window 
 
 
 class BuildProtobuf(_build_py):
@@ -72,6 +72,15 @@ class BuildProtobuf(_build_py):
         super().run()
 
 def readme() -> str:
+    """
+    Use PYPI.md for PyPI documentation if it exists,
+    otherwise fall back to README.md
+    """
+    pypi_path = os.path.join(os.path.dirname(__file__), "PYPI.md")
+    if os.path.exists(pypi_path):
+        return open(pypi_path).read()
+    
+    # Fallback to README.md
     readme_path = os.path.join(os.path.dirname(__file__), "README.md")
     if os.path.exists(readme_path):
         return open(readme_path).read()
@@ -100,11 +109,11 @@ def find_tool_packages() -> list[str]:
     return packages
 
 setup(
-    name='galago',
-    version='0.9',
+    name='galago-tools',
+    version='0.9.6', # latest version
     packages=find_tool_packages(),
     package_dir={'': '.'},
-    license='Apache',
+    license='Apache-2.0',  # Standard SPDX identifier
     description='Open Source Lab Automation GRPC Library',
     long_description=readme(),
     install_requires=read_requirements('requirements.txt'),
@@ -118,21 +127,21 @@ setup(
                             'minihub/deps/*.dll',
                             "favicon.ico",
                             'grpc_interfaces/*.py']},
-    url='https://github.com/sciencecorp/galago-core',
+    url='https://github.com/sciencecorp/galago-tools',
     author='Science Corporation',
     python_requires=">=3.9",
     author_email='',
     long_description_content_type="text/markdown",
     entry_points={
         'console_scripts': [
-            'galago=tools.cli:main', 
-            'galago-serve=tools.cli:serve',
+            'galago-tools=tools.cli:main', 
+            'galago-tools-serve=tools.cli:serve',
         ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: Apache Software License", 
         "Operating System :: OS Independent",
+        "License :: OSI Approved :: Apache Software License",  # Standard classifier for Apache
     ],
     cmdclass={
         'build_py': BuildProtobuf

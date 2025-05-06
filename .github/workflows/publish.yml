@@ -1,0 +1,120 @@
+# This workflow will upload a Python Package to PyPI when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Publish Python Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run in test mode (no actual PyPI publish)'
+        required: true
+        default: false
+        type: boolean
+      use_test_pypi:
+        description: 'Publish to Test PyPI instead of production PyPI'
+        required: true
+        default: false
+        type: boolean
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U packaging
+          pip install build setuptools wheel
+          # Pin twine to 6.0.1 to avoid 'license-file' metadata validation error: https://github.com/pypa/twine/issues/1216
+          pip install twine==6.0.1
+      
+      - name: Build package
+        run: python -m build
+      
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    # Only run when triggered by release or when not in test mode via workflow_dispatch
+    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.test_mode && !inputs.use_test_pypi) }}
+    permissions:
+      id-token: write
+    
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+          
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  publish-test-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.use_test_pypi }}
+    permissions:
+      id-token: write
+    
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+          
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+  test-no-publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.test_mode && !inputs.use_test_pypi) || github.event_name == 'pull_request' }}
+    
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+          
+      - name: Check package (no publish)
+        run: |
+          echo "TESTING ONLY - Package would be published to PyPI"
+          # Pin twine to 6.0.1 to avoid 'license-file' metadata validation error: https://github.com/pypa/twine/issues/1216
+          pip install twine==6.0.1
+          twine check dist/*
