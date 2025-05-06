@@ -202,6 +202,7 @@ class BravoDriver(ABCToolDriver):
             raise FileNotFoundError(f"{protocol} does not exist.")
         
         try:
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             self.show_vworks()
             logging.info(f"Loading protocol: {protocol}")
             self.driver.LoadProtocol(protocol)
@@ -212,7 +213,6 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"Waiting for protocol completion: {protocol}")
             success = self.wait_for_protocol_completion(protocol)
             
-           # self.show_vworks(False)
             if not success:
                 raise RuntimeError(f"Protocol did not complete successfully: {protocol}")
                 
