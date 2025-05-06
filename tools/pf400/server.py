@@ -26,14 +26,13 @@ from google.protobuf import message
 import typing as t  
 from google.protobuf.json_format import Parse
 
-
-#Default motion profiles, use for retrieve and dropoff
+#Default motion profiles
 DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
     #curved motion profile
     MotionProfile(
-        name="default_curved",
-        id=14,
-        speed=80,
+        name="default",
+        id=1,
+        speed=85,
         speed2=80,
         acceleration=60,
         deceleration=60,
@@ -45,8 +44,8 @@ DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
     #straight motion profile
     MotionProfile(
         name="default_straight",
-        id=13,
-        speed=80,
+        id=2,
+        speed=85,
         speed2=80,
         acceleration=100,
         deceleration=100,
@@ -123,7 +122,7 @@ class Pf400Server(ToolServer):
         logging.info(f"Found sequence! {sequence_name}")
         return sequence
     
-    def _getProfile(self, profile_name:str) -> MotionProfile:
+    def _getProfileId(self, profile_name:str) -> int:
         try:
             logging.info(f"Fetching profile {profile_name}")
             logging.info(f"Profiles: {self.motion_profiles.profiles}")
@@ -132,11 +131,10 @@ class Pf400Server(ToolServer):
             if not profile:
                 error_message = f"Profile '{profile_name}' not found"
                 logging.error(error_message)
-                raise RuntimeError(error_message)
-            return profile
+                return 1 # Default to the first profile if not found
+            return profile.id
         except Exception as e:
-            # Log the error and re-raise it to be caught by the calling method
-            logging.error(f"Error in _getProfile: {str(e)}")
+            logging.error(f"Error in _getProfileId: {str(e)}")
             raise
 
 
@@ -167,16 +165,16 @@ class Pf400Server(ToolServer):
             
             #Load and register profiles 
             motion_profiles_list = waypoints_dictionary.get("motion_profiles")
+            logging.info(f"Before updating id: {motion_profiles_list}")
+            if motion_profiles_list:
+                for i, profile in enumerate(motion_profiles_list):
+                    profile["id"] = i  # Replace existing id with current index
+            logging.info(f"After updating id: {motion_profiles_list}")
             motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
+            
             self.motion_profiles = motion_profiles
             logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
-            logging.info(f"Profiles dictionary: {motion_profiles_list}")
-
-
-            logging.info(f"Testing fetching profile")
-            logging.info(f"{self._getProfile('default')}")
-            logging.info(f"{self._getProfile('default_test')}")
-
+  
             if motion_profiles_list and len(motion_profiles_list) > 0:
                 logging.info("Registering profiles")
                 for motion_profile in motion_profiles.profiles:
@@ -264,7 +262,7 @@ class Pf400Server(ToolServer):
         """Execute a move command with the given coordinate and motion profile."""
         location_name = params.name 
         location = self._getLocation(location_name)
-        profile_id = self._getProfile(params.motion_profile)
+        profile_id = self._getProfileId(params.motion_profile)
         if not profile_id:
             raise Exception(f"Motion profile '{params.motion_profile}' not found")
         if location is None:
