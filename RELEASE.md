@@ -1,35 +1,33 @@
 # Release Process
 
-## Automated Release Process
+## Fully Automated Release Process
 
 1. Bump the version using the script:
    ```
    python scripts/bump_version.py [major|minor|patch]
    ```
 
-2. Commit the changed setup.py file:
+2. Commit with a message containing "Bump version":
    ```
    git add setup.py
    git commit -m "Bump version to x.y.z"
    ```
 
-3. Push the changes:
+3. Push directly to main or create and merge a PR to main:
    ```
    git push origin main
    ```
 
-4. Create a new release on GitHub:
-   - Go to the repository on GitHub
-   - Click on "Releases"
-   - Click "Create a new release"
-   - Enter a tag (e.g., v0.9.2)
-   - Enter a release title (e.g., "Version 0.9.2")
-   - Add release notes (what's new, bug fixes, etc.)
-   - Click "Publish release"
-
-5. The GitHub Actions workflow will automatically:
+4. The GitHub Actions workflow will automatically:
+   - Detect the version bump commit
+   - Create a new release with the version from setup.py
+   - Generate release notes
    - Build the package
    - Upload it to PyPI
+
+No manual intervention is required after pushing the version bump commit!
+
+## Older Release Processes
 
 ## Setting Up Credentials
 
