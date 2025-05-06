@@ -180,7 +180,10 @@ class Pf400Server(ToolServer):
                 for motion_profile in motion_profiles.profiles:
                     logging.info(f"Registering motion profile {motion_profile.name}")
                     try:
-                        self.driver.register_motion_profile(str(motion_profile))
+                        profile_no_name = motion_profile.copy(deep=True)
+                        profile_no_name.name = ""
+                        logging.info(profile_no_name)
+                        #self.driver.register_motion_profile(str(motion_profile))
                     except Exception as e:
                         logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
                         raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
@@ -190,7 +193,11 @@ class Pf400Server(ToolServer):
                 for motion_profile in DEFAULT_MOTION_PROFILES:
                     logging.info(f"Registering default motion profiles {motion_profile.name}")
                     try:
-                        self.driver.register_motion_profile(str(motion_profile))
+                        #Remove name from the profile 
+                        profile_no_name = motion_profile.copy(deep=True)
+                        profile_no_name.name = ""
+                        logging.info(profile_no_name)
+                        #self.driver.register_motion_profile(str(motion_profile))
                     except Exception as e:
                         logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
                         raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
