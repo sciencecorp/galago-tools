@@ -186,23 +186,23 @@ class Pf400Server(ToolServer):
         self.labwares = Labwares.parse_obj({"labwares": labware_lst})
         logging.info(f"Loaded {len(self.labwares.labwares)} labwares")
 
-    def _retract(self) -> None:
-        location = next((x for x in self.waypoints.locations if x.name.lower() in {"unwind", "retract"}), None)
+    def _unwind(self) -> None:
+        location = next((x for x in self.waypoints.locations if x.name.lower() in {"unwind"}), None)
 
         if not location:
-            raise KeyError("Retract location not found. Please add a retract (unwind) location to the waypoints. Height or rail position does not matter.")
+            raise KeyError("Unwind location not found. Please add a unwind location to the waypoints. Height or rail position does not matter.")
         
         waypoint_loc = location.coordinates
         current_loc_array = self.driver.wherej().split(" ")
-        #Retract the arm while keeping the z height, gripper width and rail constant
+        #Unwind the arm while keeping the z height, gripper width and rail constant
         if self.config.joints == 5:
            new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]}"
         else:
             new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]} {current_loc_array[6]}"
         self.driver.movej(new_loc,  motion_profile=1)
 
-    def Retract(self,params: Command.Retract) -> None:
-        self._retract()
+    def Unwind(self,params: Command.Unwind) -> None:
+        self._unwind()
 
     def Release(self, params: Command.Release) -> None:
         self.driver.safe_free()
@@ -395,7 +395,7 @@ class Pf400Server(ToolServer):
             approach_height=5,
             labware_name=params.labware
         )
-        self._retract()
+        self._unwind()
         self.dropoff_plate(
             destination_nest=params.destination_nest,
             motion_profile_id=params.motion_profile_id,
@@ -634,7 +634,7 @@ class Pf400Server(ToolServer):
     def estimateEngage(self, params: Command.Engage) -> int:
         return 1
 
-    def estimateRetract(self, params: Command.Retract) -> int:
+    def estimateUnwind(self, params: Command.Unwind) -> int:
         return 1
     
     def estimateGraspPlate(self, params: Command.GraspPlate) -> int:
