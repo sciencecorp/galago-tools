@@ -110,7 +110,7 @@ def find_tool_packages() -> list[str]:
 
 setup(
     name='galago-tools',
-    version='0.9.5',
+    version='0.9.6',
     packages=find_tool_packages(),
     package_dir={'': '.'},
     license='Apache-2.0',  # Standard SPDX identifier
