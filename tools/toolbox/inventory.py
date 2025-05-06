@@ -1,5 +1,5 @@
 from tools.toolbox.db import Db 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 db = Db()
 
@@ -7,7 +7,7 @@ def get_inventory(name:str) -> Any:
     response = db.get_by_id_or_name(name, "inventory")
     return response
     
-def get_all_inventory(workcell_name: str = None) -> Any:
+def get_all_inventory(workcell_name: Optional[str] = None) -> Any:
     """
     Get inventory items, optionally filtered by workcell_name.
     If workcell_name is None, attempts to get all inventory items.
