@@ -124,12 +124,8 @@ class Pf400Server(ToolServer):
     
     def _getProfileId(self, profile_name:str) -> int:
         try:
-            logging.info(f"Fetching profile {profile_name}")
-            logging.info(f"Profiles: {self.motion_profiles.profiles}")
+            logging.info(f"Searching for profile {profile_name}")
             profile = next((x for x in self.motion_profiles.profiles if x.name.lower() == profile_name.lower()), None)
-            logging.info(f"Profile name is {profile.name}")
-            logging.info(f"Profile id is {profile.id}")
-            logging.info(f"Profile IS: {profile}")
             if not profile:
                 error_message = f"Profile '{profile_name}' not found"
                 logging.error(error_message)
@@ -303,7 +299,6 @@ class Pf400Server(ToolServer):
         grip_width = int(grip_width)
         approach_height = int(approach_height)
         grasp: Command.GraspPlate
-        logging.info(f"Made it here 1")
         if not grasp_params or (grasp_params.width == 0):
             grap_param_exists = self.plate_handling_params.get(source_location.orientation.lower())
             if not grap_param_exists:
@@ -330,18 +325,14 @@ class Pf400Server(ToolServer):
             
         pre_grip_sequence : t.List[message.Message] = []
         retrieve_sequence : t.List[message.Message] = []
-        logging.info(f"Made it here 2")
         open_grip_width= self._getGrip(source_location.orientation).width + 10
-        logging.info(f"Made it here 3")
         pre_grip_sequence.append(adjust_gripper)
         pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile=motion_profile, approach_height=approach_height))
         pre_grip_sequence.append(Command.Move(name=source_location.name, motion_profile=motion_profile, approach_height=labware_offset))
-        logging.info(f"Made it here 4")
         retrieve_sequence.extend([
             grasp,  # Grasp the plate
             Command.Move(name=source_location.name, motion_profile=motion_profile, approach_height=approach_height)
         ])
-        logging.info(f"Made it here 5")
         self.driver.state.gripper_axis_override_value = open_grip_width
         self.runSequence(pre_grip_sequence)
         self.driver.state.gripper_axis_override_value = None
@@ -427,7 +418,7 @@ class Pf400Server(ToolServer):
         labware_name: str,
         pick_from_plate: bool = False,
         approach_height: float = 0,
-        motion_profile: int = "default",
+        motion_profile: str = "default",
     ) -> None:
         location: Optional[Location] = self._getLocation(location_name)
         if not location:

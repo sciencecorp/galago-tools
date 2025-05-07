@@ -24,7 +24,7 @@ USE_APP_DATA_DIR = True  # Set to False for local development/testing
 
 # Use appdirs to get platform-specific data directory
 APP_NAME = "galago"
-APP_AUTHOR = "galago"
+APP_AUTHOR = "sciencecorp"
 DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
