@@ -151,6 +151,7 @@ class Pf400Server(ToolServer):
             #Load grips
             grips_list = waypoints_dictionary.get("grip_params")
             grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
+            self.grips = grips_list
             logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
             if len(grip_params.grip_params) == 0:
                 logging.warning("No grip parameters found. Using default grip parameters.")
