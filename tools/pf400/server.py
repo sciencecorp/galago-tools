@@ -147,11 +147,10 @@ class Pf400Server(ToolServer):
             locations_list = waypoints_dictionary.get("locations", [])
             self.waypoints = Waypoints.parse_obj({"locations": locations_list})
             logging.info(f"Loaded {len(self.waypoints.locations)} locations")
-            
+
             #Load grips
             grips_list = waypoints_dictionary.get("grip_params")
             grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
-            self.grips = grips_list
             logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
             if len(grip_params.grip_params) == 0:
                 logging.warning("No grip parameters found. Using default grip parameters.")
@@ -163,6 +162,8 @@ class Pf400Server(ToolServer):
                         "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
                     }
 
+            self.grips = grip_params
+
             logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
             logging.info(self.plate_handling_params)
             
@@ -171,7 +172,7 @@ class Pf400Server(ToolServer):
             logging.info(f"Before updating id: {motion_profiles_list}")
             if motion_profiles_list:
                 for i, profile in enumerate(motion_profiles_list):
-                    profile["id"] = i  # Replace existing id with current index
+                    profile["id"] = i  
             logging.info(f"After updating id: {motion_profiles_list}")
             motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
             
