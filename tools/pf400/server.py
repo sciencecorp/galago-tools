@@ -94,7 +94,7 @@ class Pf400Server(ToolServer):
             gpl_version=request.gpl_version,
 
         )
-        self.driver.initialize()
+        # self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
     def _getGrip(self, grip_name:str) -> Grip:
@@ -165,25 +165,23 @@ class Pf400Server(ToolServer):
             
             #Load and register profiles 
             motion_profiles_list = waypoints_dictionary.get("motion_profiles")
-            logging.info(f"Before updating id: {motion_profiles_list}")
+            # logging.info(f"Before updating id: {motion_profiles_list}")
             if motion_profiles_list:
                 for i, profile in enumerate(motion_profiles_list):
                     profile["id"] = i  
-            logging.info(f"After updating id: {motion_profiles_list}")
+            # logging.info(f"After updating id: {motion_profiles_list}")
             motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
             
             self.motion_profiles = motion_profiles
             logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
   
             if motion_profiles_list and len(motion_profiles_list) > 0:
-                logging.info("Registering profiles")
                 for motion_profile in motion_profiles.profiles:
                     logging.info(f"Registering motion profile {motion_profile.name}")
                     try:
                         profile_no_name = motion_profile.copy(deep=True)
                         profile_no_name.name = ""
-                        logging.info(profile_no_name)
-                        #self.driver.register_motion_profile(str(motion_profile))
+                        self.driver.register_motion_profile(str(motion_profile))
                     except Exception as e:
                         logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
                         raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
@@ -197,7 +195,7 @@ class Pf400Server(ToolServer):
                         profile_no_name = motion_profile.copy(deep=True)
                         profile_no_name.name = ""
                         logging.info(profile_no_name)
-                        #self.driver.register_motion_profile(str(motion_profile))
+                        self.driver.register_motion_profile(str(motion_profile))
                     except Exception as e:
                         logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
                         raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
