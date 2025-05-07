@@ -138,6 +138,8 @@ else:
                 "VWorks4API is not supported on non-Windows platforms."
             )            
 
+
+
 class VPrepDriver(ABCToolDriver):
     def __init__(self, init_com:bool=False):
         self.live = False
@@ -154,6 +156,7 @@ class VPrepDriver(ABCToolDriver):
                 self.driver = cc.CreateObject("VWorks4.VWorks4API")
                 self.event_sink = VWorksEventSink(self.event_queue)
                 self.event_connection = GetEvents(self.driver, self.event_sink)
+                self.show_vworks(True)
             except Exception as e:
                 logging.error(f"Failed to create VWorks COM object: {e}")
                 # Check if this is a COM initialization error
@@ -164,7 +167,7 @@ class VPrepDriver(ABCToolDriver):
     def __del__(self) -> None:
         try:
             if hasattr(self, 'driver') and self.driver:
-                logging.info("Cleaning up resources")
+                logging.info("Cleaning up BravoServer resources")
                 self.close()
                 
             # Uninitialize COM in the same thread that initialized it
@@ -173,7 +176,7 @@ class VPrepDriver(ABCToolDriver):
                 logging.debug("Uninitializing COM in server thread")
                 pythoncom.CoUninitialize()
         except Exception as e:
-            logging.error(f"Error during cleanup: {e}")
+            logging.error(f"Error during BravoServer cleanup: {e}")
 
     def login(self, user:str="administrator", psw:str="administrator") -> None:
         self.driver.Login(user, psw)
@@ -199,6 +202,7 @@ class VPrepDriver(ABCToolDriver):
             raise FileNotFoundError(f"{protocol} does not exist.")
         
         try:
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             self.show_vworks()
             logging.info(f"Loading protocol: {protocol}")
             self.driver.LoadProtocol(protocol)
@@ -209,7 +213,6 @@ class VPrepDriver(ABCToolDriver):
             logging.info(f"Waiting for protocol completion: {protocol}")
             success = self.wait_for_protocol_completion(protocol)
             
-            self.show_vworks(False)
             if not success:
                 raise RuntimeError(f"Protocol did not complete successfully: {protocol}")
                 
@@ -222,10 +225,10 @@ class VPrepDriver(ABCToolDriver):
         if not os.path.exists(runset_file):
             raise FileNotFoundError(f"{runset_file} does not exist.")
         try:
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             self.show_vworks()
             self.driver.LoadRunsetFile(runset_file)
             success = self.wait_for_protocol_completion(runset_file)
-            self.show_vworks(False)
             if not success:
                 raise RuntimeError(f"Runset did not complete successfully: {runset_file}")
         except Exception as e:
@@ -296,3 +299,19 @@ class VPrepDriver(ABCToolDriver):
                     self.event_connection = None
             except Exception as e:
                 logging.warning(f"Error during cleanup: {e}")
+
+# if __name__ == "__main__":
+#    # kill_vworks()
+#     vworks = None
+#     # try:
+#     vworks = BravoDriver()
+#     vworks.login()
+#     vworks.run_runset("C:\\VWorks Workspace\\RunSet Files\\move_to_location_3.rst")
+#         # Wait for any final messages to process
+#     # except Exception as e:
+#     #     print(f"Error running protocol: {e}")
+#     # finally:
+#     #     if vworks:
+#     #         print("Cleaning up resources")
+#     #         vworks.close()
+#     #     sys.exit(0)
