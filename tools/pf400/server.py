@@ -94,7 +94,7 @@ class Pf400Server(ToolServer):
             gpl_version=request.gpl_version,
 
         )
-        # self.driver.initialize()
+        self.driver.initialize()
         logging.info("Successfully connected to PF400")
 
     def _getGrip(self, grip_name:str) -> Grip:
