@@ -95,7 +95,6 @@ class Pf400Server(ToolServer):
 
         )
         self.driver.initialize()
-        logging.info("Successfully connected to PF400")
 
     def _getGrip(self, grip_name:str) -> Grip:
         grip = next((x for x in self.grips.grip_params if x.name.lower() == grip_name.lower()), None)
