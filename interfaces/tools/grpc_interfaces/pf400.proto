@@ -80,7 +80,7 @@ message Command {
   } 
 
   message Move {
-    string name = 1;
+    string location = 1;
     optional string motion_profile = 2;
     optional int32 approach_height=3;
   }
