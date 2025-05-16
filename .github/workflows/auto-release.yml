@@ -24,8 +24,8 @@ jobs:
       - name: Extract version
         id: extract_version
         run: |
-          # Extract version from setup.py
-          VERSION=$(grep -oP "version=['\"]([^'\"]+)" setup.py | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+          # Extract version from tools/version.py
+          VERSION=$(grep -oP "__version__ = ['\"]([^'\"]+)" tools/version.py | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d " ")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       

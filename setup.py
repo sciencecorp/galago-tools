@@ -5,6 +5,14 @@ from setuptools.command.build_py import build_py as _build_py
 import shutil 
 import sys 
 
+
+# Version is now defined in tools/version.py and imported here.
+# Scripts that need to extract the version should use:
+# grep -oP "__version__ = ['\"]([^'\"]+)" tools/version.py
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tools.version import __version__
+
+
 base = None
 if sys.platform == "win32":
     base = "Win32GUI"  # Use "Console" if you want a console window 
@@ -110,7 +118,7 @@ def find_tool_packages() -> list[str]:
 
 setup(
     name='galago-tools',
-    version='0.9.12', # latest version
+    version=__version__, # latest version
     packages=find_tool_packages(),
     package_dir={'': '.'},
     license='Apache-2.0',  # Standard SPDX identifier
