@@ -13,18 +13,21 @@ from tkinter import ttk
 import time
 import argparse
 from os.path import join, dirname
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Tuple
 from tkinter.scrolledtext import ScrolledText
 from tools.utils import get_shell_command 
 from pyfiglet import Figlet # type: ignore
 import appdirs  # type: ignore
+from tools import __version__ as galago_version
+import requests
+from packaging import version
 
 # Configuration flags
 USE_APP_DATA_DIR = True  # Set to False for local development/testing
 
 # Use appdirs to get platform-specific data directory
 APP_NAME = "galago"
-APP_AUTHOR = "galago"
+APP_AUTHOR = "sciencecorp"
 DATA_DIR = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
 
 ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
@@ -41,6 +44,113 @@ sys.path = [
     p for p in sys.path
     if not any(sub in p.lower() for sub in ["anaconda3", "miniconda", "mamba"])
 ]
+
+def check_for_updates() -> Tuple[bool, str, str]:
+    """
+    Check if there's a newer version of galago-tools on PyPI
+    
+    Returns:
+        Tuple[bool, str, str]: (update_available, current_version, latest_version)
+    """
+    try:
+        current_version = galago_version
+        response = requests.get("https://pypi.org/pypi/galago-tools/json", timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            latest_version = data["info"]["version"]
+            
+            # Compare versions using packaging.version for proper semantic versioning comparison
+            if version.parse(latest_version) > version.parse(current_version):
+                logging.info(f"Update available: {current_version} -> {latest_version}")
+                return True, current_version, latest_version
+            else:
+                logging.info(f"Using latest version: {current_version}")
+                return False, current_version, latest_version
+    except Exception as e:
+        logging.warning(f"Failed to check for updates: {str(e)}")
+    
+    # Return default values if the check fails
+    return False, galago_version, galago_version
+
+class UpdateNotifier(tk.Toplevel):
+    """Simple window to notify the user about available updates"""
+    
+    def __init__(self, parent:Any, current_version: str, latest_version: str):
+        super().__init__(parent)
+        self.title("Update Available")
+        self.geometry("400x200")
+        
+        # Make window modal
+        self.transient(parent)
+        self.grab_set()
+        
+        # Set icon if available
+        try:
+            if os.name == "nt":
+                self.iconbitmap(join(ROOT_DIR, "tools", "favicon.ico"))
+            elif os.name == "posix":
+                icon_file = join(ROOT_DIR, "tools", "site_logo.png")
+                icon_img = tk.Image("photo", file=icon_file)
+                if icon_img:
+                    self.iconphoto(True, str(icon_img))
+        except Exception:
+            pass
+            
+        # Create a frame
+        frame = ttk.Frame(self, padding="20")
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Add a header
+        header = ttk.Label(
+            frame, 
+            text="Update Available", 
+            font=("TkDefaultFont", 14, "bold")
+        )
+        header.pack(pady=(0, 10))
+        
+        # Add version information
+        version_text = (
+            f"Your version: {current_version}\n"
+            f"Latest version: {latest_version}"
+        )
+        version_label = ttk.Label(frame, text=version_text)
+        version_label.pack(pady=5)
+        
+        # Add recommendation
+        recommendation = ttk.Label(
+            frame,
+            text="It's recommended to update to the latest version\nto ensure you have the latest features and bug fixes.",
+            justify=tk.CENTER
+        )
+        recommendation.pack(pady=5)
+        
+        # Add update command
+        command_frame = ttk.Frame(frame)
+        command_frame.pack(pady=5)
+        
+        command_label = ttk.Label(
+            command_frame,
+            text="Run:",
+            font=("TkDefaultFont", 9, "bold")
+        )
+        command_label.pack(side=tk.LEFT, padx=(0, 5))
+        
+        command_text = ttk.Label(
+            command_frame,
+            text="pip install --upgrade galago-tools",
+            font=("Courier", 9)
+        )
+        command_text.pack(side=tk.LEFT)
+        
+        # Add close button
+        close_button = ttk.Button(frame, text="Close", command=self.destroy)
+        close_button.pack(pady=10)
+        
+        # Center the window on parent
+        self.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() - self.winfo_width()) // 2
+        y = parent.winfo_y() + (parent.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
 
 class ToolsManager():
 
@@ -78,7 +188,6 @@ class ToolsManager():
             logging.warning(f"Using fallback log directory: {self.log_folder}")
             os.makedirs(self.log_folder, exist_ok=True)
 
-        #Build databases if they do not exist
         self.server_processes : dict[str,subprocess.Popen] = {}
         self.tool_box_process: Optional[subprocess.Popen] = None
         self.main_frame = ttk.Frame(self.root)
@@ -138,12 +247,18 @@ class ToolsManager():
 
         self.update_interval = 100
         self.update_log_text()
-        self.log_text("------------------------------------------------------------------------------")
         self.log_text(ascii_art)
-        self.log_text("------------------------------------------------------------------------------")
+        
+        # Add info rectangle/box below the Figlet banner
+        self.log_text("┌─────────────────────────── GALAGO INFO ───────────────────────────┐", "box_border")
+        self.log_text(f"│ Version: {galago_version}                                                   │", "info_header")
+        self.log_text(f"│ Log Dir: {os.path.basename(self.log_folder):<53}    │", "info_header")
+        self.log_text(f"│ OS Type: {os.name:<57}│", "info_header")
+        self.log_text("└───────────────────────────────────────────────────────────────────┘", "box_border")
+
         self.log_text("\n")
         self.log_text(f"Log directory: {self.log_folder}")
-
+        
         # Add search and filter features
         self.search_frame = ttk.Frame(self.right_frame)
         self.search_frame.pack(fill=tk.X, padx=5, pady=5)
@@ -159,6 +274,25 @@ class ToolsManager():
         
         self.clear_button = ttk.Button(self.search_frame, text="Clear Logs", command=self.clear_logs)
         self.clear_button.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Check for updates asynchronously after initialization
+        self.root.after(1000, self.check_version_async)
+
+    def check_version_async(self) -> None:
+        """Start a background thread to check for updates"""
+        threading.Thread(target=self.perform_version_check, daemon=True).start()
+        
+    def perform_version_check(self) -> None:
+        """Check for updates and show notification if needed"""
+        update_available, current_version, latest_version = check_for_updates()
+        
+        if update_available:
+            # Schedule the UI update on the main thread
+            self.root.after(0, lambda: self.show_update_notification(current_version, latest_version))
+    
+    def show_update_notification(self, current_version: str, latest_version: str) -> None:
+        """Show a notification window about available updates"""
+        UpdateNotifier(self.root, current_version, latest_version)
 
     def kill_all_processes(self) ->None:
         for proc_key, process in self.server_processes.items():
@@ -500,7 +634,18 @@ def main() -> int:
         root = tk.Tk()
         config = Config()
         f = Figlet(font='slant')
-        print(f.renderText('Galago Tools Manager'))
+        banner = f.renderText('Galago Tools Manager')
+        print(banner)
+        
+        # Create a simple info box in the console
+        current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        print("┌─────────────────────────── GALAGO INFO ───────────────────────────┐")
+        print(f"│ Version: {galago_version}                                                   │")
+        print(f"│ Started: {current_time}                                      │")
+        print(f"│ Session: {LOG_TIME}                                               │")
+        print(f"│ OS Type: {os.name}                                                    │")
+        print("└───────────────────────────────────────────────────────────────────┘")
+        
         manager = ToolsManager(root, config)
         manager.show_gui()
         return 0
