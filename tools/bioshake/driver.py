@@ -51,15 +51,15 @@ class BioshakeDriver(ABCToolDriver):
             self.ser.open()
 
         full_command = command + "\r\n"
-        logging.debug(f"Sending command: {command}")
         self.ser.write(full_command.encode("ascii"))
-
         response = self.ser.readline().decode("ascii").strip()
-        logging.debug(f"Received response: {response}")
-
         if response == "e":
             error_list = self.get_error_list()
-            raise Exception("BioShake error: " + error_list)
+            if not error_list:
+                error_list = "Unknown error - no error codes returned from device"
+            error_msg = f"BioShake error during command '{command}': {error_list}"
+            logging.error(error_msg)
+            raise Exception(error_msg)
         return response
 
     """
@@ -244,10 +244,6 @@ class BioshakeDriver(ABCToolDriver):
         if not self.is_gripper_closed():
             self.grip()
         if speed is not None:
-            current_speed_str = self._send_command("gsts")
-            current_speed = float(current_speed_str)
-            if int(current_speed) == 0:
-                raise ValueError("Shake speed is 0. Please set to a positive nonzero value!")
             self._set_shake_speed(speed)
         if acceleration is not None:
             self._set_acceleration(acceleration)

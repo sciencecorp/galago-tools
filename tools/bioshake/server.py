@@ -37,16 +37,11 @@ class BioShakeServer(ToolServer):
 
     def StartShake(self, params: Command.StartShake) -> None:
         if params.duration > 0:
-            self.driver.shake_on_with_runtime(seconds=params.duration, 
-                                              speed=params.speed,
-                                              acceleration=params.acceleration)
-            if params.duration > 0:
-                logging.info(f"Shake started for {params.duration} seconds")
-                self.driver.shake_on_with_runtime(
-                    seconds=params.duration,
-                    speed=params.speed,
-                    acceleration=params.acceleration,
-                )
+            self.driver.shake_on_with_runtime(
+                seconds=params.duration,
+                speed=params.speed,
+                acceleration=params.acceleration,
+            )
         #If a negative duration is give, initialize non blocking shake
         else:
             self.driver.start_shake()
