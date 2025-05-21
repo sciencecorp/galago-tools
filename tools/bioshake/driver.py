@@ -42,7 +42,6 @@ class BioshakeDriver(ABCToolDriver):
         self.port = port
         self.ser = serial.Serial(port, baudrate=9600, timeout=3)
         self.shake_state = None
-        self.connect()
 
     def __del__(self) -> None:
         self.disconnect()
@@ -68,14 +67,14 @@ class BioshakeDriver(ABCToolDriver):
     """
 
     def connect(self) -> None:
-        if not self.ser.is_open:
-            self.ser.open()
-        else:
-            try:
-                self.ser.open()
-            except serial.SerialException as e:
-                logging.error(f"Error opening serial port: {e}")
-                raise
+        if self.ser is not None and self.ser.is_open:
+            logging.warning("Already connected to the device...")
+            return None
+        try:
+            self.ser = serial.Serial(port=self.port, baudrate=9600, timeout=1)
+        except serial.SerialException as e:
+            logging.error(f"Error opening serial port: {e}")
+            raise
 
     def disconnect(self) -> None:
         if self.ser.is_open:

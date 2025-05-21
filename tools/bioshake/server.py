@@ -16,9 +16,8 @@ class BioShakeServer(ToolServer):
         self.config = config
         if self.driver:
             logging.info("Bioshake driver already exists, reconfiguring...")
-            self.driver.port = self.config.com_port
-        else:
-            self.driver = BioshakeDriver(port=self.config.com_port)
+            self.driver.disconnect()
+        self.driver = BioshakeDriver(port=self.config.com_port)
         self.driver.connect()
 
     def Grip(self, params: Command.Grip) -> None:
