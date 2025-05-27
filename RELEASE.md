@@ -4,6 +4,30 @@
 
 Our project follows Semantic Versioning (SemVer) with version numbers formatted as `MAJOR.MINOR.PATCH`. When deciding which version component to bump, use these guidelines:
 
+## Fully Automated Release Process
+
+1. Bump the version using the script:
+ ```
+ python scripts/bump_version.py [major|minor|patch]
+ ```
+2. Commit with a message containing "Bump version":
+ ```
+ git add tools/version.py
+ git commit -m "Bump version to x.y.z"
+ ```
+3. Push directly to main or create and merge a PR to main:
+ ```
+ git push origin main
+ ```
+4. The GitHub Actions workflow will automatically:
+- Detect the version bump commit
+- Create a new release with the version from tools/version.py
+- Generate release notes
+- Build the package
+- Upload it to PyPI
+
+No manual intervention is required after pushing the version bump commit!
+
 ### Patch Version (x.y.Z)
 
 Bump the patch version (e.g., 0.9.12 → 0.9.13) when making **backward-compatible bug fixes**:
@@ -63,29 +87,7 @@ When the major version is 0 (e.g., 0.9.12), the project is considered to be in "
 
 Moving to 1.0.0 signifies that the API is considered stable and ready for production use.
 
-## Fully Automated Release Process
 
-1. Bump the version using the script:
- ```
- python scripts/bump_version.py [major|minor|patch]
- ```
-2. Commit with a message containing "Bump version":
- ```
- git add tools/version.py
- git commit -m "Bump version to x.y.z"
- ```
-3. Push directly to main or create and merge a PR to main:
- ```
- git push origin main
- ```
-4. The GitHub Actions workflow will automatically:
-- Detect the version bump commit
-- Create a new release with the version from tools/version.py
-- Generate release notes
-- Build the package
-- Upload it to PyPI
-
-No manual intervention is required after pushing the version bump commit!
 
 ## Setting Up Credentials
 

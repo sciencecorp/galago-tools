@@ -4,7 +4,7 @@ This file is auto-updated by the bump script.
 """
 
 # Version information
-__version__ = '0.9.14'  # Current version from setup.py
+__version__ = '0.9.14'  # Update this version string as needed
 
 # Parse version components for easier access
 VERSION_PARTS = __version__.split('.')
