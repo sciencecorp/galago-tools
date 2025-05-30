@@ -1,0 +1,86 @@
+syntax = 'proto3';
+package com.science.foundry.tools.grpc_interfaces.vspin_with_loader;
+
+message Command {
+  oneof command {
+    Initialize initialize = 1;
+    Close close = 2;
+    Home home = 3;
+    CloseDoor close_door = 4;
+    OpenDoor open_door = 5;
+    LoadPlate load_plate = 6;
+    UnloadPlate unload_plate = 7;
+    Park park = 8;
+    SpinCycle spin_cycle = 9;
+    StopSpinCycle stop_spin_cycle = 10;
+    ShowDiagsDialog show_diagnostics = 11;
+  }
+
+  message Initialize {
+    string profile = 1;
+  }
+
+  message Close {}
+
+  message Home {}
+
+  message CloseDoor {}
+
+  message OpenDoor {
+    int32 bucket_number = 1;  // 1 or 2
+  }
+
+  message LoadPlate {
+    int32 bucket_number = 1;        // 1 or 2
+    float gripper_offset = 2;       // 2.6 to 21.1
+    float plate_height = 3;         // 0.0 to 48.0
+    int32 speed = 4;               // 0 (slow) to 3 (fast)
+    int32 options = 5;             // 0-7 bitfield options
+  }
+
+  message UnloadPlate {
+    int32 bucket_number = 1;        // 1 or 2
+    float gripper_offset = 2;       // 2.6 to 21.1
+    float plate_height = 3;         // 0.0 to 48.0
+    int32 speed = 4;               // 0 (slow) to 3 (fast)
+    int32 options = 5;             // 0-7 bitfield options
+  }
+
+  message Park {}
+
+  message SpinCycle {
+    float velocity_percent = 1;
+    float acceleration_percent = 2;
+    float deceleration_percent = 3;
+    int32 timer_mode = 4;
+    int32 time = 5;
+    int32 bucket_number_load = 6;      // 1 or 2
+    float gripper_offset_load = 7;     // 2.6 to 21.1
+    float gripper_offset_unload = 8;   // 2.6 to 21.1
+    float plate_height_load = 9;       // 0.0 to 48.0
+    float plate_height_unload = 10;    // 0.0 to 48.0
+    int32 speed_load = 11;            // 0 (slow) to 3 (fast)
+    int32 speed_unload = 12;          // 0 (slow) to 3 (fast)
+    int32 load_options = 13;          // 0-7 bitfield options
+    int32 unload_options = 14;        // 0-7 bitfield options
+  }
+
+  message StopSpinCycle {
+    int32 bucket_number = 1;  // 1 or 2
+  }
+
+  message ShowDiagsDialog {
+    bool modal = 1;
+    int32 level = 2;
+  }
+}
+
+message Config {
+  string profile = 1;
+}
+
+message CommandResponse {
+  bool success = 1;
+  string error_message = 2;
+  int32 response_code = 3;
+}
