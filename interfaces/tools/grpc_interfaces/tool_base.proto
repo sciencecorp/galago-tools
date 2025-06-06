@@ -25,25 +25,25 @@ import "tools/grpc_interfaces/vspin_with_loader.proto";
 
 message Command {
   oneof tool_command {
-    com.science.foundry.tools.grpc_interfaces.cytation.Command cytation = 1;
-    com.science.foundry.tools.grpc_interfaces.opentrons2.Command opentrons2 = 2;
-    com.science.foundry.tools.grpc_interfaces.pf400.Command pf400 = 3;
-    com.science.foundry.tools.grpc_interfaces.liconic.Command liconic = 4;
-    com.science.foundry.tools.grpc_interfaces.dataman70.Command dataman70 = 5;
-    com.science.foundry.tools.grpc_interfaces.spectramax.Command spectramax = 6;
-    com.science.foundry.tools.grpc_interfaces.bioshake.Command bioshake = 7;
-    com.science.foundry.tools.grpc_interfaces.hig_centrifuge.Command hig_centrifuge = 8;
-    com.science.foundry.tools.grpc_interfaces.bravo.Command bravo = 9;
-    com.science.foundry.tools.grpc_interfaces.multidrop.Command multidrop = 10;
-    com.science.foundry.tools.grpc_interfaces.vcode.Command vcode = 11;
-    com.science.foundry.tools.grpc_interfaces.plateloc.Command plateloc=12;
-    com.science.foundry.tools.grpc_interfaces.xpeel.Command xpeel = 13;
-    com.science.foundry.tools.grpc_interfaces.alps3000.Command alps3000 = 14;
-    com.science.foundry.tools.grpc_interfaces.toolbox.Command toolbox = 15;
-    com.science.foundry.tools.grpc_interfaces.hamilton.Command hamilton = 16;
-    com.science.foundry.tools.grpc_interfaces.microserve.Command microserve = 17;
-    com.science.foundry.tools.grpc_interfaces.vprep.Command vprep = 18;
-    com.science.foundry.tools.grpc_interfaces.vspin_with_loader.Command vspin_with_loader = 19; 
+    tools.grpc_interfaces.cytation.Command cytation = 1;
+    tools.grpc_interfaces.opentrons2.Command opentrons2 = 2;
+    tools.grpc_interfaces.pf400.Command pf400 = 3;
+    tools.grpc_interfaces.liconic.Command liconic = 4;
+    tools.grpc_interfaces.dataman70.Command dataman70 = 5;
+    tools.grpc_interfaces.spectramax.Command spectramax = 6;
+    tools.grpc_interfaces.bioshake.Command bioshake = 7;
+    tools.grpc_interfaces.hig_centrifuge.Command hig_centrifuge = 8;
+    tools.grpc_interfaces.bravo.Command bravo = 9;
+    tools.grpc_interfaces.multidrop.Command multidrop = 10;
+    tools.grpc_interfaces.vcode.Command vcode = 11;
+    tools.grpc_interfaces.plateloc.Command plateloc=12;
+    tools.grpc_interfaces.xpeel.Command xpeel = 13;
+    tools.grpc_interfaces.alps3000.Command alps3000 = 14;
+    tools.grpc_interfaces.toolbox.Command toolbox = 15;
+    tools.grpc_interfaces.hamilton.Command hamilton = 16;
+    tools.grpc_interfaces.microserve.Command microserve = 17;
+    tools.grpc_interfaces.vprep.Command vprep = 18;
+    tools.grpc_interfaces.vspin_with_loader.Command vspin_with_loader = 19; 
   }
 } 
 
@@ -51,25 +51,25 @@ message Config {
   bool simulated = 1;
   string toolId = 2;
   oneof config {
-    com.science.foundry.tools.grpc_interfaces.cytation.Config cytation = 20;
-    com.science.foundry.tools.grpc_interfaces.opentrons2.Config opentrons2 = 21;
-    com.science.foundry.tools.grpc_interfaces.pf400.Config pf400 = 22;
-    com.science.foundry.tools.grpc_interfaces.liconic.Config liconic = 23;
-    com.science.foundry.tools.grpc_interfaces.dataman70.Config dataman70 = 24;
-    com.science.foundry.tools.grpc_interfaces.spectramax.Config spectramax = 25;
-    com.science.foundry.tools.grpc_interfaces.bioshake.Config bioshake = 26;
-    com.science.foundry.tools.grpc_interfaces.hig_centrifuge.Config hig_centrifuge = 27;
-    com.science.foundry.tools.grpc_interfaces.bravo.Config bravo = 28;
-    com.science.foundry.tools.grpc_interfaces.multidrop.Config multidrop = 29;
-    com.science.foundry.tools.grpc_interfaces.vcode.Config vcode = 30;
-    com.science.foundry.tools.grpc_interfaces.plateloc.Config plateloc = 31;
-    com.science.foundry.tools.grpc_interfaces.xpeel.Config xpeel = 32;
-    com.science.foundry.tools.grpc_interfaces.alps3000.Config alps3000 = 33;
-    com.science.foundry.tools.grpc_interfaces.toolbox.Config toolbox = 34;
-    com.science.foundry.tools.grpc_interfaces.hamilton.Config hamilton = 35;
-    com.science.foundry.tools.grpc_interfaces.microserve.Config microserve = 36;
-    com.science.foundry.tools.grpc_interfaces.vprep.Config vprep = 37;
-    com.science.foundry.tools.grpc_interfaces.vspin_with_loader.Config vspin_with_loader = 38; 
+    tools.grpc_interfaces.cytation.Config cytation = 20;
+    tools.grpc_interfaces.opentrons2.Config opentrons2 = 21;
+    tools.grpc_interfaces.pf400.Config pf400 = 22;
+    tools.grpc_interfaces.liconic.Config liconic = 23;
+    tools.grpc_interfaces.dataman70.Config dataman70 = 24;
+    tools.grpc_interfaces.spectramax.Config spectramax = 25;
+    tools.grpc_interfaces.bioshake.Config bioshake = 26;
+    tools.grpc_interfaces.hig_centrifuge.Config hig_centrifuge = 27;
+    tools.grpc_interfaces.bravo.Config bravo = 28;
+    tools.grpc_interfaces.multidrop.Config multidrop = 29;
+    tools.grpc_interfaces.vcode.Config vcode = 30;
+    tools.grpc_interfaces.plateloc.Config plateloc = 31;
+    tools.grpc_interfaces.xpeel.Config xpeel = 32;
+    tools.grpc_interfaces.alps3000.Config alps3000 = 33;
+    tools.grpc_interfaces.toolbox.Config toolbox = 34;
+    tools.grpc_interfaces.hamilton.Config hamilton = 35;
+    tools.grpc_interfaces.microserve.Config microserve = 36;
+    tools.grpc_interfaces.vprep.Config vprep = 37;
+    tools.grpc_interfaces.vspin_with_loader.Config vspin_with_loader = 38; 
   }
 }
 
