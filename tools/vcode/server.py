@@ -17,7 +17,7 @@ class VCodeServer(ToolServer):
         logging.info("Initializing VCode...")
         self.config = request
         self.driver = VCodeDriver(request.profile)
-        return self.driver.initialize()
+        # return self.driver.initialize()
     
     def Home(self, params:Command.Home) -> None:
         return self.driver.home_stage()

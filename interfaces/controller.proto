@@ -23,6 +23,7 @@ enum ToolType {
   hamilton = 16;
   microserve = 17;
   vprep = 18;
+  vspin_with_loader = 19;
 }
 
 message ToolConfig {

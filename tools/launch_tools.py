@@ -230,10 +230,6 @@ class ToolsManager():
         self.right_frame = tk.Frame(self.paned_window, width=(self.root.winfo_width()/5)*4)
         self.right_frame.pack(fill=tk.BOTH, expand=True)
         
-        f = Figlet(font='small')
-        ascii_art = f.renderText('Galago Tools Manager')
-
-
         # Add the right frame to the paned window
         self.paned_window.add(self.left_frame, weight=1)
         self.paned_window.add(self.right_frame, weight=10)
@@ -247,9 +243,10 @@ class ToolsManager():
 
         self.update_interval = 100
         self.update_log_text()
-        self.log_text(ascii_art)
         
         # Add info rectangle/box below the Figlet banner
+        
+        self.log_text("\n")
         self.log_text("┌─────────────────────────── GALAGO INFO ───────────────────────────┐", "box_border")
         self.log_text(f"│ Version: {galago_version}                                                   │", "info_header")
         self.log_text(f"│ Log Dir: {os.path.basename(self.log_folder):<53}    │", "info_header")

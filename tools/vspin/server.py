@@ -16,19 +16,25 @@ class VSpinWithLoaderServer(ToolServer):
         logging.info("Initializing VSpin and Loader...")
         self.config = request
         self.driver = VSpinWithLoader(request.profile)
-        self.driver.initialize()
+        return self.driver.initialize()
+    
+    def Initialize(self, params: Command.Initialize) -> None:
+        return self.driver.initialize()
+    
+    def Close(self, params: Command.Close) -> None:
+        return self.driver.close()
     
     def Home(self, params: Command.Home) -> None:
-        self.driver.home()
+        return self.driver.home()
     
     def CloseDoor(self, params: Command.CloseDoor) -> None:
-        self.driver.close_door()
+        return self.driver.close_door()
     
     def OpenDoor(self, params: Command.OpenDoor) -> None:
-        self.driver.open_door(params.bucket_number)
+        return self.driver.open_door(params.bucket_number)
     
     def LoadPlate(self, params: Command.LoadPlate) -> None:
-        self.driver.load_plate(
+        return self.driver.load_plate(
             params.bucket_number,
             params.gripper_offset,
             params.plate_height,
@@ -46,10 +52,9 @@ class VSpinWithLoaderServer(ToolServer):
         )
     
     def Park(self, params: Command.Park) -> None:
-        self.driver.park()
+        return self.driver.park()
     
     def SpinCycle(self, params: Command.SpinCycle) -> None:
-        logging.info(f"Starting spin cycle with parameters: {params}")
         return self.driver.spin_cycle(
             params.velocity_percent,
             params.acceleration_percent,
@@ -57,7 +62,6 @@ class VSpinWithLoaderServer(ToolServer):
             params.timer_mode,
             params.time,
             params.bucket_number_load,
-            params.bucket_number_unload,
             params.gripper_offset_load,
             params.gripper_offset_unload,
             params.plate_height_load,
@@ -72,7 +76,13 @@ class VSpinWithLoaderServer(ToolServer):
         return self.driver.stop_spin_cycle(params.bucket_number)
     
     def ShowDiagsDialog(self, params: Command.ShowDiagsDialog) -> None:
-        return self.driver.show_diagnostics()
+        return self.driver.show_diagnostics(params.modal, params.level)
+    
+    def EstimateInitialize(self, params: Command.Initialize) -> int:
+        return 2  
+    
+    def EstimateClose(self, params: Command.Close) -> int:
+        return 2
     
     def EstimateHome(self, params: Command.Home) -> int:
         return 2
@@ -84,7 +94,7 @@ class VSpinWithLoaderServer(ToolServer):
         return 3
     
     def EstimateLoadPlate(self, params: Command.LoadPlate) -> int:
-        return 1 
+        return 1
     
     def EstimateUnloadPlate(self, params: Command.UnloadPlate) -> int:
         return 1
