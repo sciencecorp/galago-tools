@@ -167,7 +167,7 @@ class Pf400Server(ToolServer):
             # logging.info(f"Before updating id: {motion_profiles_list}")
             if motion_profiles_list:
                 for i, profile in enumerate(motion_profiles_list):
-                    profile["id"] = i  
+                    profile["id"] = i + 1
             # logging.info(f"After updating id: {motion_profiles_list}")
             motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
             
