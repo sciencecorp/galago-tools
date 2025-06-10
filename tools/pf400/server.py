@@ -164,11 +164,9 @@ class Pf400Server(ToolServer):
             
             #Load and register profiles 
             motion_profiles_list = waypoints_dictionary.get("motion_profiles")
-            # logging.info(f"Before updating id: {motion_profiles_list}")
             if motion_profiles_list:
                 for i, profile in enumerate(motion_profiles_list):
                     profile["id"] = i + 1
-            # logging.info(f"After updating id: {motion_profiles_list}")
             motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
             
             self.motion_profiles = motion_profiles
