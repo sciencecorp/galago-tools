@@ -21,6 +21,7 @@ import appdirs  # type: ignore
 from tools import __version__ as galago_version
 import requests
 from packaging import version
+from tools.utils import get_local_ip
 
 # Configuration flags
 USE_APP_DATA_DIR = True  # Set to False for local development/testing
@@ -230,9 +231,6 @@ class ToolsManager():
         self.right_frame = tk.Frame(self.paned_window, width=(self.root.winfo_width()/5)*4)
         self.right_frame.pack(fill=tk.BOTH, expand=True)
         
-        f = Figlet(font='small')
-        ascii_art = f.renderText('Galago Tools Manager')
-
 
         # Add the right frame to the paned window
         self.paned_window.add(self.left_frame, weight=1)
@@ -240,24 +238,21 @@ class ToolsManager():
         self.log_files_modified_times = {}
         self.log_files_last_read_positions = {}
 
-        self.output_text = ScrolledText(self.right_frame, state='disabled', wrap='word')
+        self.output_text = ScrolledText(self.right_frame, state='disabled', wrap='word', bg='#1e1e1e', fg='#d4d4d4', font=('Consolas', 10))
         self.output_text.pack(fill=tk.BOTH, expand=True)
-        self.output_text.tag_config('error', foreground='red') 
-        self.output_text.tag_config('warning', foreground='orange')
+        self.output_text.tag_config('error', foreground='#f44747') 
+        self.output_text.tag_config('warning', foreground='#ffcc02')
+        self.output_text.tag_config('success', foreground='#4ec9b0')
+        self.output_text.tag_config('info', foreground='#9cdcfe')
+        self.output_text.tag_config('header', foreground='#569cd6', font=('Consolas', 10, 'bold'))
+        self.output_text.tag_config('url', foreground='#ce9178', underline=True)
+        self.output_text.tag_config('highlight', background='#264f78', foreground='#ffffff')
 
         self.update_interval = 100
         self.update_log_text()
-        self.log_text(ascii_art)
         
-        # Add info rectangle/box below the Figlet banner
-        self.log_text("┌─────────────────────────── GALAGO INFO ───────────────────────────┐", "box_border")
-        self.log_text(f"│ Version: {galago_version}                                                   │", "info_header")
-        self.log_text(f"│ Log Dir: {os.path.basename(self.log_folder):<53}    │", "info_header")
-        self.log_text(f"│ OS Type: {os.name:<57}│", "info_header")
-        self.log_text("└───────────────────────────────────────────────────────────────────┘", "box_border")
-
-        self.log_text("\n")
-        self.log_text(f"Log directory: {self.log_folder}")
+        # Enhanced greeting message
+        self.display_startup_message()
         
         # Add search and filter features
         self.search_frame = ttk.Frame(self.right_frame)
@@ -275,21 +270,43 @@ class ToolsManager():
         self.clear_button = ttk.Button(self.search_frame, text="Clear Logs", command=self.clear_logs)
         self.clear_button.pack(side=tk.LEFT, padx=(5, 0))
         
-        # Check for updates asynchronously after initialization
-        self.root.after(1000, self.check_version_async)
 
-    def check_version_async(self) -> None:
-        """Start a background thread to check for updates"""
-        threading.Thread(target=self.perform_version_check, daemon=True).start()
+    def display_startup_message(self) -> None:
+        current_time = time.strftime('%Y-%m-%d %H:%M:%S')
         
-    def perform_version_check(self) -> None:
-        """Check for updates and show notification if needed"""
-        update_available, current_version, latest_version = check_for_updates()
+        #Check for updates 
+        update_available, current_version, latest_version = check_for_updates() 
+
+        # Startup banner with better formatting
+        self.log_text("=" * 80)
+        self.log_text("🚀 🤖 GALAGO TOOLS MANAGER STARTED", "success")
+        self.log_text("=" * 80)
+        self.log_text("")
         
+        # Version and system info
+        self.log_text(f"📦 Version: {galago_version}", "info")
         if update_available:
-            # Schedule the UI update on the main thread
-            self.root.after(0, lambda: self.show_update_notification(current_version, latest_version))
-    
+            self.log_text(f"    A new version ({latest_version}) is available!", "warning")
+            self.log_text(f"    Upgrade using: pip install --upgrade galago-tools", "info")
+            self.show_update_notification(current_version, latest_version)
+        self.log_text(f"\n⏰ Started: {current_time}\n", "info")
+        self.log_text(f"🆔 Session: {LOG_TIME}\n", "info")
+        self.log_text(f"💻 Platform: {os.name}\n", "info")
+        
+        # URLs and important info
+        self.log_text("📂 URLs:", "header")
+        self.log_url("   Tool Server Ip: ", "info", f"{get_local_ip()}", "url")
+        self.log_url("   Galago Web Local: ", "info", f"http://localhost:3010/", "url")
+        self.log_url("   Galago Web On network: ", "info", f"http://{get_local_ip()}:3010/", "url")
+        self.log_text(f"   Logs Directory: {self.log_folder}\n", "info")
+        
+        # Status message
+        self.log_text("✅ Manager initialized successfully\n", "success")
+        self.log_text("🔄 Starting tool servers...\n", "info")
+        self.log_text("-" * 80)
+        self.log_text("")
+
+
     def show_update_notification(self, current_version: str, latest_version: str) -> None:
         """Show a notification window about available updates"""
         UpdateNotifier(self.root, current_version, latest_version)
@@ -385,18 +402,60 @@ class ToolsManager():
         self.root.after(self.update_interval, self.update_log_text)
 
     def search_logs(self) -> None:
-        search_term = self.search_entry.get().lower()
-        self.output_text.tag_remove("search", "1.0", tk.END)
-        if search_term:
+        """Search for text in the logs and highlight matches"""
+        search_term = self.search_entry.get().strip()
+        
+        # Clear previous search highlights
+        self.output_text.tag_remove("search_highlight", "1.0", tk.END)
+        
+        if not search_term:
+            return
+        
+        try:
+            # Enable text widget for modifications
+            current_state = self.output_text.cget('state')
+            self.output_text.config(state='normal')
+            
+            # Configure the search highlight tag
+            self.output_text.tag_config("search_highlight", background="#ffff00", foreground="#000000")
+            
             start_pos = "1.0"
+            match_count = 0
+            
             while True:
+                # Search for the term (case-insensitive)
                 start_pos = self.output_text.search(search_term, start_pos, stopindex=tk.END, nocase=True)
                 if not start_pos:
                     break
+                    
+                # Calculate end position
                 end_pos = f"{start_pos}+{len(search_term)}c"
-                self.output_text.tag_add("search", start_pos, end_pos)
+                
+                # Add highlight tag
+                self.output_text.tag_add("search_highlight", start_pos, end_pos)
+                
+                # Move to next position
                 start_pos = end_pos
-            self.output_text.tag_config("search", background="yellow")
+                match_count += 1
+            
+            # Restore original state
+            self.output_text.config(state=current_state)
+            
+            # Log search results
+            if match_count > 0:
+                self.log_text(f"🔍 Found {match_count} matches for '{search_term}'", "info")
+                # Scroll to first match
+                first_match = self.output_text.search(search_term, "1.0", stopindex=tk.END, nocase=True)
+                if first_match:
+                    self.output_text.see(first_match)
+            else:
+                self.log_text(f"🔍 No matches found for '{search_term}'", "warning")
+                
+        except tk.TclError as e:
+            self.log_text(f"Search error: {str(e)}", "error")
+        except Exception as e:
+            self.log_text(f"Unexpected search error: {str(e)}", "error")
+
 
     def filter_logs(self, *args: Any) -> None:
         filter_type = self.filter_var.get()
@@ -474,14 +533,58 @@ class ToolsManager():
                 logging.warning(f"Failed to kill process {process_name}. Reason is={str(e)}.")
         return None 
     
-    def log_text(self, text: str, log_type: str = "info") -> None:
+
+    def log_url(self, prefix: str, prefix_type: str, url: str, url_type: str) -> None:
+        """For combining labels with URLs"""
         self.output_text.config(state='normal')
+        
+        # Insert prefix with its style
+        if prefix_type == "error":
+            self.output_text.insert(tk.END, prefix, ('error',))
+        elif prefix_type == "warning":  
+            self.output_text.insert(tk.END, prefix, ('warning',))
+        elif prefix_type == "success":
+            self.output_text.insert(tk.END, prefix, ('success',))
+        elif prefix_type == "header":
+            self.output_text.insert(tk.END, prefix, ('header',))
+        elif prefix_type == "info":
+            self.output_text.insert(tk.END, prefix, ('info',))
+        else:
+            self.output_text.insert(tk.END, prefix)
+            
+        # Insert URL with its style
+        if url_type == "url":
+            self.output_text.insert(tk.END, url, ('url',))
+        else:
+            self.output_text.insert(tk.END, url)
+            
+        # Add newline
+        self.output_text.insert(tk.END, "\n")
+            
+        self.output_text.config(state='disabled')
+        self.output_text.see(tk.END)
+
+    def log_text(self, text: str, log_type: str = "info") -> None:
+        """Enhanced log_text method with better styling"""
+        self.output_text.config(state='normal')
+        
         if log_type == "error":
             self.output_text.insert(tk.END, text + "\n", ('error',))
-        elif log_type == "warning":
+        elif log_type == "warning":  
             self.output_text.insert(tk.END, text + "\n", ('warning',))
+        elif log_type == "success":
+            self.output_text.insert(tk.END, text + "\n", ('success',))
+        elif log_type == "header":
+            self.output_text.insert(tk.END, text + "\n", ('header',))
+        elif log_type == "url":
+            self.output_text.insert(tk.END, text + "\n", ('url',))
+        elif log_type == "highlight":
+            self.output_text.insert(tk.END, text + "\n", ('highlight',))
+        elif log_type == "info":
+            self.output_text.insert(tk.END, text + "\n", ('info',))
         else:
             self.output_text.insert(tk.END, text + "\n")
+            
         self.output_text.config(state='disabled')
         self.output_text.see(tk.END)
 
@@ -633,7 +736,7 @@ def main() -> int:
     try:
         root = tk.Tk()
         config = Config()
-        f = Figlet(font='slant')
+        f = Figlet()
         banner = f.renderText('Galago Tools Manager')
         print(banner)
         
