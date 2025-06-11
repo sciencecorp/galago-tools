@@ -16,7 +16,6 @@ from os.path import join, dirname
 from typing import Optional, Any, Callable, Tuple
 from tkinter.scrolledtext import ScrolledText
 from tools.utils import get_shell_command 
-from pyfiglet import Figlet # type: ignore
 import appdirs  # type: ignore
 from tools import __version__ as galago_version
 import requests
@@ -739,18 +738,25 @@ def main() -> int:
     try:
         root = tk.Tk()
         config = Config()
-        f = Figlet()
-        banner = f.renderText('Galago Tools Manager')
-        print(banner)
-        
-        # Create a simple info box in the console
         current_time = time.strftime('%Y-%m-%d %H:%M:%S')
-        print("┌─────────────────────────── GALAGO INFO ───────────────────────────┐")
-        print(f"│ Version: {galago_version}                                                   │")
-        print(f"│ Started: {current_time}                                      │")
-        print(f"│ Session: {LOG_TIME}                                               │")
-        print(f"│ OS Type: {os.name}                                                    │")
-        print("└───────────────────────────────────────────────────────────────────┘")
+        print("=" * 80)
+        print("🚀 🤖 GALAGO TOOLS MANAGER STARTED")
+        print("=" * 80)
+        print("")
+        print(f"📦 Version: {galago_version}")
+        print(f"⏰ Started: {current_time}")
+        print(f"🆔 Session: {LOG_TIME}")
+        print(f"💻 Platform: {os.name}")
+        print("")
+        print("📂 URLs:")
+        print(f"   Tool Server Ip: {LOCAL_IP}")
+        print("   Galago Web Local: http://localhost:3010/")
+        print(f"   Galago Web On network: http://{LOCAL_IP}:3010/")
+        print("")
+        print("✅ Manager initialized successfully")
+        print("🔄 Starting tool servers...")
+        print("-" * 80)
+        print("")
         
         manager = ToolsManager(root, config)
         manager.show_gui()
