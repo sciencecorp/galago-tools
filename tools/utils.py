@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 import logging
 from enum import Enum 
-from typing import Optional
+from typing import Optional, Any
 import sys 
 import socket 
 
@@ -16,7 +16,7 @@ class LogType(Enum):
     RUN_END = "RUN_END",
     PLATE_READ = "PLATE_READ",
 
-def get_local_ip():
+def get_local_ip() -> Any:
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))

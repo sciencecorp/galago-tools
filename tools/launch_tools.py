@@ -35,6 +35,8 @@ ROOT_DIR = dirname(dirname(os.path.realpath(__file__)))
 LOG_TIME = int(time.time())
 TOOLS_32BITS = ["vcode","bravo","hig_centrifuge","plateloc","vspin"]
 
+LOCAL_IP = get_local_ip()
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s | %(levelname)s | %(message)s',
@@ -152,6 +154,9 @@ class UpdateNotifier(tk.Toplevel):
         x = parent.winfo_x() + (parent.winfo_width() - self.winfo_width()) // 2
         y = parent.winfo_y() + (parent.winfo_height() - self.winfo_height()) // 2
         self.geometry(f"+{x}+{y}")
+
+
+UPDATE_AVAILABLE, CURRENT_VERSION, LATEST_VERSION = check_for_updates()
 
 class ToolsManager():
 
@@ -274,9 +279,6 @@ class ToolsManager():
     def display_startup_message(self) -> None:
         current_time = time.strftime('%Y-%m-%d %H:%M:%S')
         
-        #Check for updates 
-        update_available, current_version, latest_version = check_for_updates() 
-
         # Startup banner with better formatting
         self.log_text("=" * 80)
         self.log_text("🚀 🤖 GALAGO TOOLS MANAGER STARTED", "success")
@@ -285,19 +287,19 @@ class ToolsManager():
         
         # Version and system info
         self.log_text(f"📦 Version: {galago_version}", "info")
-        if update_available:
-            self.log_text(f"    A new version ({latest_version}) is available!", "warning")
-            self.log_text(f"    Upgrade using: pip install --upgrade galago-tools", "info")
-            self.show_update_notification(current_version, latest_version)
+        if UPDATE_AVAILABLE:
+            self.log_text(f"    A new version ({LATEST_VERSION}) is available!", "warning")
+            self.log_text("    Upgrade using: pip install --upgrade galago-tools", "info")
+            self.show_update_notification(CURRENT_VERSION, LATEST_VERSION)
         self.log_text(f"\n⏰ Started: {current_time}\n", "info")
         self.log_text(f"🆔 Session: {LOG_TIME}\n", "info")
         self.log_text(f"💻 Platform: {os.name}\n", "info")
         
         # URLs and important info
         self.log_text("📂 URLs:", "header")
-        self.log_url("   Tool Server Ip: ", "info", f"{get_local_ip()}", "url")
-        self.log_url("   Galago Web Local: ", "info", f"http://localhost:3010/", "url")
-        self.log_url("   Galago Web On network: ", "info", f"http://{get_local_ip()}:3010/", "url")
+        self.log_url("   Tool Server Ip: ", "info", f"{LOCAL_IP}", "url")
+        self.log_url("   Galago Web Local: ", "info", "http://localhost:3010/", "url")
+        self.log_url("   Galago Web On network: ", "info", f"http://{LOCAL_IP}:3010/", "url")
         self.log_text(f"   Logs Directory: {self.log_folder}\n", "info")
         
         # Status message
@@ -401,61 +403,62 @@ class ToolsManager():
             self.output_text.config(state='disabled')
         self.root.after(self.update_interval, self.update_log_text)
 
+
     def search_logs(self) -> None:
         """Search for text in the logs and highlight matches"""
         search_term = self.search_entry.get().strip()
         
         # Clear previous search highlights
-        self.output_text.tag_remove("search_highlight", "1.0", tk.END)
+        try:
+            self.output_text.tag_remove("search", "1.0", tk.END)
+        except tk.TclError:
+            pass
         
         if not search_term:
             return
         
         try:
-            # Enable text widget for modifications
-            current_state = self.output_text.cget('state')
             self.output_text.config(state='normal')
             
-            # Configure the search highlight tag
-            self.output_text.tag_config("search_highlight", background="#ffff00", foreground="#000000")
+            all_text = self.output_text.get("1.0", tk.END)
+            search_term_lower = search_term.lower()
             
-            start_pos = "1.0"
-            match_count = 0
+            start_index = 0
+            matches = []
             
             while True:
-                # Search for the term (case-insensitive)
-                start_pos = self.output_text.search(search_term, start_pos, stopindex=tk.END, nocase=True)
-                if not start_pos:
+                pos = all_text.lower().find(search_term_lower, start_index)
+                if pos == -1:
                     break
-                    
-                # Calculate end position
-                end_pos = f"{start_pos}+{len(search_term)}c"
-                
-                # Add highlight tag
-                self.output_text.tag_add("search_highlight", start_pos, end_pos)
-                
-                # Move to next position
-                start_pos = end_pos
-                match_count += 1
+                matches.append((pos, pos + len(search_term)))
+                start_index = pos + 1
             
-            # Restore original state
-            self.output_text.config(state=current_state)
+            for start_pos, end_pos in matches:
+                try:
+                    # Convert to line.char format
+                    start_tk = f"1.0+{start_pos}c"
+                    end_tk = f"1.0+{end_pos}c"
+                    self.output_text.tag_add("search", start_tk, end_tk)
+                except ValueError:
+                    logging.warning(f"Failed to convert position {start_pos} to line.char format")
+                    # Skip this match if position conversion fails
+                    continue
             
-            # Log search results
-            if match_count > 0:
-                self.log_text(f"🔍 Found {match_count} matches for '{search_term}'", "info")
-                # Scroll to first match
-                first_match = self.output_text.search(search_term, "1.0", stopindex=tk.END, nocase=True)
-                if first_match:
-                    self.output_text.see(first_match)
-            else:
-                self.log_text(f"🔍 No matches found for '{search_term}'", "warning")
-                
-        except tk.TclError as e:
-            self.log_text(f"Search error: {str(e)}", "error")
+            # Configure highlighting
+            self.output_text.tag_config("search", background="yellow", foreground="black")
+            
+            # Scroll to first match if any found
+            if matches:
+                first_pos = f"1.0+{matches[0][0]}c"
+                self.output_text.see(first_pos)
+            
         except Exception as e:
-            self.log_text(f"Unexpected search error: {str(e)}", "error")
-
+            logging.info(f"Search failed: {str(e)}")
+            # If anything fails, just skip the search silently
+            pass
+        finally:
+            # Always restore disabled state
+            self.output_text.config(state='disabled')
 
     def filter_logs(self, *args: Any) -> None:
         filter_type = self.filter_var.get()
