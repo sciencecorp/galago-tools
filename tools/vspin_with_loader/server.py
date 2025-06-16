@@ -25,11 +25,11 @@ class VSpinWithLoaderServer(ToolServer):
         self.driver.close_door()
     
     def OpenDoor(self, params: Command.OpenDoor) -> None:
-        self.driver.open_door(params.bucket_number)
+        self.driver.open_door(params.bucket)
     
     def LoadPlate(self, params: Command.LoadPlate) -> None:
         self.driver.load_plate(
-            params.bucket_number,
+            params.bucket,
             params.gripper_offset,
             params.plate_height,
             params.speed,
@@ -38,7 +38,7 @@ class VSpinWithLoaderServer(ToolServer):
     
     def UnloadPlate(self, params: Command.UnloadPlate) -> None:
         return self.driver.unload_plate(
-            params.bucket_number,
+            params.bucket,
             params.gripper_offset,
             params.plate_height,
             params.speed,
@@ -48,29 +48,20 @@ class VSpinWithLoaderServer(ToolServer):
     def Park(self, params: Command.Park) -> None:
         self.driver.park()
     
-    def SpinCycle(self, params: Command.SpinCycle) -> None:
+    def Spin(self, params: Command.Spin) -> None:
         logging.info(f"Starting spin cycle with parameters: {params}")
-        return self.driver.spin_cycle(
+        return self.driver.spin(
+            params.time,
             params.velocity_percent,
             params.acceleration_percent,
             params.deceleration_percent,
             params.timer_mode,
-            params.time,
-            params.bucket_number_load,
-            params.bucket_number_unload,
-            params.gripper_offset_load,
-            params.gripper_offset_unload,
-            params.plate_height_load,
-            params.plate_height_unload,
-            params.speed_load,
-            params.speed_unload,
-            params.load_options,
-            params.unload_options
+            params.bucket,
         )
     
-    def StopSpinCycle(self, params: Command.StopSpinCycle) -> None:
-        return self.driver.stop_spin_cycle(params.bucket_number)
-    
+    def StopSpin(self, params: Command.StopSpin) -> None:
+        return self.driver.stop_spin(params.bucket)
+
     def ShowDiagsDialog(self, params: Command.ShowDiagsDialog) -> None:
         return self.driver.show_diagnostics()
     
@@ -92,13 +83,10 @@ class VSpinWithLoaderServer(ToolServer):
     def EstimatePark(self, params: Command.Park) -> int:
         return 1
     
-    def EstimateSpinCycle(self, params: Command.SpinCycle) -> int:
-        base_time = params.time if params.time > 0 else 1 
-        accel_decel_time = 20  # Estimated time for acceleration and deceleration
-        load_unload_time = 16  # Time for loading and unloading operations
-        return base_time + accel_decel_time + load_unload_time
+    def EstimateSpin(self, params: Command.Spin) -> int:
+        return 1 
     
-    def EstimateStopSpinCycle(self, params: Command.StopSpinCycle) -> int:
+    def EstimateStopSpin(self, params: Command.StopSpin) -> int:
         return 1 
     
     def EstimateShowDiagsDialog(self, params: Command.ShowDiagsDialog) -> int:
