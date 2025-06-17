@@ -77,31 +77,29 @@ def move_through_coordinates(robot_driver: Pf400Driver, coordinates: List[Locati
     Move the robot through each coordinate in sequence.
     """
     for i, location in enumerate(coordinates):
-        logging.info(f"Moving to coordinate {i+1}: {location.to_string()}")
-        
         try:
-            robot_driver.movec(location.to_string(), motion_profile)
-            
-            # Optional delay between moves
-            if delay_between_moves > 0:
-                time.sleep(delay_between_moves)
+            robot_driver.tcp_ip.write(f"movec 1 {location.to_string()}")
                 
         except Exception as e:
             logging.error(f"Failed to move to coordinate {i+1}: {str(e)}")
             raise
+    
+    while(True):
+        state = robot_driver.communicator.get_state()
+        if state == "0 20" or state == "0 21":
+            break
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     
     FREE_ONLY = True #set to true to run trace, set to false to set arm to free mode
-    TIMES_TO_LOOP = 2 
     TCP_HOST = "192.168.0.1" 
     TCP_PORT = 10100         
     JOINTS = 6               
     GPL_VERSION = "v2"       
     
     #Custom profile, max speed, acc and decc, non straight (curved).
-    MOTION_PROFILE = "1 100 100 100 100 0.1 0.1 0 0"
+    MOTION_PROFILE = "1 100 100 100 100 0 0 0 0"
     # Initialize robot driver
     robot_driver = Pf400Driver(
         tcp_host=TCP_HOST,
@@ -141,9 +139,9 @@ if __name__ == "__main__":
         end_time = time.time()
         elapsed_time = end_time - start_time
 
-        logging.info(f"Total time elapsed is {elapsed_time:.2f}")
+        print(f"Total time elapsed is {elapsed_time:.2f}")
         
-        logging.info("Movement sequence completed successfully!")
+        print("Movement sequence completed successfully!")
             
     except Exception as e:
         logging.error(f"Error during robot operation: {str(e)}")
