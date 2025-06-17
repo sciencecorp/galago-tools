@@ -109,7 +109,7 @@ class MovementController:
             self.communicator.send_command(f"movec {loc_string}")
         else:
             self.communicator.send_command(f"movec {motion_profile} {loc_string}")
-        self.communicator.wait_for_completion()
+        # self.communicator.wait_for_completion()
 
     def jog(self, axis: Axis, distance: float) -> None:
         """Jog robot along specified axis"""
