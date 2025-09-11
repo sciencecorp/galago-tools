@@ -2,9 +2,10 @@ from datetime import datetime
 import os
 import logging
 from enum import Enum 
-from typing import Optional
+from typing import Optional, Any
 import sys 
 from google.protobuf.struct_pb2 import Struct
+import socket 
 
 class LogType(Enum):
     ERROR = "ERROR",
@@ -16,6 +17,16 @@ class LogType(Enum):
     RUN_END = "RUN_END",
     PLATE_READ = "PLATE_READ",
 
+def get_local_ip() -> Any:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+    except Exception:
+        local_ip = "127.0.0.1" # Default local IP
+    finally:
+        s.close()
+    return local_ip
 
 def get_shell_command(tool_type:str, port:int) -> list:
     return [sys.executable, '-m', f'tools.{tool_type}.server', f'--port={port}']

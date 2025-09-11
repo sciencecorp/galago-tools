@@ -1,7 +1,4 @@
 import logging
-import time
-import typing as t
-
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.bioshake_pb2 import Command, Config
 
@@ -13,15 +10,14 @@ class BioShakeServer(ToolServer):
 
     def __init__(self) -> None:
         super().__init__()
-        self.driver: t.Optional[BioshakeDriver] = None
+        self.driver: BioshakeDriver
 
     def _configure(self, config: Config) -> None:
         self.config = config
         if self.driver:
             logging.info("Bioshake driver already exists, reconfiguring...")
-            self.driver.port = self.config.com_port
-        else:
-            self.driver = BioshakeDriver(port=self.config.com_port)
+            self.driver.disconnect()
+        self.driver = BioshakeDriver(port=self.config.com_port)
         self.driver.connect()
 
     def Grip(self, params: Command.Grip) -> None:
@@ -37,59 +33,39 @@ class BioShakeServer(ToolServer):
     def Home(self, params: Command.Home) -> None:
         if not self.driver:
             raise Exception("Bioshake driver not connected")
-        self.driver.shake_go_home()
+        self.driver.home()
 
     def StartShake(self, params: Command.StartShake) -> None:
-        if not self.driver:
-            raise Exception("Bioshake driver not connected")
-        self.driver.set_shake_target_speed(rpm=params.speed)
         if params.duration > 0:
-            # Note, this is not blocking meaning that command will return
-            # And next command will be executed immediately
-            # This enables shaking to happen asynchronously which enables
-            # stop commands to be issued, but also means that workcell can
-            # do other things while shaking is happening
-            # However, this also means that when we want to wait for
-            # shaking to finish, we need to use WaitForShakeToFinish
-            self.driver.shake_on_with_runtime(seconds=params.duration)
+            self.driver.shake_on_with_runtime(
+                seconds=params.duration,
+                speed=params.speed,
+                acceleration=params.acceleration,
+            )
+        #If a negative duration is give, initialize non blocking shake
         else:
-            self.driver.shake_on()
+            self.driver.start_shake()
 
     def StopShake(self, params: Command.StopShake) -> None:
-        if not self.driver:
-            raise Exception("Bioshake driver not connected")
-        self.driver.shake_off()
-        time.sleep(4)
+        self.driver.stop_shake()
 
     def WaitForShakeToFinish(self, params: Command.WaitForShakeToFinish) -> None:
-        """Note, this is a blocking command that waits for shake to finish
-        for a maximum of params.timeout seconds. If shake is not finished
-        within that time, it will return None. If it is desired for shake to
-        end, then a stop shake command will need to be sent. Alternatively,
-        the shake will stop once the time originally given to it has elapsed.
-        """
-        if not self.driver:
-            raise Exception("Bioshake driver not connected")
-        start_time = time.time()
-        while time.time() - start_time < params.timeout:
-            remaining_time = self.driver.get_shake_remaining_time()
-            shake_state = self.driver.get_shake_state_as_string()
-            logging.info(
-                f"Current status: {shake_state}... Shake remaining time: {remaining_time}"
-            )
-            if remaining_time == 0 or shake_state in ["STOP", "ESTOP"]:
-                logging.info("Shake finished")
-                return None
-            else:
-                time.sleep(5)
-        logging.warning("Timeout reached shake not finished")
-        return None
+        self.driver.wait_for_shake(timeout=params.timeout)
 
     def Reset(self, params: Command.Reset) -> None:
         if not self.driver:
             raise Exception("Bioshake driver not connected")
-        self.driver.reset_device()
+        self.driver.reset()
 
+    def TemperatureOn(self, params: Command.TemperatureOn) -> None:
+        self.driver.temp_on()
+
+    def TemperatureOff(self, params: Command.TemperatureOff) -> None:
+        self.driver.temp_off()
+
+    def SetTemperature(self, params: Command.SetTemperature) -> None:
+        self.driver.set_tmp(params.temperature)
+    
     def EstimateGrip(self, params: Command.Grip) -> int:
         return 1
 

@@ -40,5 +40,5 @@ message Command {
 
 message Config {
   string ip = 1;
-  optional int32 port = 2;
+  int32 port = 2;
 }

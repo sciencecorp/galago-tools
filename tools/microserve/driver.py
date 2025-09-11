@@ -24,7 +24,7 @@ COMMANDS = {
 class MicroServeDriver(ABCToolDriver):
     toolType = "microserve"
     
-    def __init__(self, ip:str, port: int= 1000) -> None:
+    def __init__(self, ip:str, port: int) -> None:
         self.tcp : Optional[TcpIp] = None
         self.blocking :bool = True
         self.port : int = port

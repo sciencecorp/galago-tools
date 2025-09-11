@@ -84,31 +84,19 @@ class MovementController:
         self.state = state
         self.config = config 
 
-    def move_joints_v1(self, location: Location) -> None:
+    def move_joints(self, location: Location, profile_id: int) -> None:
         """Move robot using joint coordinates"""
         loc_values = location.values
         if self.state.gripper_axis_override_value is not None:
             loc_values[4] = self.state.gripper_axis_override_value
-        
         if self.config.joints == 5:
             loc_values = loc_values[:5]
         loc_string = Location(loc_values).to_string()
         if self.config.gpl_version == "v1":
+            self.communicator.send_command(f"profidx {profile_id}")
             self.communicator.send_command(f"movej {loc_string}")
-        else:
-            self.communicator.send_command(f"movej 1 {loc_string}")
-        self.communicator.wait_for_completion()
-
-    def move_joints_v2(self, location: Location, motion_profile: int = 1) -> None:
-        """Move robot using joint coordinates"""
-
-        loc_values = location.values
-        if self.state.gripper_axis_override_value is not None:
-            loc_values[4] = self.state.gripper_axis_override_value
-        if self.config.joints == 5:
-            loc_values = loc_values
-        loc_string = Location(loc_values).to_string()
-        self.communicator.send_command(f"movej {motion_profile} {loc_string}")
+        elif self.config.gpl_version == "v2":
+            self.communicator.send_command(f"movej {profile_id} {loc_string}")
         self.communicator.wait_for_completion()
 
     def move_cartesian(self, location: Location, motion_profile: int = 1) -> None:
@@ -214,9 +202,10 @@ class RobotInitializer:
             logging.info("Switched to PC mode")
 
     def _ensure_power_on(self, target_states:List[str] =["20", "21"], timeout_seconds:int=40) -> None:
+        
         start_time = time.time()
         state = self.communicator.get_state()
-        self.communicator.send_command("hp")
+        self.communicator.send_command("hp 1")
         while True:
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout_seconds:
@@ -352,11 +341,7 @@ class Pf400Driver(ABCToolDriver):
         """Move in joint space"""
         if self.movement is None:
             raise RuntimeError("Robot not initialized")
-        if self.config.gpl_version == "v1":
-            self.set_profile_index(motion_profile)
-            self.movement.move_joints_v1(Location.from_string(loc_string))
-        else:
-            self.movement.move_joints_v2(Location.from_string(loc_string), motion_profile)
+        self.movement.move_joints(Location.from_string(loc_string), motion_profile)
 
     def movec(self, loc_string: str, motion_profile: int = 1) -> None:
         """Move in Cartesian space"""

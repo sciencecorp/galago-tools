@@ -17,7 +17,7 @@ message Command {
     GetOT2ImagesByDate get_ot2_images_by_date = 10;
     GetOT2ImageBytes get_ot2_image_bytes = 11;
     GetOT2ImagePrediction get_ot2_image_prediction = 12;
-    RunPythonScript run_python_script = 13;
+    RunScript run_script = 13;
     SendSlackAlert send_slack_alert = 14;
     ClearLastSlackAlert clear_last_slack_alert = 15;
     GetLogMediaExchangeByDate get_log_media_exchange_by_date = 16;
@@ -100,7 +100,7 @@ message Command {
     string image_file =2;
   }
 
-  message RunPythonScript {
+  message RunScript {
     string script_content = 1;
     bool blocking = 2;
   }

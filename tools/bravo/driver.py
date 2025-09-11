@@ -138,6 +138,8 @@ else:
                 "VWorks4API is not supported on non-Windows platforms."
             )            
 
+
+
 class BravoDriver(ABCToolDriver):
     def __init__(self, init_com:bool=False):
         self.live = False
@@ -154,6 +156,7 @@ class BravoDriver(ABCToolDriver):
                 self.driver = cc.CreateObject("VWorks4.VWorks4API")
                 self.event_sink = VWorksEventSink(self.event_queue)
                 self.event_connection = GetEvents(self.driver, self.event_sink)
+                self.show_vworks(True)
             except Exception as e:
                 logging.error(f"Failed to create VWorks COM object: {e}")
                 # Check if this is a COM initialization error
@@ -199,6 +202,7 @@ class BravoDriver(ABCToolDriver):
             raise FileNotFoundError(f"{protocol} does not exist.")
         
         try:
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             self.show_vworks()
             logging.info(f"Loading protocol: {protocol}")
             self.driver.LoadProtocol(protocol)
@@ -209,7 +213,6 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"Waiting for protocol completion: {protocol}")
             success = self.wait_for_protocol_completion(protocol)
             
-            self.show_vworks(False)
             if not success:
                 raise RuntimeError(f"Protocol did not complete successfully: {protocol}")
                 
@@ -222,10 +225,10 @@ class BravoDriver(ABCToolDriver):
         if not os.path.exists(runset_file):
             raise FileNotFoundError(f"{runset_file} does not exist.")
         try:
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             self.show_vworks()
             self.driver.LoadRunsetFile(runset_file)
             success = self.wait_for_protocol_completion(runset_file)
-            self.show_vworks(False)
             if not success:
                 raise RuntimeError(f"Runset did not complete successfully: {runset_file}")
         except Exception as e:
