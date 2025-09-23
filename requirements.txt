@@ -29,3 +29,5 @@ pillow==11.0.0
 psutil==7.0.0
 comtypes==1.4.10
 appdirs==1.4.4
+pyhamilton==1.491.17
+git+https://github.com/PyLabRobot/pylabrobot.git@main
