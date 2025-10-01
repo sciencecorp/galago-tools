@@ -18,7 +18,7 @@ def run_python_script(
 ) -> t.Optional[str]:
 
     python_executable = python_exe if python_exe else "python"
-    
+    logging.info(f"Using python executable: {python_executable}")
     # Validate the executable exists if a full path was provided
     if python_exe and not os.path.isfile(python_exe):
         raise RuntimeError(f"Python executable not found: {python_exe}")
@@ -65,4 +65,3 @@ def run_python_script(
             shutil.rmtree(temp_dir)
         except Exception as e:
             logging.warning(f"Failed to cleanup temporary directory: {e}")
-

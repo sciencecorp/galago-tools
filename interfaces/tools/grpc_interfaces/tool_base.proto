@@ -69,7 +69,7 @@ message Config {
     tools.grpc_interfaces.hamilton.Config hamilton = 35;
     tools.grpc_interfaces.microserve.Config microserve = 36;
     tools.grpc_interfaces.vprep.Config vprep = 37;
-    tools.grpc_interfaces.vprep.Config plr = 38;
+    tools.grpc_interfaces.plr.Config plr = 38;
   }
 }
 

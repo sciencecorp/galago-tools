@@ -9,17 +9,17 @@ message Command {
     RunScript run_script = 2;
   }
 
-  message Initialize {}
-
   message RunLocalScript {
     string path = 1;
+    bool blocking =2;
   }
 
   message RunScript {
     string script_content = 1;
+    bool blocking =2;
   }
 }
 
 message Config {
-  optional string python_exe = 1;
+    string python_exe = 1;
 }

@@ -49,8 +49,10 @@ class PLRToolServer(ToolServer):
             if not params.path:
                 raise ValueError("Path to script must be provided...")
             python_exe = None
+            logging.info(f"Config is {self.config}")
             if self.config and self.config.python_exe:
                 python_exe = self.config.python_exe
+                logging.info(f"Using python executable from config: {python_exe}")
             result = run_python_script(f"exec(open(r'''{params.path}''').read())", blocking=True, python_exe=python_exe)
             logging.info(f"Script result is {result}")
             if response:
