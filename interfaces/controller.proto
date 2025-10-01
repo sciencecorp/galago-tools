@@ -24,6 +24,7 @@ enum ToolType {
   microserve = 17;
   vprep = 18;
   plr = 19;
+  pyhamilton = 20;
 }
 
 message ToolConfig {
