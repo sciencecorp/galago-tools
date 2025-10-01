@@ -79,7 +79,6 @@ class VSpin(ABCToolDriver):
         self.instantiate()
 
     def instantiate(self) -> None:
-        """Create form using simpler synchronous approach"""
         pythoncom.CoInitialize()
         time.sleep(0.5)
         self.client = AxCentrifuge()
