@@ -1,7 +1,7 @@
 import logging
 import os
 from tools.base_server import ToolServer, serve
-from tools.grpc_interfaces.vspin_with_loader_pb2 import Command, Config
+from tools.grpc_interfaces.vspin_pb2 import Command, Config
 from .driver import VSpin
 import argparse 
 
