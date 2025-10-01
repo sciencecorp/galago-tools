@@ -142,8 +142,8 @@ setup(
     long_description_content_type="text/markdown",
     entry_points={
         'console_scripts': [
-            'galago-tools=tools.cli:main', 
-            'galago-tools-serve=tools.cli:serve',
+            'galago=tools.cli:main',
+            'galago-serve=tools.cli:serve',
         ],
     },
     classifiers=[
