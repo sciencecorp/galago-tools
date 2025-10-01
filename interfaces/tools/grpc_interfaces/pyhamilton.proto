@@ -1,0 +1,25 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.pyhamilton;
+
+message Command {
+
+  oneof command {
+    RunLocalScript run_local_script = 1;
+    RunScript run_script = 2;
+  }
+
+  message RunLocalScript {
+    string path = 1;
+    bool blocking =2;
+  }
+
+  message RunScript {
+    string script_content = 1;
+    bool blocking =2;
+  }
+}
+
+message Config {
+    string python_exe = 1;
+}

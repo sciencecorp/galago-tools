@@ -23,7 +23,9 @@ enum ToolType {
   hamilton = 16;
   microserve = 17;
   vprep = 18;
-  vspin_with_loader = 19;
+  plr = 19;
+  pyhamilton = 20;
+  vspin_with_loader = 21;
 }
 
 message ToolConfig {
