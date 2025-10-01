@@ -21,6 +21,7 @@ import "tools/grpc_interfaces/toolbox.proto";
 import "tools/grpc_interfaces/hamilton.proto";
 import "tools/grpc_interfaces/microserve.proto";
 import "tools/grpc_interfaces/vprep.proto";
+import "tools/grpc_interfaces/plr.proto";
 
 message Command {
   oneof tool_command {
@@ -42,6 +43,7 @@ message Command {
     tools.grpc_interfaces.hamilton.Command hamilton = 16;
     tools.grpc_interfaces.microserve.Command microserve = 17;
     tools.grpc_interfaces.vprep.Command vprep = 18;
+    tools.grpc_interfaces.plr.Command plr = 19;
   }
 } 
 
@@ -67,6 +69,7 @@ message Config {
     tools.grpc_interfaces.hamilton.Config hamilton = 35;
     tools.grpc_interfaces.microserve.Config microserve = 36;
     tools.grpc_interfaces.vprep.Config vprep = 37;
+    tools.grpc_interfaces.vprep.Config plr = 38;
   }
 }
 
