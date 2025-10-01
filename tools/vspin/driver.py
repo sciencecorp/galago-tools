@@ -11,66 +11,18 @@ except Exception:
     pass
 
 
-class LoadSpeed(Enum):
-    SLOW = 1
-    MEDIUM = 2
-    FAST = 3
-
 if os.name == "nt":
     import clr  # type: ignore
     SDK_DLL = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)), "deps",
-                "AxInterop.CentrifugeLoaderLib.dll",
+                "AxInterop.Centrifuge.dll",
             )
     clr.AddReference(SDK_DLL) 
-    clr.AddReference("System.Windows.Forms")
-    clr.AddReference("System.Drawing")
-    
-    from AxCentrifugeLoaderLib import AxCentrifugeLoader # type: ignore
-    import System.Windows.Forms as WinForms  # type: ignore
-    import System.Drawing as Drawing  # type: ignore
-
-    class VSpinForm(WinForms.Form): # type: ignore
-        def __init__(self) -> None:
-            super().__init__()
-            self.Loader
-            self.form_ready = False
-            self.setup_form()
-            
-        def setup_form(self) -> None:
-            self.AutoScaleDimensions = Drawing.SizeF(6.0, 13.0)
-            self.AutoScaleMode = WinForms.AutoScaleMode.Font
-            self.ClientSize = Drawing.Size(284, 261)
-            self.Name = "VSpinForm"
-            self.Text = "VSpin Loader"
-            self.WindowState = WinForms.FormWindowState.Minimized
-            self.ShowInTaskbar = False
-            
-            # Create the ActiveX control
-            self.create_loader_control()
-
-        def create_loader_control(self) -> None:
-            """Create and configure the ActiveX control"""
-            try:
-                self.Loader = AxCentrifugeLoader()
-                self.Loader.Enabled = True
-                self.Loader.Location = Drawing.Point(93, 152)
-                self.Loader.Name = "axCentrifugeLoader1"
-                self.Loader.Size = Drawing.Size(100, 50)
-                self.Loader.TabIndex = 0
-                
-                # CRITICAL: Add to form controls BEFORE calling CreateControl
-                self.Controls.Add(self.Loader)
-
-                logging.info("ActiveX control created and added to form")
-                
-            except Exception as e:
-                logging.error(f"Failed to create ActiveX control: {e}")
-                raise
+    from AxCentrifugeLib import AxCentrifuge # type: ignore
 
 else:
     # Stub for non-Windows
-    class AxCentrifugeLoader(): # type: ignore
+    class AxCentrifuge(): # type: ignore
         def __init__(self) -> None:
             pass
         
@@ -104,21 +56,6 @@ else:
                 "AxMicroplateLabeler is not supported on non-Windows platforms"
             )
             
-        def LoadPlate(self) -> None:
-            raise NotImplementedError(
-                "AxMicroplateLabeler is not supported on non-Windows platforms"
-            )
-            
-        def UnloadPlate(self) -> None:
-            raise NotImplementedError(
-                "AxMicroplateLabeler is not supported on non-Windows platforms"
-            )
-            
-        def Park(self) -> None:
-            raise NotImplementedError(
-                "AxMicroplateLabeler is not supported on non-Windows platforms"
-            )
-            
         def SpinCycle(self) -> None:
             raise NotImplementedError(
                 "AxMicroplateLabeler is not supported on non-Windows platforms"
@@ -134,47 +71,21 @@ else:
                 "AxMicroplateLabeler is not supported on non-Windows platforms"
             )
             
-        @property
-        def Blocking(self) -> bool:
-            return False
         
-        @Blocking.setter 
-        def Blocking(self, value: bool) -> None:
-            pass
-        
-    class VSpinForm: # type: ignore
-        def __init__(self) -> None:
-            self.Loader = AxCentrifugeLoader()
-            self.form_ready = True
-            
-        def Show(self) -> None:
-            pass
-
-        def Close(self) -> None        :
-            pass
-
-class VSpinWithLoader(ABCToolDriver):
+class VSpin(ABCToolDriver):
     def __init__(self, profile: str) -> None:
         self.profile: str = profile
         self.live: bool = False
-        self.client: AxCentrifugeLoader
-        self.form: VSpinForm 
+        self.client: AxCentrifuge
         self.instantiate()
 
     def instantiate(self) -> None:
         """Create form using simpler synchronous approach"""
         pythoncom.CoInitialize()
-        
-        # Enable Windows XP visual styles
-        WinForms.Application.EnableVisualStyles()
-        WinForms.Application.SetCompatibleTextRenderingDefault(False)
-        self.form = VSpinForm()
-        self.form.Show()
         time.sleep(0.5)
-        self.client = self.form.Loader
+        self.client = AxCentrifuge()
         self.client.CreateControl()
         self.client.Blocking = True
-        logging.info("Loader component instantiated successfully")
         pythoncom.CoUninitialize()
 
     def initialize(self) -> None: 
@@ -195,43 +106,6 @@ class VSpinWithLoader(ABCToolDriver):
     
     def open_door(self, bucket_number:int) -> None:
         self.schedule_threaded_command("open_door", {"bucket_number": bucket_number})
-    
-    def park(self) -> None:
-        self.schedule_threaded_command("park", {})
-
-
-    def load_plate(self, 
-                    bucket_number: int, 
-                    gripper_offset: float,
-                    plate_height: float, 
-                    speed: str, 
-                    options: int
-                    ) -> None:
-        """Load plate"""
-        speed_enum = LoadSpeed[speed.upper()]
-        
-        args = {
-            "bucket_number": bucket_number,
-            "gripper_offset": gripper_offset,
-            "plate_height": plate_height,
-            "speed": speed_enum.value,
-            "options": options
-        }
-        self.schedule_threaded_command("load_plate", args)
-
-    def unload_plate(self, bucket_number: int, gripper_offset: float, plate_height: float, speed: str, options: int) -> None:
-        """Unload plate"""
-        
-        speed_enum = LoadSpeed[speed.upper()]
-
-        args = {
-            "bucket_number": bucket_number,
-            "gripper_offset": gripper_offset,
-            "plate_height": plate_height,
-            "speed": speed_enum.value,
-            "options": options
-        }
-        self.schedule_threaded_command("unload_plate", args)
 
     def spin(self, 
                    time: int,
@@ -239,32 +113,23 @@ class VSpinWithLoader(ABCToolDriver):
                    acceleration_percent: float,
                    decel_percent: float, 
                    timer_mode: int,
-                     bucket: int,
+                   bucket: int,
                    ) -> None:
         """
-          Runs a spin cycle. The cycle can either spin the microplate without using the loader or perform 
-          a spin using the loader, when the spin comples it unloads the plate. 
+          Runs a spin cycle. 
 
           Args:
                 time: int - Time in seconds to spin. Max is 86400 (24 hours).
                 velocity_percent: float - Speed as a percentage of max speed (0-100).
                 acceleration_percent: float - Acceleration as a percentage of max (0-100).
                 decel_percent: float - Deceleration as a percentage of max (0-100).
-                         timer_mode: int - 0 = Entire duration, 1 = Timed at full speed, 2 = Spin continuously until stopped.
+                timer_mode: int - 0 = Entire duration, 1 = Timed at full speed, 2 = Spin continuously until stopped.
                 bucket: int - Which bucket to present after spin cycle finishes (1-2).
         """
         #Validate time. 
         if not (1 < time < 86400):
             raise ValueError("Time must be between 1 and 86400 seconds (24 hours).")
         
-        #Since we are not loading/unloading a plate, we will use default values for these parameters.
-        gripper_offset_load = 7
-        gripper_offset_unload = 7
-        plate_height_load = 15
-        plate_height_unload = 15
-
-        speed = LoadSpeed.MEDIUM.value  # Default speed for loading
-
         """Spins the centrifuge with the specified parameters."""
         args : dict = {
             "velocity_percent": velocity_percent,
@@ -272,16 +137,7 @@ class VSpinWithLoader(ABCToolDriver):
             "deceleration_percent": decel_percent,
             "timer_mode": timer_mode,
             "time": time,
-            "bucket_number_load": 0, # only spin, skipping loader.
-            "bucket_number_unload": bucket,
-            "gripper_offset_load": gripper_offset_load,
-            "gripper_offset_unload": gripper_offset_unload,
-            "plate_height_load": plate_height_load,
-            "plate_height_unload": plate_height_unload,
-            "speed_load": speed,
-            "speed_unload": speed,
-            "load_options": 0, # no options
-            "unload_options": 0 # no options
+            "bucket_number": bucket,
         }
 
         logging.info(f"Starting spin cycle - velocity: {velocity_percent}%, time: {time}s, bucket: {bucket}")
@@ -311,24 +167,6 @@ class VSpinWithLoader(ABCToolDriver):
                 response=  self.client.OpenDoor(arguments["bucket_number"])
             elif command == "home":
                 response = self.client.Home()
-            elif command == "load_plate":
-                response = self.client.LoadPlate(
-                    arguments["bucket_number"],
-                    arguments["gripper_offset"],
-                    arguments["plate_height"],
-                    arguments["speed"],
-                    arguments["options"]
-                )
-            elif command == "unload_plate":
-                response = self.client.UnloadPlate(
-                    arguments["bucket_number"],
-                    arguments["gripper_offset"],
-                    arguments["plate_height"],
-                    arguments["speed"],
-                    arguments["options"]
-                )
-            elif command == "park":
-                response = self.client.Park()
             elif command == "spin":
                 response = self.client.SpinCycle(
                     arguments["velocity_percent"],
@@ -336,16 +174,7 @@ class VSpinWithLoader(ABCToolDriver):
                     arguments["deceleration_percent"],
                     arguments["timer_mode"],
                     arguments["time"],
-                    arguments["bucket_number_load"],
-                    arguments["bucket_number_unload"],
-                    arguments["gripper_offset_load"],
-                    arguments["gripper_offset_unload"],
-                    arguments["plate_height_load"],
-                    arguments["plate_height_unload"],
-                    arguments["speed_load"],
-                    arguments["speed_unload"],
-                    arguments["load_options"],
-                    arguments["unload_options"]
+                    arguments["bucket_number"],
                 )
             elif command == "stop_spin":
                 response = self.client.StopSpinCycle(arguments["bucket_number"])
