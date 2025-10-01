@@ -26,6 +26,7 @@ enum ToolType {
   plr = 19;
   pyhamilton = 20;
   vspin_with_loader = 21;
+  vspin = 22;
 }
 
 message ToolConfig {
