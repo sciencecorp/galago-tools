@@ -230,15 +230,3 @@ class VCodeDriver(ABCToolDriver):
                 raise RuntimeError(f"Failed to execute command {command} with error {error}")
             return None
         
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    driver = VCodeDriver("vcode")
-    # driver.initialize()
-    # driver.print_and_apply_by_name("test_format", "east", True, "field_0", "field_1", "field_2", "field_3", "field_4", "field_5")
-    # driver.print_label("test_format", "field_0", "field_1", "field_2", "field_3", "field_4", "field_5")
-    # driver.rotate_stage(90.0)
-    # driver.rotate180()
-    driver.show_diagnostics()
-    driver.close()
