@@ -4,7 +4,6 @@ import threading
 import time
 from tools.base_server import ABCToolDriver
 from typing import Union
-from enum import Enum
 try:
     import pythoncom
 except Exception:
