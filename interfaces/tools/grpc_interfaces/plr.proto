@@ -5,9 +5,8 @@ package com.science.foundry.tools.grpc_interfaces.plr;
 message Command {
 
   oneof command {
-    Initialize initialize = 1;
-    RunLocalScript run_local_script = 2;
-    RunScript run_script = 3;
+    RunLocalScript run_local_script = 1;
+    RunScript run_script = 2;
   }
 
   message Initialize {}
