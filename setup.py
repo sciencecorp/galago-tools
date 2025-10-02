@@ -117,7 +117,7 @@ def find_tool_packages() -> list[str]:
     return packages
 
 setup(
-    name='galago-tools',
+    name='galago',
     version=__version__, # latest version
     packages=find_tool_packages(),
     package_dir={'': '.'},
