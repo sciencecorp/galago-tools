@@ -1,9 +1,7 @@
 import logging
-import threading
 import time
 from tools.base_server import ABCToolDriver
 import serial
-from typing import Optional 
 
 class ALPS3000Driver(ABCToolDriver):
     def __init__(self, profile: str, port: str, baudrate: int = 9600, timeout: int = 1) -> None:

@@ -4,11 +4,13 @@ package com.science.foundry.tools.grpc_interfaces.dataman70;
 
 message Command {
   oneof command {
-    Reset reset = 1;
+    Scan scan = 1;
     AssertBarcode assert_barcode = 2;
   }
 
-  message Reset {}
+  message Scan {
+    string mapped_variable = 1;
+  }
 
   message AssertBarcode {
     string barcode = 1;

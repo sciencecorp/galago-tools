@@ -19,29 +19,14 @@ class Dataman70Server(ToolServer):
     if self.driver:
       self.driver.close()
     self.driver = Dataman70Driver(self.config.com_port)
-    self.driver.barcode_listeners.append(self._on_barcode)
-    self.driver.power_on()
   
-  def _on_barcode(self, barcode: str) -> None:
-    logging.debug(f"Barcode detected! {barcode}")
-    self.driver.live = False
+  def Scan(self, params: Command.Scan) -> None:
+    self.driver.scan_barcode(params.mapped_variable)
   
-  def Reset(self, params: Command.Reset) -> None:
-    self.driver.power_off()
-    self.driver.power_on()
-
   def AssertBarcode(self, params: Command.AssertBarcode) -> None:
-    self.driver.live = True
-    barcode = self.driver.read_barcode()
-    # Dataman70Driver adds a leading 0 to the barcode because it outputs EAN-13 barcodes
-    # barcodes are UPC-A, which are 12 digits long
-    # We add a leading 0 to the UPC-A barcode to correctly match the barcode scanned
-    logging.debug(f"Barcode scanned: {barcode}")
-    if barcode != '0'+params.barcode:
-      raise Exception(f"Expected barcode {params.barcode}, got {barcode}")
-    return None
-  
-  def EstimateReset(self, params: Command.Reset) -> int:
+    self.driver.assert_barcode(params.barcode)
+
+  def EstimateScan(self, params: Command.Scan) -> int:
     return 5
   
   def EstimateAssertBarcode(self, params: Command.AssertBarcode) -> int:
