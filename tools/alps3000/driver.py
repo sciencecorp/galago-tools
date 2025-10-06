@@ -13,7 +13,6 @@ class ALPS3000Driver(ABCToolDriver):
         self.baudrate = baudrate
         self.timeout = timeout
         self.client : serial.Serial
-        self.execution_thread: Optional[threading.Thread]= None
         self.initialize()
 
     def initialize(self) -> None:
