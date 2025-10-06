@@ -206,13 +206,16 @@ class BioshakeDriver(ABCToolDriver):
     def ungrip(self) -> None:
         self._send_command("seup")
 
-    def start_shake(self) -> None:
+    def start_shake(self, seconds: int, speed: t.Optional[int] = None, acceleration: t.Optional[int] = None
+    ) -> None:
         if not self.is_gripper_closed():
             self.grip()
-
-      
-        else:
-            self._send_command("son")
+        if speed is not None:
+            self._set_shake_speed(speed)
+        if acceleration is not None:
+            self._set_acceleration(acceleration)
+        
+        self._send_command("son")
 
     def get_elm_state_as_string(self) -> str:
         return self._send_command("gesas")
