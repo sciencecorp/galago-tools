@@ -2,7 +2,6 @@ import logging
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.toolbox_pb2 import Command, Config
 from tools.app_config import Config as GlobalConfig
-from .data import Data 
 from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
 import argparse 
 from tools.toolbox.slack import Slack 
@@ -23,33 +22,7 @@ class ToolBoxServer(ToolServer):
 
      def _configure(self, request:Config) -> None:
           return
-     
-     # def SlackMessage(self, params:Command.SlackMessage) -> None:
-     #      if self.app_config.app_config.slack_workcell_channel:
-     #           self.slack.slack_message(message=params.message, recipient=self.app_config.app_config.slack_workcell_channel)
 
-     def LogMediaExchange(self, params:Command.LogMediaExchange) -> None: 
-         #Data.log_media_exchange(params.source_barcode, params.destination_name, params.destination_barcode,params.source_wells, params.percent_exchange,params.new_tips)
-          return None 
-     
-     def GetWorkcells(self, params:Command.GetWorkcells) -> ExecuteCommandReply:
-          s  = Struct()
-          response = ExecuteCommandReply()
-          response.return_reply = True
-          response.response = SUCCESS
-          try:
-               workcells = Data.get_workcells()
-               if workcells:
-                    s.update({'workcells':workcells})
-               else:
-                   s.update({'workcells':[]})
-               response.meta_data.CopyFrom(s)
-          except Exception as exc:
-               logging.exception(exc)
-               response.response = ERROR_FROM_TOOL
-
-          return response
-     
      def GetLiconicSensorData(self, params:Command.GetLiconicSensorData) -> None:
           return None 
           # s  = Struct()
@@ -126,52 +99,14 @@ class ToolBoxServer(ToolServer):
                response.error_message = str(exc)
           return response
      
-     # def SendSlackAlert(self, params:Command.SendSlackAlert) -> None:
-     #      if self.app_config.app_config.slack_error_channel:
-     #           self.slack.send_alert_slack(params.workcell, params.tool, params.protocol, params.error_message, self.app_config.app_config.slack_error_channel)
+     
+     # TODO: Update these 2. 
+     def SendSlackAlert(self, params:Command.SendSlackAlert) -> None:
+          return None
      
      def ClearLastSlackAlert(self, params:Command.ClearLastSlackAlert) -> None:
-          # if self.app_config.app_config.slack_error_channel:
-          #      self.slack.clear_last_error(self.app_config.app_config.slack_error_channel)
-          return None 
-     
-     def GetLogMediaExchangeByDate(self, params:Command.GetLogMediaExchangeByDate) -> None:
-          return None 
-          # s  = Struct()
-          # response = ExecuteCommandReply()
-          # response.return_reply = True
-          # response.response = SUCCESS
-          # try:
-          #      data = Data.get_media_exchange_logs_by_date(params.date)
-          #      if data:
-          #           logging.info(f"Data is {data}")
-          #           s.update({'data':data})
-          #      else:
-          #          s.update({})
-          #      response.meta_data.CopyFrom(s)
-          # except Exception as exc:
-          #      logging.exception(exc)
-          #      response.response = ERROR_FROM_TOOL
-          # return response
-     
-     def ValidateFolder(self, params:Command.ValidateFolder) -> ExecuteCommandReply:
-          logging.info("Running validate folder in the server")
-          s  = Struct()
-          response = ExecuteCommandReply()
-          response.return_reply = True
-          response.response = SUCCESS
-          try:
-               data = Data.validate_folder(params.folder_path)
-               if data:
-                    s.update({'result':True})
-               else:
-                   s.update({'result':False})
-               response.meta_data.CopyFrom(s)
-          except Exception as exc:
-               logging.exception(exc)
-               response.response = ERROR_FROM_TOOL
-          return response
-             
+          return None
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
