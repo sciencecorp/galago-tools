@@ -205,18 +205,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     server = None
-    try:
-        server = BravoServer()
-        port = os.environ.get("PORT", str(args.port))
-        logging.info(f"Starting BravoServer on port {port}")
-        serve(server, port)
-    except Exception as e:
-        logging.error(f"Error running server: {e}")
-    finally:
-        if server:
-            logging.info("Cleaning up server resources")
-            server.cleanup()
-            
-        # Final kill of VWorks just to be safe
-        if os.name == "nt":
-            kill_vworks()
+    args = parser.parse_args()
+    if not args.port:
+        raise RuntimeWarning("Port must be provided...")
+    serve(BravoServer(), str(args.port))
