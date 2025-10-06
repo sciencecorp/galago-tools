@@ -299,19 +299,3 @@ class VPrepDriver(ABCToolDriver):
                     self.event_connection = None
             except Exception as e:
                 logging.warning(f"Error during cleanup: {e}")
-
-# if __name__ == "__main__":
-#    # kill_vworks()
-#     vworks = None
-#     # try:
-#     vworks = BravoDriver()
-#     vworks.login()
-#     vworks.run_runset("C:\\VWorks Workspace\\RunSet Files\\move_to_location_3.rst")
-#         # Wait for any final messages to process
-#     # except Exception as e:
-#     #     print(f"Error running protocol: {e}")
-#     # finally:
-#     #     if vworks:
-#     #         print("Cleaning up resources")
-#     #         vworks.close()
-#     #     sys.exit(0)

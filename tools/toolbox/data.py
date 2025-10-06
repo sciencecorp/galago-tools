@@ -1,7 +1,4 @@
 import os
-from os.path import join 
-from tools.app_config import Config
-
 
 class Data():
     def __init__(self)-> None:

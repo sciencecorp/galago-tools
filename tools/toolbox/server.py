@@ -23,8 +23,8 @@ class ToolBoxServer(ToolServer):
      def _configure(self, request:Config) -> None:
           return
 
-     def GetLiconicSensorData(self, params:Command.GetLiconicSensorData) -> None:
-          return None 
+     # def GetLiconicSensorData(self, params:Command.GetLiconicSensorData) -> None:
+     #      return None 
           # s  = Struct()
           # response = ExecuteCommandReply()
           # response.return_reply = True
@@ -43,8 +43,8 @@ class ToolBoxServer(ToolServer):
           # return response
 
      
-     def GetOT2ImagesByDate(self, params:Command.GetOT2ImagesByDate) -> None:
-          return None 
+     # def GetOT2ImagesByDate(self, params:Command.GetOT2ImagesByDate) -> None:
+     #      return None 
           #s  = Struct()
           # response = ExecuteCommandReply()
           # response.return_reply = True
@@ -62,8 +62,8 @@ class ToolBoxServer(ToolServer):
           #      response.response = ERROR_FROM_TOOL
           # return response
      
-     def GetOT2ImageBytes(self, params:Command.GetOT2ImageBytes) -> None:
-          return None 
+     # def GetOT2ImageBytes(self, params:Command.GetOT2ImageBytes) -> None:
+     #      return None 
           # s  = Struct()
           # response = ExecuteCommandReply()
           # response.return_reply = True
