@@ -110,4 +110,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if not args.port:
          raise RuntimeWarning("Port must be provided...")
-    serve(Opentrons2Server(), os.environ.get("PORT", str(args.port)))
+    serve(Opentrons2Server(), str(args.port))

@@ -194,29 +194,10 @@ class VPrepServer(ToolServer):
         return 120  # Return a more realistic estimate in seconds
     
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s | %(levelname)s | %(message)s', 
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    
+    logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', required=True, help='Port for the gRPC server')
+    parser.add_argument('--port')
     args = parser.parse_args()
-    
-    server = None
-    try:
-        server = VPrepServer()
-        port = os.environ.get("PORT", str(args.port))
-        logging.info(f"Starting VPrepServer on port {port}")
-        serve(server, port)
-    except Exception as e:
-        logging.error(f"Error running server: {e}")
-    finally:
-        if server:
-            logging.info("Cleaning up server resources")
-            server.cleanup()
-            
-        # Final kill of VWorks just to be safe
-        if os.name == "nt":
-            kill_vworks()
+    if not args.port:
+         raise RuntimeWarning("Port must be provided...")
+    serve(VPrepServer(), str(args.port))

@@ -50,5 +50,5 @@ if __name__ == "__main__":
     parser.add_argument('--port')
     args = parser.parse_args()
     if not args.port:
-         raise RuntimeWarning("Port must be provided...")
-    serve(HiGCentrifugeServer(),os.environ.get("PORT",str(args.port)))
+        raise RuntimeWarning("Port must be provided...")
+    serve(HiGCentrifugeServer(), str(args.port))
