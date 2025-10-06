@@ -1,5 +1,4 @@
 import logging
-import os
 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.vcode_pb2 import Command, Config

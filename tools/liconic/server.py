@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 
 from tools.base_server import ToolServer, serve

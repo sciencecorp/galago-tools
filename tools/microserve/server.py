@@ -1,5 +1,4 @@
 import logging
-import os
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.microserve_pb2 import Command, Config
 from .driver import MicroServeDriver
