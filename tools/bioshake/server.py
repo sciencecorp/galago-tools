@@ -45,7 +45,6 @@ class BioShakeServer(ToolServer):
             )
         else:
             self.driver.start_shake(
-                seconds=params.duration,
                 speed=params.speed,
                 acceleration=params.acceleration,
             )

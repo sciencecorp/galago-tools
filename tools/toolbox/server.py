@@ -4,7 +4,6 @@ from tools.grpc_interfaces.toolbox_pb2 import Command, Config
 from tools.app_config import Config as GlobalConfig
 from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
 import argparse 
-from tools.toolbox.slack import Slack 
 from google.protobuf.struct_pb2 import Struct
 from tools.grpc_interfaces.tool_base_pb2 import  SUCCESS, ERROR_FROM_TOOL
 from tools.grpc_interfaces import tool_base_pb2
@@ -17,7 +16,6 @@ class ToolBoxServer(ToolServer):
           super().__init__()
           self.app_config = GlobalConfig()
           self.app_config.load_workcell_config()
-          self.slack = Slack(self.app_config)
           self.setStatus(tool_base_pb2.READY)
 
      def _configure(self, request:Config) -> None:
