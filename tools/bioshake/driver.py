@@ -279,7 +279,7 @@ class BioshakeDriver(ABCToolDriver):
 if __name__ == "__main__":
     try:
         logging.basicConfig(
-            level=logging.DEBUG,  # Set the loggsing level (DEBUG, INFO, etc.)
+            level=logging.DEBUG,  # Set the logging level (DEBUG, INFO, etc.)
             format="%(asctime)s - %(levelname)s - %(message)s",
         )
         driver = BioshakeDriver(port="COM7")
