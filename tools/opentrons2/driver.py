@@ -1,4 +1,3 @@
-import typing as t
 import logging
 from tools.base_server import ABCToolDriver
 import requests
