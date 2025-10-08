@@ -50,15 +50,12 @@ def main() -> None:
     sys.argv = [sys.argv[0]] + remaining
     
     if known.console:
-        # Import only when needed
         from tools.launch_console import main as launch_console_main
         sys.exit(launch_console_main())
     elif known.discover:
-        # Import only when needed
         from tools.discover_tools import main as autodiscover_main
         sys.exit(autodiscover_main())
     else:
-        # Import only when needed
         from tools.launch_tools import main as launch_tools_main
         sys.exit(launch_tools_main())
 
