@@ -54,8 +54,3 @@ def text_to_speech(text: str) -> bool:
     except Exception as e:
         print(f"Unexpected error: {e}")
         return False
-
-# Example usage
-if __name__ == "__main__":
-    # Basic usage
-    text_to_speech("Hello, this is a test of the text to speech function.")
