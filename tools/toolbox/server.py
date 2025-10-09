@@ -97,7 +97,13 @@ class ToolBoxServer(ToolServer):
                response.error_message = str(exc)
           return response
      
-     
+     def TextToSpeech(self, params:Command.TextToSpeech) -> None:
+          from tools.toolbox.utils import text_to_speech
+          result = text_to_speech(params.text)
+          if not result:
+               raise RuntimeWarning("TTS failed...")
+          return None
+
      # TODO: Update these 2. 
      def SendSlackAlert(self, params:Command.SendSlackAlert) -> None:
           return None
