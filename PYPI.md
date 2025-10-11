@@ -16,4 +16,4 @@ pip install galago-tools
 
 ## Requirements
 
-- Python >=3.9, <3.10
+- Python >=3.10
