@@ -1,8 +1,7 @@
 import subprocess
 import sys
 import os
-from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 
 def check_opentrons_installation() -> bool:
@@ -14,7 +13,7 @@ def check_opentrons_installation() -> bool:
     """
     try:
         # Check if we can import the opentrons module
-        import opentrons
+        import opentrons  # noqa: F401
         
         # Check if opentrons_simulate command is available
         command = ["opentrons_simulate.exe"] if sys.platform == "win32" else ["opentrons_simulate"]
