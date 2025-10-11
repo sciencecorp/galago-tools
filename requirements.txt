@@ -21,7 +21,7 @@ pytest==7.4.3
 msl-loadlib==0.10.0
 pywin32==304; platform_system == "Windows"
 typing-inspect==0.8.0
-typing_extensions==4.8.0
+typing_extensions>=4.12.0
 pyserial==3.5
 cython==3.0.11
 pillow==11.0.0
@@ -30,3 +30,4 @@ comtypes==1.4.10
 appdirs==1.4.4
 pyhamilton==1.491.17
 PyLabRobot
+opentrons==8.7.0
