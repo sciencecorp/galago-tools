@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Optional, Any
 import sys 
 import socket 
+import subprocess 
 
 class LogType(Enum):
     ERROR = "ERROR",
@@ -70,3 +71,26 @@ def write_trace_log(log_path:Optional[str], log_type:LogType, tool:str,value:str
     except Exception as e:
         logging.debug(e)
         return
+
+
+        
+def check_opentrons_installation() -> bool:
+    """
+    Check if the opentrons module is properly installed.
+    
+    Returns:
+        bool: True if opentrons is installed and opentrons_simulate is available
+    """
+    try:
+        # Check if we can import the opentrons module
+        import opentrons
+        
+        # Check if opentrons_simulate command is available
+        command = ["opentrons_simulate.exe"] if sys.platform == "win32" else ["opentrons_simulate"]
+        result = subprocess.run(command + ["--help"], 
+                              capture_output=True, 
+                              timeout=10)
+        return result.returncode == 0
+        
+    except (ImportError, subprocess.TimeoutExpired, FileNotFoundError):
+        return False

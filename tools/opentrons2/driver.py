@@ -267,6 +267,7 @@ class Ot2Driver(ABCToolDriver):
             logging.error(f"Error executing protocol: {e}")
             raise
     
+
     def take_picture(self, name: str, directory: str) -> str:
         """
         Take a picture using the OT-2 camera and save it to the specified location.
