@@ -11,9 +11,12 @@ def check_opentrons_installation() -> bool:
     Returns:
         bool: True if opentrons is installed and opentrons_simulate is available
     """
+    import importlib.util
+    
     try:
         # Check if we can import the opentrons module
-        import opentrons  # noqa: F401
+        if importlib.util.find_spec("opentrons") is None:
+            return False
         
         # Check if opentrons_simulate command is available
         command = ["opentrons_simulate.exe"] if sys.platform == "win32" else ["opentrons_simulate"]
@@ -22,7 +25,7 @@ def check_opentrons_installation() -> bool:
                               timeout=10)
         return result.returncode == 0
         
-    except (ImportError, subprocess.TimeoutExpired, FileNotFoundError):
+    except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
     
 def run_opentrons_simulation(script_path: str, verbose: bool = True) -> Tuple[bool, str, str]:
