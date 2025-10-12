@@ -11,5 +11,5 @@ runs:
       with:
         python-version: 3.9.12
     - name: Install dependencies
-      run: ./bin/make deps
+      run: ./bin/make dev_deps && ./bin/make deps
       shell: bash
