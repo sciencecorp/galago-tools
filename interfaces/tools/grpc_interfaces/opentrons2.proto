@@ -16,6 +16,7 @@ message Command {
   message RunProgram {
     string script_content = 1;
     google.protobuf.Struct variables = 2;
+    optional bool simulate = 3;
   }
 
   message Pause {}

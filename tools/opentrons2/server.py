@@ -106,8 +106,25 @@ class Opentrons2Server(ToolServer):
             # Process the script and create executable file with injected variables
             executable_script = self._create_executable_script(script_content, variables_dict)
             
-            # Execute the script on the OT-2
-            self.driver.start_protocol(protocol_file=executable_script)
+            if params.simulate:
+                from .utils import run_opentrons_simulation
+                success, stdout, stderr = run_opentrons_simulation(executable_script)
+                if success:
+                    logging.info("Simulation completed successfully")
+                    logging.info(stdout)
+                else:
+                    logging.error("Simulation failed")
+                    logging.error(stderr)
+                # Cleanup temporary file
+                try:
+                    os.unlink(executable_script)
+                    logging.info(f"Cleaned up temporary script: {executable_script}")
+                except OSError as e:
+                    logging.warning(f"Could not delete temporary file {executable_script}: {e}")
+                return
+            else:
+                # Execute the script on the OT-2
+                self.driver.start_protocol(protocol_file=executable_script)
             
             # Cleanup temporary file
             try:

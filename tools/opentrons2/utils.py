@@ -41,10 +41,7 @@ def run_opentrons_simulation(script_path: str, verbose: bool = True) -> Tuple[bo
             - success: True if simulation ran successfully, False otherwise
             - stdout: Standard output from the simulation
             - stderr: Standard error from the simulation
-    
-    Raises:
-        FileNotFoundError: If the script file doesn't exist
-        RuntimeError: If opentrons module is not installed
+
     """
     
     # Check if script file exists
