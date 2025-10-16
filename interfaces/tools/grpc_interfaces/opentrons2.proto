@@ -16,7 +16,8 @@ message Command {
   message RunProgram {
     string script_content = 1;
     google.protobuf.Struct variables = 2;
-    optional bool simulate = 3;
+    optional bool take_photos = 3;
+    optional bool simulate = 4;
   }
 
   message Pause {}
@@ -28,4 +29,5 @@ message Command {
 message Config {
   string robot_ip = 1;
   int32 robot_port = 2;
+  optional string data_path =3;
 }
