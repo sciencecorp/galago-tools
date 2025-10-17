@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import asyncio
 import websockets
 import json
@@ -14,18 +12,12 @@ from pathlib import Path
 from typing import Dict, Set, Optional
 import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from tools.app_config import Config
+from tools.utils import get_shell_command
 
 # Add the project root to Python path
 ROOT_DIR = Path(__file__).parent
 sys.path.insert(0, str(ROOT_DIR))
-
-try:
-    from tools.app_config import Config
-    from tools.utils import get_shell_command
-except ImportError as e:
-    logging.error(f"Failed to import tools modules: {e}")
-    logging.error("Make sure the 'tools' directory is in the project root with app_config.py and utils.py")
-    sys.exit(1)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +32,7 @@ server_processes: Dict[str, subprocess.Popen] = {}
 config: Optional[Config] = None
 log_folder: Optional[Path] = None
 log_positions: Dict[str, int] = {}
+last_tool_status: Dict = {}
 
 def is_process_running(tool_name: str) -> bool:
     """Check if a process is running"""
@@ -111,6 +104,33 @@ async def get_tool_status():
     
     return tools_status
 
+async def check_for_status_changes():
+    """Check if tool status has changed and broadcast updates"""
+    global last_tool_status
+    
+    current_status = await get_tool_status()
+    
+    # Convert to dict for easier comparison
+    current_status_dict = {tool['name']: tool['status'] for tool in current_status}
+    
+    # Check if status has changed
+    if current_status_dict != last_tool_status:
+        logger.info("Tool status changed, broadcasting update")
+        await send_tool_status()
+        last_tool_status = current_status_dict.copy()
+
+async def monitor_tool_processes():
+    """Monitor tool processes and broadcast status changes"""
+    logger.info("Starting tool process monitoring")
+    
+    while True:
+        try:
+            await check_for_status_changes()
+        except Exception as e:
+            logger.error(f"Error in process monitoring: {e}")
+        
+        await asyncio.sleep(2)  # Check every 2 seconds
+
 async def start_tool(tool_name: str, tool_type: str, port: int):
     """Start a tool process"""
     try:
@@ -141,6 +161,10 @@ async def start_tool(tool_name: str, tool_type: str, port: int):
         
         server_processes[tool_name] = process
         logger.info(f"Started {tool_name} on port {port}")
+        
+        # Schedule a status check after a brief delay to catch the change
+        asyncio.create_task(delayed_status_check())
+        
         return True
         
     except Exception as e:
@@ -152,10 +176,19 @@ async def stop_tool(tool_name: str):
     try:
         kill_process_by_name(tool_name)
         logger.info(f"Stopped {tool_name}")
+        
+        # Schedule a status check after a brief delay to catch the change
+        asyncio.create_task(delayed_status_check())
+        
         return True
     except Exception as e:
         logger.error(f"Failed to stop {tool_name}: {e}")
         return False
+
+async def delayed_status_check():
+    """Check status after a brief delay"""
+    await asyncio.sleep(1)
+    await check_for_status_changes()
 
 async def get_recent_logs(lines: int = 100) -> list:
     """Get recent logs from all log files"""
@@ -237,8 +270,6 @@ async def handle_websocket_message(websocket, data):
                 "success": success,
                 "message": f"{'Started' if success else 'Failed to start'} {tool_name}"
             }
-            if success:
-                await send_tool_status()
                 
         elif action == "stop_tool":
             success = await stop_tool(tool_name)
@@ -247,8 +278,6 @@ async def handle_websocket_message(websocket, data):
                 "success": success,
                 "message": f"{'Stopped' if success else 'Failed to stop'} {tool_name}"
             }
-            if success:
-                await send_tool_status()
                 
         elif action == "get_logs":
             logs = await get_recent_logs()
@@ -457,11 +486,15 @@ def cleanup_processes():
 
 async def main():
     """Main function"""
-    global config, log_folder
+    global config, log_folder, last_tool_status
     
     try:
         config = Config()
         config.load_workcell_config()
+        
+        # Initialize last_tool_status
+        initial_status = await get_tool_status()
+        last_tool_status = {tool['name']: tool['status'] for tool in initial_status}
         
         log_folder = ROOT_DIR / "data" / "trace_logs" / str(int(time.time()))
         log_folder.mkdir(parents=True, exist_ok=True)
@@ -477,9 +510,10 @@ async def main():
         logger.info("WebSocket server ready on ws://localhost:8765")
         logger.info("HTTP server running on http://localhost:8080")
         
-        # Start log monitoring as an async task (not a thread)
+        # Start monitoring tasks
         log_task = asyncio.create_task(monitor_log_files())
-        logger.info("Real-time log streaming enabled")
+        process_task = asyncio.create_task(monitor_tool_processes())
+        logger.info("Real-time log streaming and process monitoring enabled")
         
         # Wait for server to close
         await server.wait_closed()

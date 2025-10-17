@@ -25,18 +25,33 @@
             padding: 20px;
         }
 
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            filter: invert(1) drop-shadow(0 2px 8px rgba(79, 172, 254, 0.3));
+        }
+
         .header h1 {
             font-size: 2.5rem;
             font-weight: 300;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            margin: 0;
+            background: white;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .header p {
-            color: #888;
+            color: RED;
             font-size: 1.1rem;
         }
 
@@ -470,6 +485,15 @@
                 font-size: 2rem;
             }
             
+            .header-content {
+                gap: 12px;
+            }
+            
+            .header-icon {
+                width: 40px;
+                height: 40px;
+            }
+            
             .tool-card {
                 padding: 20px;
             }
@@ -499,22 +523,21 @@
     <div class="connection-status" id="connectionStatus">Disconnected</div>
     
     <div class="header">
-        <h1>Galago Tools Manager</h1>
-        <p>Modern Web Interface for Tool Management</p>
+        <div class="header-content">
+            <img src="site_logo.png" alt="Galago Tools Logo" class="header-icon">
+            <h1>Galago Tools Manager</h1>
+        </div>
     </div>
 
     <div class="tab-container">
         <div class="tab-buttons">
             <button class="tab-button active" onclick="switchTab('tools')">Tools</button>
-            <button class="tab-button" onclick="switchTab('logs')">System Logs</button>
+            <button class="tab-button" onclick="switchTab('logs')">Tool Trace Logs</button>
         </div>
 
         <!-- Tools Tab -->
         <div class="tab-content active" id="toolsTab">
             <div class="controls-bar">
-                <button class="control-button" onclick="refreshStatus()">
-                    🔄 Refresh Status
-                </button>
                 <button class="control-button" onclick="startAllTools()">
                     ▶️ Start All Tools
                 </button>
