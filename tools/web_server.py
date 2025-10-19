@@ -104,6 +104,68 @@ async def get_tool_status():
     
     return tools_status
 
+async def reload_config():
+    """Reload the configuration from disk"""
+    global config, last_tool_status
+    
+    try:
+        logger.info("Reloading configuration...")
+        config = Config()
+        config.load_workcell_config()
+        
+        # Reset status tracking to force update
+        last_tool_status = {}
+        
+        logger.info("Configuration reloaded successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to reload configuration: {e}")
+        return False
+
+async def relaunch_all_tools():
+    """Stop all tools, reload config, then start all tools"""
+    try:
+        logger.info("Starting tool relaunch sequence...")
+        
+        # Step 1: Stop all running tools
+        current_tools = await get_tool_status()
+        running_tools = [tool for tool in current_tools if tool['status'] == 'running']
+        
+        if running_tools:
+            logger.info(f"Stopping {len(running_tools)} running tools...")
+            for tool in running_tools:
+                await stop_tool(tool['name'])
+            
+            # Wait for all tools to stop
+            await asyncio.sleep(2)
+        
+        # Step 2: Reload configuration
+        config_success = await reload_config()
+        if not config_success:
+            raise Exception("Failed to reload configuration")
+        
+        # Step 3: Start all tools from new config
+        logger.info("Starting all tools with new configuration...")
+        new_tools = await get_tool_status()
+        
+        start_tasks = []
+        for tool in new_tools:
+            if tool['name'] != 'Tool Box':  # Skip toolbox if you don't want to auto-start it
+                start_tasks.append(start_tool(tool['name'], tool['type'], tool['port']))
+        
+        # Start all tools concurrently but with small delays
+        for i, task in enumerate(start_tasks):
+            await asyncio.sleep(0.5 * i)  # Stagger starts
+            asyncio.create_task(task)
+        
+        logger.info("Tool relaunch sequence completed")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to relaunch tools: {e}")
+        return False
+
 async def check_for_status_changes():
     """Check if tool status has changed and broadcast updates"""
     global last_tool_status
@@ -277,6 +339,25 @@ async def handle_websocket_message(websocket, data):
                 "type": "response",
                 "success": success,
                 "message": f"{'Stopped' if success else 'Failed to stop'} {tool_name}"
+            }
+        
+        elif action == "reload_config":
+            success = await reload_config()
+            response = {
+                "type": "response",
+                "success": success,
+                "message": f"{'Configuration reloaded successfully' if success else 'Failed to reload configuration'}"
+            }
+            if success:
+                # Force a status update to show any new tools
+                await send_tool_status()
+                
+        elif action == "relaunch_all":
+            success = await relaunch_all_tools()
+            response = {
+                "type": "response",
+                "success": success,
+                "message": f"{'All tools relaunched successfully' if success else 'Failed to relaunch tools'}"
             }
                 
         elif action == "get_logs":
@@ -511,8 +592,8 @@ async def main():
         logger.info("HTTP server running on http://localhost:8080")
         
         # Start monitoring tasks
-        log_task = asyncio.create_task(monitor_log_files())
-        process_task = asyncio.create_task(monitor_tool_processes())
+        asyncio.create_task(monitor_log_files())
+        asyncio.create_task(monitor_tool_processes())
         logger.info("Real-time log streaming and process monitoring enabled")
         
         # Wait for server to close

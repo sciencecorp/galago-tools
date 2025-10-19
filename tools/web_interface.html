@@ -149,30 +149,59 @@
         /* Tools Tab Styles */
         .controls-bar {
             display: flex;
-            justify-content: center;
-            gap: 15px;
+            justify-content: flex-end;
+            gap: 12px;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
 
         .control-button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
             color: white;
-            font-size: 1rem;
-            font-weight: 500;
+            font-size: 0.95rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .control-button:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .control-button.reload {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(33, 150, 243, 0.15));
+            border: 1px solid rgba(33, 150, 243, 0.4);
+        }
+
+        .control-button.reload:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.4), rgba(33, 150, 243, 0.2));
+            border: 1px solid rgba(33, 150, 243, 0.6);
+        }
+
+        .control-button.relaunch {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.15));
+            border: 1px solid rgba(255, 152, 0, 0.4);
+        }
+
+        .control-button.relaunch:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.4), rgba(255, 152, 0, 0.2));
+            border: 1px solid rgba(255, 152, 0, 0.6);
         }
 
         .tools-grid {
@@ -500,7 +529,8 @@
             
             .controls-bar {
                 flex-direction: column;
-                align-items: center;
+                align-items: flex-end;
+                gap: 8px;
             }
             
             .control-button {
@@ -538,11 +568,14 @@
         <!-- Tools Tab -->
         <div class="tab-content active" id="toolsTab">
             <div class="controls-bar">
+                <button class="control-button relaunch" onclick="relaunchAllTools()" id="relaunchBtn">
+                    Relaunch Server
+                </button>
                 <button class="control-button" onclick="startAllTools()">
-                    ▶️ Start All Tools
+                    Start All
                 </button>
                 <button class="control-button" onclick="stopAllTools()">
-                    ⏹️ Stop All Tools
+                    Stop All
                 </button>
             </div>
 
@@ -757,6 +790,34 @@
                 this.sendMessage({ action: 'get_logs' });
             }
 
+            reloadConfig() {
+                const button = document.getElementById('reloadBtn');
+                button.disabled = true;
+                button.innerHTML = '<div class="loading-spinner"></div>Reloading...';
+                
+                this.sendMessage({ action: 'reload_config' });
+                this.addLog('Reloading configuration...', 'info');
+                
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = 'Reload Config';
+                }, 3000);
+            }
+
+            relaunchAllTools() {
+                const button = document.getElementById('relaunchBtn');
+                button.disabled = true;
+                button.innerHTML = '<div class="loading-spinner"></div>Relaunching...';
+                
+                this.sendMessage({ action: 'relaunch_all' });
+                this.addLog('Relaunching all tools...', 'info');
+                
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = 'Relaunch Server';
+                }, 10000); // Longer timeout for relaunch
+            }
+
                 updateLogs(logs) {
                     const container = document.getElementById('logsContent');
                     const maxLogs = 1000; // Maximum number of logs to keep in memory
@@ -812,14 +873,6 @@
             toggleAutoScroll() {
                 this.autoScroll = !this.autoScroll;
                 document.getElementById('autoScrollBtn').textContent = `Auto-scroll: ${this.autoScroll ? 'ON' : 'OFF'}`;
-            }
-
-            toggleAutoUpdate() {
-                this.autoUpdate = !this.autoUpdate;
-                document.getElementById('autoUpdateBtn').textContent = `Auto-update: ${this.autoUpdate ? 'ON' : 'OFF'}`;
-                if (this.autoUpdate) {
-                    this.refreshLogs(); // Get latest logs when re-enabling
-                }
             }
 
             showNotification(message, isError = false) {
@@ -896,6 +949,14 @@
                 }
             });
             toolsManager.addLog('Stopping all running tools...', 'info');
+        }
+
+        function reloadConfig() {
+            toolsManager.reloadConfig();
+        }
+
+        function relaunchAllTools() {
+            toolsManager.relaunchAllTools();
         }
 
         function clearLogs() {
