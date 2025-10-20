@@ -87,7 +87,6 @@ def main() -> None:
         add_help=False
     )
     parser.add_argument("--help", action="help", help="Show this help message and exit")
-    parser.add_argument("--h", action="help", help="Show this help message and exit")
     parser.add_argument("--version", action="version", version=f"Galago Tools Manager {galago_version}", help="Show program version and exit")
     parser.add_argument("--discover", action="store_true", help="Autodiscover tools")
     parser.add_argument("--headless", action="store_true", help="Launch in headless mode. No GUI.")

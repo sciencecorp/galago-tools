@@ -206,16 +206,16 @@
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
             overflow-y: auto;
         }
 
         .tool-card {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 25px;
+            border-radius: 12px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -248,39 +248,39 @@
 
         .status-indicator {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 12px;
-            height: 12px;
+            top: 12px;
+            right: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             transition: all 0.3s ease;
         }
 
         .status-indicator.running {
             background: #4CAF50;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
         }
 
         .status-indicator.stopped {
             background: #f44336;
-            box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
         }
 
         .status-indicator.loading {
             background: #2196F3;
-            box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
             animation: pulse 1.5s infinite;
         }
 
         .tool-icon {
-            width: 70px;
-            height: 70px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.6rem;
             font-weight: bold;
             color: white;
             background: linear-gradient(45deg, #4facfe, #00f2fe);
@@ -297,36 +297,36 @@
         }
 
         .tool-name {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             text-align: center;
             position: relative;
             z-index: 1;
         }
 
         .tool-type {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #888;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-style: italic;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .tool-port {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #888;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             position: relative;
             z-index: 1;
         }
 
         .action-button {
-            padding: 10px 25px;
+            padding: 8px 20px;
             border: none;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            border-radius: 16px;
+            font-size: 0.8rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -334,7 +334,7 @@
             transition: all 0.3s ease;
             position: relative;
             z-index: 1;
-            min-width: 80px;
+            min-width: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -506,8 +506,8 @@
 
         @media (max-width: 768px) {
             .tools-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 12px;
             }
             
             .header h1 {
@@ -524,7 +524,7 @@
             }
             
             .tool-card {
-                padding: 20px;
+                padding: 14px;
             }
             
             .controls-bar {
