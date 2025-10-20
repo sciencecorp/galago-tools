@@ -12,8 +12,8 @@ class GalagoWebViewer(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Galago Tools Manager")
-        self.setGeometry(100, 100, 1200, 800)
-        self.zoom_factor = 0.5
+        self.setGeometry(100, 100, 1000, 800)
+        
         # Set window icon
         icon_path = os.path.join(os.path.dirname(__file__), "site_logo.png")
         if os.path.exists(icon_path):
@@ -24,11 +24,11 @@ class GalagoWebViewer(QMainWindow):
         # Create central widget and layout
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-        self.layout = QVBoxLayout(self.central_widget)
-        
+        self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         # Create web view
         self.web_view = QWebEngineView()
-        self.layout.addWidget(self.web_view)
+        self.main_layout.addWidget(self.web_view)
         
         # Create error widget (initially hidden)
         self.create_error_widget()
@@ -42,7 +42,7 @@ class GalagoWebViewer(QMainWindow):
         
         # Initial load attempt
         self.check_server_and_load()
-
+    
     def create_error_widget(self) -> None:
         """Create the error display widget"""
         self.error_widget = QWidget()
@@ -68,7 +68,7 @@ class GalagoWebViewer(QMainWindow):
         error_layout.addWidget(self.retry_button, Qt.AlignmentFlag.AlignCenter)
         
         # Add error widget to layout but hide it initially
-        self.layout.addWidget(self.error_widget)
+        self.main_layout.addWidget(self.error_widget)
         self.error_widget.hide()
 
     def check_server_and_load(self) -> None:
@@ -117,8 +117,6 @@ def main() -> None:
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     
     app = QApplication(sys.argv)
-    
-    # Set application icon (this affects the taskbar icon on some systems)
     icon_path = os.path.join(os.path.dirname(__file__), "site_logo.png")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))

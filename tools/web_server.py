@@ -52,9 +52,7 @@ def setup_logging() -> Path:
         log_folder.mkdir(parents=True, exist_ok=True)
     except Exception as e:
         print(f"Failed to create log directory: {log_folder}. Error: {str(e)}")
-        # Fallback to a directory we know should work
         log_folder = Path.home() / "galago_logs" / str(LOG_TIME)
-        print(f"Using fallback log directory: {log_folder}")
         log_folder.mkdir(parents=True, exist_ok=True)
 
     # Setup logging configuration
@@ -66,12 +64,15 @@ def setup_logging() -> Path:
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()  
+
     # Setup file handler with rotation
     file_handler = logging.handlers.RotatingFileHandler(
         log_file, maxBytes=10*1024*1024, backupCount=5
     )
     file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.INFO)  # Reduced from DEBUG to INFO
+    file_handler.setLevel(logging.INFO)  
     
     # Setup console handler - only INFO and above
     console_handler = logging.StreamHandler(sys.stdout)
@@ -79,8 +80,7 @@ def setup_logging() -> Path:
     console_handler.setLevel(logging.INFO)
     
     # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)  # Changed from DEBUG to INFO
+    root_logger.setLevel(logging.INFO)  
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
     
@@ -137,7 +137,7 @@ def display_startup_message(log_folder: Path, update_available: bool = False, cu
     print("")
 
 # Global state
-connected_clients: Set[websockets.WebSocketServerProtocol] = set()
+connected_clients: Set[Any] = set()
 server_processes: Dict[str, subprocess.Popen] = {}
 config: Optional[Config] = None
 log_folder: Optional[Path] = None
@@ -368,8 +368,8 @@ async def start_tool(tool_name: str, tool_type: str, port: int) -> bool:
             
             # Store the file handle so we can close it later
             if not hasattr(process, '_log_handles'):
-                process._log_handles = []
-            process._log_handles.append(log_handle)
+                setattr(process, '_log_handles', [])
+            getattr(process, '_log_handles').append(log_handle)
             
         else:
             process = subprocess.Popen(
@@ -509,7 +509,7 @@ async def broadcast_message(message: Dict[str, Any]) -> None:
     for client in disconnected:
         connected_clients.discard(client)
 
-async def send_tool_status(websocket: Optional[websockets.WebSocketServerProtocol] = None) -> None:
+async def send_tool_status(websocket: Optional[Any] = None) -> None:
     """Send current tool status to client(s)"""
     tools_status = await get_tool_status()
     
@@ -526,18 +526,26 @@ async def send_tool_status(websocket: Optional[websockets.WebSocketServerProtoco
     else:
         await broadcast_message(message)
 
-async def handle_websocket_message(websocket: websockets.WebSocketServerProtocol, data: Dict[str, Any]) -> None:
+async def handle_websocket_message(websocket: Any, data: Dict[str, Any]) -> None:
     """Handle incoming WebSocket messages"""
     action = data.get('action')
-    tool_name = data.get('tool_name') 
+    tool_name = data.get('tool_name')
     tool_type = data.get('tool_type')
-    port = data.get('port')
+    port_raw = data.get('port')
+    
+    # Convert port to int safely
+    port = 0
+    if port_raw is not None:
+        try:
+            port = int(port_raw)
+        except (ValueError, TypeError):
+            port = 0
     
     response: Dict[str, Any] = {"type": "response", "success": False, "message": "Unknown action"}
     
     try:
         if action == "start_tool":
-            success = await start_tool(str(tool_name), str(tool_type), str(port))
+            success = await start_tool(str(tool_name), str(tool_type), int(port))
             response = {
                 "type": "response",
                 "success": success,
@@ -655,7 +663,7 @@ async def monitor_log_files() -> None:
             
         await asyncio.sleep(0.2)
 
-async def websocket_handler(websocket: websockets.WebSocketServerProtocol) -> None:
+async def websocket_handler(websocket: Any) -> None:
     """Handle WebSocket connections"""
     connected_clients.add(websocket)
     logger.info(f"Client connected. Total: {len(connected_clients)}")
@@ -666,11 +674,11 @@ async def websocket_handler(websocket: websockets.WebSocketServerProtocol) -> No
         # Send initial logs with different message type
         logs = await get_recent_logs(50)
         if logs:
-            message = {
+            initial_message = {
                 "type": "initial_logs",  # Use different type for initial logs
                 "data": logs
             }
-            await websocket.send(json.dumps(message))
+            await websocket.send(json.dumps(initial_message))
         
         async for message in websocket:
             try:
