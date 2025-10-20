@@ -5,6 +5,7 @@ import logging
 import subprocess
 import threading
 import time
+from tools import __version__ as galago_version
 
 # Move heavy imports inside functions to delay loading
 def get_shell_command(tool: str, file: str) -> list[str]:
@@ -78,7 +79,7 @@ def launch_web_only() -> int:
         return 1
 
 def main() -> None:
-    """Main entry point - launches the modern PyQt + WebSocket application"""
+    """Main entry point for Galago Tools Manager CLI"""
     
     # Define top-level arguments
     parser = argparse.ArgumentParser(
@@ -86,11 +87,15 @@ def main() -> None:
         add_help=False
     )
     parser.add_argument("--help", action="help", help="Show this help message and exit")
+    parser.add_argument("--h", action="help", help="Show this help message and exit")
+    parser.add_argument("--version", action="version", version=f"Galago Tools Manager {galago_version}", help="Show program version and exit")
     parser.add_argument("--discover", action="store_true", help="Autodiscover tools")
-    parser.add_argument("--console", action="store_true", help="Launch in console mode (legacy)")
+    parser.add_argument("--headless", action="store_true", help="Launch in headless mode. No GUI.")
+    parser.add_argument("--console", action="store_true", help="Launch in headless mode. No GUI.")
     parser.add_argument("--web-only", action="store_true", help="Launch web server only (no desktop app)")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    
+    parser.add_argument("--legacy", action="store_true", help="Launch legacy app.")
+
     # Parse known arguments
     known, remaining = parser.parse_known_args()
     
@@ -106,9 +111,12 @@ def main() -> None:
     sys.argv = [sys.argv[0]] + remaining
     
     # Handle legacy modes
-    if known.console:
+    if known.headless or known.console:
         from tools.launch_console import main as launch_console_main
         sys.exit(launch_console_main())
+    elif known.legacy:
+        from tools.launch_tools import main as launch_tools_main
+        sys.exit(launch_tools_main())
     elif known.discover:
         from tools.discover_tools import main as autodiscover_main
         sys.exit(autodiscover_main())
@@ -116,7 +124,7 @@ def main() -> None:
         # Launch web server only
         sys.exit(launch_web_only())
     else:
-        # Default: Launch the modern PyQt + WebSocket application
+        # Default: Launch PyQt + WebSocket application
         try:
             # Start web server in a separate thread
             web_thread = threading.Thread(target=start_web_server, daemon=True)

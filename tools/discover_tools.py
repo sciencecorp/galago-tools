@@ -87,10 +87,10 @@ def main() -> int:
                 for port in sorted(discovered_ports):
                     print(f"  - {host}:{port}")
             else:
-                print("No gRPC servers discovered.")
-            
-            print("\nNext scan in 15 seconds. Press Ctrl+C to exit.")
-            time.sleep(15)
+                print("No active gRPC servers found.")
+
+            print("\nNext scan in 10 seconds. Press Ctrl+C to exit.")
+            time.sleep(10)
     except KeyboardInterrupt:
         print("\nDiscovery interrupted by user. Exiting gracefully.")
         return 0 

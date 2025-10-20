@@ -13,7 +13,7 @@ class GalagoWebViewer(QMainWindow):
         super().__init__()
         self.setWindowTitle("Galago Tools Manager")
         self.setGeometry(100, 100, 1200, 800)
-        
+        self.zoom_factor = 0.5
         # Set window icon
         icon_path = os.path.join(os.path.dirname(__file__), "site_logo.png")
         if os.path.exists(icon_path):
