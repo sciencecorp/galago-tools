@@ -727,8 +727,8 @@ class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
                 self.send_header('Content-type', 'text/html')
                 self.send_header('Cache-Control', 'no-cache')
                 self.end_headers()
-                with open(html_file, 'r', encoding='utf-8') as f:
-                    self.wfile.write(f.read().encode('utf-8'))
+                with open(html_file, 'rb') as f:
+                    self.wfile.write(f.read())
                 return
             else:
                 self.send_response(404)
