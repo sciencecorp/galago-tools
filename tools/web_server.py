@@ -197,7 +197,7 @@ def kill_by_process_id(process_id: int) -> None:
             os.kill(process_id, os_signal.SIGTERM)
             time.sleep(0.5)
             try:
-                os.kill(process_id, os_signal.SIGKILL)
+                os.kill(process_id, os_signal.SIGTERM)
             except ProcessLookupError:
                 pass
         logger.info(f"Killed process {process_id}")
