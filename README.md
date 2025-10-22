@@ -144,6 +144,3 @@ Science Corporation develops advanced technologies to understand and engineer th
 
 - **Issues**: [GitHub Issues](https://github.com/sciencecorp/galago-tools/issues)
 - **Documentation**: [Full Documentation](https://galago.bio/)
----
-
-**Made with ❤️ by Science Corporation**
