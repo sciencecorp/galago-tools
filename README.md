@@ -1,7 +1,7 @@
 # Galago Tools
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/)
 [![GitHub Issues](https://img.shields.io/github/issues/sciencecorp/galago-tools)](https://github.com/sciencecorp/galago-tools/issues)
 
 **Open Source Lab Automation gRPC Library**
