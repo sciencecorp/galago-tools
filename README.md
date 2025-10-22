@@ -39,7 +39,7 @@ pip install -e .
 
 ### 32-bit Windows Environment
 
-Many legacy lab instruments require 32-bit Python on Windows. Set up a 32-bit environment using conda/mamba:
+Many legacy lab instruments require 32-bit Python on Windows. Set up a 32-bit environment using conda/conda:
 
 ```bash
 # Set environment variables for 32-bit
@@ -47,8 +47,8 @@ set CONDA_FORCE_32BIT=1
 set CONDA_SUBDIR=win-32
 
 # Create and activate environment
-mamba create -n galago-tools python=3.9
-mamba activate galago-tools
+conda create -n galago-tools python=3.9
+conda activate galago-tools
 
 # Install galago-tools
 pip install galago-tools
