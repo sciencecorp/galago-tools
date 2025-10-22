@@ -23,7 +23,7 @@ def serve() -> None:
     known, remaining = parser.parse_known_args()
     use_shell = os.name == 'nt'
     sys.argv = [sys.argv[0]] + remaining
-    command = get_shell_command(known.tool, known.file)
+    command = get_shell_command(str(known.tool).lower(), known.file)
     command.append(f'--port={known.port}')
     
     # Set the PYTHONPATH to include the project root.
