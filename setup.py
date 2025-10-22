@@ -138,9 +138,7 @@ setup(
                             # Add static web assets to the root package
                                 '': [
                                 'index.html',
-                                'tool_images/*',
-                                'static/*',  # If you have CSS, JS files
-                                'assets/*'   # Any other asset directories
+                                'tool_images/*'
                                 ]
                             },
     url='https://github.com/sciencecorp/galago-tools',
