@@ -39,7 +39,7 @@ pip install -e .
 
 ### 32-bit Windows Environment
 
-Many legacy lab instruments require 32-bit Python on Windows. Set up a 32-bit environment using conda/conda:
+Many legacy lab instruments require 32-bit Python on Windows. Set up a 32-bit environment using conda:
 
 ```bash
 # Set environment variables for 32-bit
