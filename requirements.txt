@@ -10,6 +10,7 @@ networkx==3.1
 networkx-stubs==0.0.1
 types-setuptools==68.0.0.2
 python-dotenv==1.0.0
+packaging==25.0
 msl-loadlib==0.10.0
 pywin32==304; platform_system == "Windows"
 typing-inspect==0.8.0
