@@ -79,7 +79,7 @@ galago info hamilton
 
 ## 📋 Requirements
 
-- **Python**: 3.9 or higher
+- **Python**: 3.9
 - **Operating System**: Windows, macOS, Linux
 - **Dependencies**: Listed in `requirements.txt`
 
@@ -95,6 +95,7 @@ cd galago-tools
 # Install development dependencies
 pip install -e .
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Generate protobuf interfaces (if needed)
 python setup.py build_py
@@ -132,13 +133,7 @@ Science Corporation develops advanced technologies to understand and engineer th
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/sciencecorp/galago-tools/issues)
-- **Documentation**: [Full Documentation](https://github.com/sciencecorp/galago-tools/wiki)
-- **Discussions**: [GitHub Discussions](https://github.com/sciencecorp/galago-tools/discussions)
-
-## 🔒 Security
-
-For security vulnerabilities, please see our [Security Policy](SECURITY.md) or contact us directly.
-
+- **Documentation**: [Full Documentation](https://galago.bio/)
 ---
 
 **Made with ❤️ by Science Corporation**
