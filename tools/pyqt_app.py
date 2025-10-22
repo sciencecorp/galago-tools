@@ -115,6 +115,9 @@ class GalagoWebViewer(QMainWindow):
 def main() -> None:
     # Handle Ctrl+C gracefully
     signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    #Reduce memory warnings.
+    # os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-software-rasterizer --disable-dev-shm-usage"
     
     app = QApplication(sys.argv)
     icon_path = os.path.join(os.path.dirname(__file__), "site_logo.png")
