@@ -92,14 +92,24 @@ galago info hamilton
 git clone https://github.com/sciencecorp/galago-tools.git
 cd galago-tools
 
-# Install development dependencies
+# Install galago indevelopment moode
 pip install -e .
-pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
 # Generate protobuf interfaces (if needed)
-python setup.py build_py
+bin/make proto
+
+#Clear generated protobuf
+bin/make clean_proto
+
+#Run tools manager. 
+bin/make run 
+
+#or alternatively cli command 
+galago
+
 ```
+
 
 ### Building Distribution
 
