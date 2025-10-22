@@ -17,6 +17,8 @@ class CytationServer(ToolServer):
         self.config = config
         if self.driver:
             self.driver.close()
+        if not config.protocol_dir or not config.experiment_dir or not config.reader_type:
+            raise RuntimeError("Protocol directory, experiment directory, and reader type must be specified in the configuration.")
         self.driver = CytationDriver(
             protocol_dir=config.protocol_dir,
             experiment_dir=config.experiment_dir,
