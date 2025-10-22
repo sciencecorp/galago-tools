@@ -70,3 +70,44 @@ def write_trace_log(log_path:Optional[str], log_type:LogType, tool:str,value:str
     except Exception as e:
         logging.debug(e)
         return
+
+def list_available_tools() -> list:
+    import os
+    import importlib
+    import inspect
+    from pkgutil import iter_modules
+    
+    tool_list = []
+    tool_path = os.path.join(os.path.dirname(__file__))
+    
+    for module_info in iter_modules([tool_path]):
+        module_name = module_info.name
+        server_module_path = f"tools.{module_name}.server"
+        
+        try:
+            # Try to import the server module from the tool directory
+            server_module = importlib.import_module(server_module_path)
+            
+            # Check if any class in the server module inherits from ToolServer
+            has_toolserver_subclass = False
+            for name, obj in inspect.getmembers(server_module, inspect.isclass):
+                # Check if the class is defined in this server module (not imported)
+                if obj.__module__ == server_module_path:
+                    # Get the method resolution order to check inheritance
+                    for base_class in inspect.getmro(obj):
+                        if base_class.__name__ == 'ToolServer' and base_class is not obj:
+                            has_toolserver_subclass = True
+                            break
+                    if has_toolserver_subclass:
+                        break
+            
+            if has_toolserver_subclass:
+                tool_list.append(module_name)
+                
+        except ImportError as e:
+            # Skip modules that don't have a server.py or can't be imported
+            continue
+        except Exception as e:
+            print(f"Error processing server module for {module_name}: {e}")
+    
+    return tool_list

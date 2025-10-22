@@ -42,7 +42,7 @@ def main() -> None:
     parser.add_argument("--help", action="help", help="Show this help message and exit")
     parser.add_argument("--discover", action="store_true", help="Autodiscover tools")
     parser.add_argument("--console", action="store_true", help="Launch in console mode")
-    
+    parser.add_argument("--list", action="store_true", help="List available tools")
     # Parse known arguments and get the remaining arguments (if any)
     known, remaining = parser.parse_known_args()
     
@@ -55,6 +55,13 @@ def main() -> None:
     elif known.discover:
         from tools.discover_tools import main as autodiscover_main
         sys.exit(autodiscover_main())
+    elif known.list:
+        from tools.utils import list_available_tools
+        tools = list_available_tools()
+        print("Available tools:")
+        for tool in tools:
+            print(f"- {tool}")
+        sys.exit(0)
     else:
         from tools.launch_tools import main as launch_tools_main
         sys.exit(launch_tools_main())
