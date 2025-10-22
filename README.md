@@ -69,10 +69,10 @@ galago
 galago list
 
 # Start a specific tool server
-galago-serve hamilton --port 50051
+galago-serve --port=50010 --tool=opentrons2
 
 # Get tool information
-galago info hamilton
+galago info opentrons2
 ```
 
 ``
