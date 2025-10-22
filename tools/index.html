@@ -250,25 +250,57 @@
             position: absolute;
             top: 12px;
             right: 12px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
             transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 16px;
+        }
+
+        .status-indicator:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-indicator:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
 
         .status-indicator.running {
-            background: #4CAF50;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+            background: rgba(244, 67, 54, 0.2);
+            border-color: rgba(244, 67, 54, 0.4);
+            color: #f44336;
+        }
+
+        .status-indicator.running:hover:not(:disabled) {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: rgba(244, 67, 54, 0.6);
         }
 
         .status-indicator.stopped {
-            background: #f44336;
-            box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+            background: rgba(76, 175, 80, 0.2);
+            border-color: rgba(76, 175, 80, 0.4);
+            color: #4CAF50;
+        }
+
+        .status-indicator.stopped:hover:not(:disabled) {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: rgba(76, 175, 80, 0.6);
         }
 
         .status-indicator.loading {
-            background: #2196F3;
-            box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
+            background: rgba(33, 150, 243, 0.2);
+            border-color: rgba(33, 150, 243, 0.4);
+            color: #2196F3;
             animation: pulse 1.5s infinite;
         }
 
@@ -317,9 +349,39 @@
         .tool-port {
             font-size: 0.75rem;
             color: #888;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             position: relative;
             z-index: 1;
+        }
+
+        .tool-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-status.running {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .tool-status.stopped {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .tool-status.loading {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196F3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
         }
 
         .action-button {
@@ -581,10 +643,11 @@
 
             <div class="tools-grid" id="toolsGrid">
                 <div class="tool-card" style="opacity: 0.5;">
-                    <div class="status-indicator loading"></div>
+                    <button class="status-indicator loading" disabled>⏳</button>
                     <div class="tool-icon">⏳</div>
                     <div class="tool-name">Loading...</div>
                     <div class="tool-type">Connecting to server...</div>
+                    <div class="tool-status loading">Initializing...</div>
                 </div>
             </div>
         </div>
@@ -730,33 +793,44 @@
                 this.tools = tools;
                 const container = document.getElementById('toolsGrid');
                 
-                container.innerHTML = tools.map(tool => `
+                container.innerHTML = tools.map(tool => {
+                    const statusText = tool.status === 'running' ? 'Connected' : 
+                                     tool.status === 'loading' ? 'Connecting...' : 'Not Connected';
+                    const icon = tool.status === 'running' ? '⏹' : 
+                               tool.status === 'loading' ? '⏳' : '▶';
+                    
+                    return `
                     <div class="tool-card" data-tool="${tool.name}">
-                        <div class="status-indicator ${tool.status}"></div>
+                        <button class="status-indicator ${tool.status}" 
+                                onclick="toolsManager.toggleTool('${tool.name}', '${tool.type}', ${tool.port}, '${tool.status}')"
+                                id="btn-${tool.name}"
+                                title="${tool.status === 'running' ? 'Stop' : 'Start'} ${tool.name}">
+                            ${icon}
+                        </button>
                         <div class="tool-icon">
                             <img src="/images/${tool.image}" alt="${tool.name}" onerror="this.style.display='none'; this.parentNode.innerHTML='🔧';">
                         </div>
                         <div class="tool-name">${tool.name}</div>
                         <div class="tool-type">${tool.type}</div>
                         <div class="tool-port">Port: ${tool.port}</div>
-                        <button class="action-button ${tool.status === 'running' ? 'stop-button' : 'start-button'}" 
-                                onclick="toolsManager.toggleTool('${tool.name}', '${tool.type}', ${tool.port}, '${tool.status}')"
-                                id="btn-${tool.name}">
-                            ${tool.status === 'running' ? 'Stop' : 'Start'}
-                        </button>
+                        <div class="tool-status ${tool.status}">${statusText}</div>
                     </div>
-                `).join('');
+                `}).join('');
             }
 
             toggleTool(toolName, toolType, port, currentStatus) {
                 const button = document.getElementById(`btn-${toolName}`);
                 const card = document.querySelector(`[data-tool="${toolName}"]`);
-                const indicator = card.querySelector('.status-indicator');
+                const statusText = card.querySelector('.tool-status');
                 
                 // Disable button and show loading state
                 button.disabled = true;
-                button.innerHTML = '<div class="loading-spinner"></div>Processing...';
-                indicator.className = 'status-indicator loading';
+                button.innerHTML = '⏳';
+                button.className = 'status-indicator loading';
+                if (statusText) {
+                    statusText.textContent = 'Processing...';
+                    statusText.className = 'tool-status loading';
+                }
 
                 const action = currentStatus === 'running' ? 'stop_tool' : 'start_tool';
                 
