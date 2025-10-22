@@ -1,11 +1,11 @@
 import sys
 import signal
 import os
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import QUrl, QTimer, Qt
-from PySide6.QtGui import QIcon
-from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+from PySide2.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel
+from PySide2.QtWebEngineWidgets import QWebEngineView
+from PySide2.QtCore import QUrl, QTimer, Qt
+from PySide2.QtGui import QIcon
+from PySide2.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
 
 class GalagoWebViewer(QMainWindow):
@@ -26,6 +26,7 @@ class GalagoWebViewer(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
+        
         # Create web view
         self.web_view = QWebEngineView()
         self.main_layout.addWidget(self.web_view)
@@ -65,7 +66,7 @@ class GalagoWebViewer(QMainWindow):
         self.retry_button = QPushButton("Retry Connection")
         self.retry_button.setMaximumWidth(200)
         self.retry_button.clicked.connect(self.check_server_and_load)
-        error_layout.addWidget(self.retry_button, Qt.AlignmentFlag.AlignCenter)
+        error_layout.addWidget(self.retry_button, alignment=Qt.AlignCenter)
         
         # Add error widget to layout but hide it initially
         self.main_layout.addWidget(self.error_widget)
@@ -88,7 +89,7 @@ class GalagoWebViewer(QMainWindow):
         self.retry_button.setText("Retry Connection")
         self.retry_button.setEnabled(True)
         
-        if reply.error() == QNetworkReply.NetworkError.NoError:
+        if reply.error() == QNetworkReply.NoError:
             # Server is reachable, show web view and load page
             self.show_web_view()
             self.web_view.setUrl(QUrl("http://localhost:8080"))
@@ -125,7 +126,7 @@ def main() -> None:
     viewer = GalagoWebViewer()
     viewer.show()
     
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
 
 
 if __name__ == "__main__":

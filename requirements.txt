@@ -23,5 +23,6 @@ comtypes==1.4.10
 appdirs==1.4.4
 pyhamilton==1.491.17
 PyLabRobot
-PySide6==6.10.0 
+PySide2==5.15.2.1
 websockets==15.0.1
+numpy==1.26.4
