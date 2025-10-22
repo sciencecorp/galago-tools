@@ -1,41 +1,146 @@
-## Galago Tools
+# Galago Tools
 
-Every tool runs a gRPC server that exposes a standard interface; Commands are sent to tools for execution.
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python Version](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/)
+[![GitHub Issues](https://img.shields.io/github/issues/sciencecorp/galago-tools)](https://github.com/sciencecorp/galago-tools/issues)
+
+**Open Source Lab Automation gRPC Library**
+
+Galago Tools is a comprehensive Python library for lab automation that provides standardized gRPC interfaces for a wide variety of laboratory instruments. Each tool runs as a gRPC server, enabling consistent command execution across different devices and platforms.
+
+## 🚀 Features
+
+- **Standardized Interface**: Uniform gRPC API across all supported instruments
+- **Extensive Device Support**: 20+ instrument types including pipetting systems, centrifuges, readers, and more
+- **32-bit Compatibility**: Special support for legacy Windows instruments requiring 32-bit Python
+- **Production Ready**: Used in real laboratory environments
 
 
-### Requirements 
-```python 
-python 3.9.12
+## 📦 Installation
+
+### Standard Installation
+
+```bash
+pip install galago-tools
 ```
 
-A lot of legacy lab instruments require to run in python 32 bits and windows. 
-You can set a 32 bit environment on mamba or conda. 
+### Development Installation
 
-### 32 bits python environment.
+For development or the latest features:
 
-```
-# Set CONDA_FORCE_32BIT environment variable
-set CONDA_FORCE_32BIT=1
-set CONDA_SUBDIR="win-32"
-mamba create -n galago-tools
-mamba activate galago-tools
-```
+```bash
+# Clone the repository
+git clone https://github.com/sciencecorp/galago-tools.git
+cd galago-tools
 
-### Install 
-```
-pip install "git+ssh://git@github.com/sciencecorp/galago-tools"
-```
-
-### Development 
-```
+# Install in development mode
 pip install -e .
 ```
 
+### 32-bit Windows Environment
 
-### Generating Wheels. 
-This process is still manual. 
+Many legacy lab instruments require 32-bit Python on Windows. Set up a 32-bit environment using conda:
+
+```bash
+# Set environment variables for 32-bit
+set CONDA_FORCE_32BIT=1
+set CONDA_SUBDIR=win-32
+
+# Create and activate environment
+conda create -n galago-tools python=3.9
+conda activate galago-tools
+
+# Install galago-tools
+pip install galago-tools
 ```
-pip install build
-python setup.py bdist_wheel
+
+## 🔧 Quick Start
+
+### Starting the Tools Server Manager
+
+```bash 
+galago 
+```
+
+### Using the CLI
+
+```bash
+# List available tools
+galago list
+
+# Start a specific tool server
+galago-serve --port=50010 --tool=opentrons2
+
+# Get tool information
+galago --info opentrons2
+```
+
+``
+
+## 📋 Requirements
+
+- **Python**: 3.9
+- **Operating System**: Windows, macOS, Linux
+- **Dependencies**: Listed in `requirements.txt`
+
+## 🏗️ Development
+
+### Setting Up Development Environment
+
+```bash
+# Clone repository
+git clone https://github.com/sciencecorp/galago-tools.git
+cd galago-tools
+
+# Install galago indevelopment moode
+pip install -e .
+pip install -r requirements-dev.txt
+
+# Generate protobuf interfaces (if needed)
+bin/make proto
+
+#Clear generated protobuf
+bin/make clean_proto
+
+#Run tools manager. 
+bin/make run 
+
+#or alternatively cli command 
+galago
 
 ```
+
+
+### Building Distribution
+
+Python distributions are automatically published via github workflows. See see [RELEASE](RELEASE.md) for more information.
+
+### Running Tests
+
+```bash
+# Run all tests
+bin/make test
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## 🏢 About Science Corporation
+
+Science Corporation develops advanced technologies to understand and engineer the brain.
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/sciencecorp/galago-tools/issues)
+- **Documentation**: [Full Documentation](https://galago.bio/)

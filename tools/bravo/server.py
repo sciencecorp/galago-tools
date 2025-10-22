@@ -1,7 +1,6 @@
 import logging
 import os
 import argparse
-import pythoncom
 import threading
 import time
 from tools.base_server import ToolServer, serve
@@ -9,6 +8,9 @@ from tools.grpc_interfaces.bravo_pb2 import Command, Config
 from .driver import BravoDriver, kill_vworks
 from typing import Callable, Any 
 
+if os.name == "nt":
+    import pythoncom
+    
 _thread_local = threading.local()
 
 class BravoServer(ToolServer):
