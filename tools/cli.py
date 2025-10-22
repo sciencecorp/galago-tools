@@ -55,16 +55,10 @@ def start_web_server() -> bool:
 def launch_pyqt_app() -> None:
     """Launch the PyQt desktop app that wraps the web interface"""
     try:
-        # Dynamic import to handle missing PySide6
         from tools.pyqt_app import main as pyqt_main
         return pyqt_main()
-    except ImportError as e:
-        print(f"PyQt/PySide6 not available: {e}")
-        print("Falling back to web-only mode...")
-        print("Install PySide6 for desktop app: pip install PySide6")
-        return None
     except Exception as e:
-        print(f"Failed to launch desktop app: {e}")
+        print(f"Failed to launch desktop app: {e}. Try accessing via web browser.")
         return None
 
 def launch_web_only() -> int:
