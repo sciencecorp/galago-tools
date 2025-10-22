@@ -134,7 +134,13 @@ setup(
                             'bravo/deps/*.dll',
                             'minihub/deps/*.dll',
                             "favicon.ico",
-                            'grpc_interfaces/*.py']},
+                            'grpc_interfaces/*.py'],
+                            # Add static web assets to the root package
+                                '': [
+                                'index.html',
+                                'tool_images/*'
+                                ]
+                            },
     url='https://github.com/sciencecorp/galago-tools',
     author='Science Corporation',
     python_requires=">=3.9",

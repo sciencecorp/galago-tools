@@ -36,3 +36,5 @@ Procfile.tools
 .mypy_cache
 app_config.json
 build/*
+dist/*
+.eggs/*
