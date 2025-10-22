@@ -104,10 +104,8 @@ def list_available_tools() -> list:
             if has_toolserver_subclass:
                 tool_list.append(module_name)
                 
-        except ImportError as e:
-            # Skip modules that don't have a server.py or can't be imported
+        except ImportError:
             continue
-        except Exception as e:
-            print(f"Error processing server module for {module_name}: {e}")
-    
+        except Exception:
+            continue 
     return tool_list
