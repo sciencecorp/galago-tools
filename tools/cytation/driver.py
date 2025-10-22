@@ -18,9 +18,8 @@ except Exception:
     pass
 
 DEFAULT_EXPERIMENT_DIR = "C:\\cytation_output"
-DEFAULT_PROTOCOL_DIR = "C:\\Users\\Bioteam\\AppData\\Roaming\\monomer\\science-corp-workcell-files\\cytation\\protocols"
-CYTATION1_READER_TYPE = 26
-CYTATION5_READER_TYPE = 21
+DEFAULT_PROTOCOL_DIR = "C:\\cytation\\protocols"
+CYTATION5_READER_TYPE = 21 #Default to Cytation 5
 
 
 class CytationDriver(ABCToolDriver):
