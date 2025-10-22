@@ -66,7 +66,7 @@ galago
 
 ```bash
 # List available tools
-galago list
+galago --list
 
 # Start a specific tool server
 galago-serve --port=50010 --tool=opentrons2
