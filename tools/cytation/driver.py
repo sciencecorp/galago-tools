@@ -25,8 +25,8 @@ CYTATION5_READER_TYPE = 21 #Default to Cytation 5
 class CytationDriver(ABCToolDriver):
     def __init__(
         self,
-        protocol_dir: str = DEFAULT_PROTOCOL_DIR,
-        experiment_dir: str = DEFAULT_EXPERIMENT_DIR,
+        protocol_dir: str,
+        experiment_dir: str,
         reader_type: Union[str,int] = CYTATION5_READER_TYPE,
     ) -> None:
         self.experiment_dir = experiment_dir
