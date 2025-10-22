@@ -113,7 +113,7 @@ galago
 
 ### Building Distribution
 
-Python distributions are automatically published via github workflows. See RELEASE.md for more information.
+Python distributions are automatically published via github workflows. See see [RELEASE](RELEASE.md) for more information.
 
 ### Running Tests
 
