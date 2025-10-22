@@ -72,7 +72,7 @@ galago list
 galago-serve --port=50010 --tool=opentrons2
 
 # Get tool information
-galago info opentrons2
+galago --info opentrons2
 ```
 
 ``
