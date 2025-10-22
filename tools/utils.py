@@ -165,7 +165,7 @@ def get_tool_server_info(tool_name: str) -> dict:
         }
         
         # Helper function to get protobuf message fields
-        def get_protobuf_fields(message_class):
+        def get_protobuf_fields(message_class : type) -> list[str]:
             """Extract field names from a protobuf message class."""
             if not message_class or not issubclass(message_class, Message):
                 return []
