@@ -3,8 +3,6 @@ import sys
 import argparse
 import logging
 import subprocess
-import threading
-import time
 from tools import __version__ as galago_version
 
 # Move heavy imports inside functions to delay loading
