@@ -3,8 +3,6 @@ import sys
 import argparse
 import logging
 import subprocess
-import threading
-import time
 from tools import __version__ as galago_version
 
 # Move heavy imports inside functions to delay loading
@@ -51,15 +49,6 @@ def start_web_server() -> bool:
         print(f"Failed to start web server: {e}")
         return False
     return True
-
-def launch_pyqt_app() -> None:
-    """Launch the PyQt desktop app that wraps the web interface"""
-    try:
-        from tools.pyqt_app import main as pyqt_main
-        return pyqt_main()
-    except Exception as e:
-        print(f"Failed to launch desktop app: {e}. Try accessing via web browser.")
-        return None
 
 def launch_web_only() -> int:
     """Launch only the web server without desktop app"""
@@ -129,18 +118,11 @@ def main() -> None:
         print_tool_server_info(str(known.info).lower())
         sys.exit(0)
     else:
-        # Default: Launch PyQt + WebSocket application
+        # Default: Lanch tools manager web server
         try:
-            # Start web server in a separate thread
-            web_thread = threading.Thread(target=start_web_server, daemon=True)
-            web_thread.start()
-            
-            # Give web server time to start
-            time.sleep(2)
-            
-            # Launch PyQt desktop app
-            launch_pyqt_app()
-                
+            from tools.web_server import main as web_server_main
+            import asyncio
+            asyncio.run(web_server_main())
         except KeyboardInterrupt:
             print("Shutting down...")
             sys.exit(0)

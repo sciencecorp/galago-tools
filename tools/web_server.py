@@ -830,7 +830,7 @@ async def main() -> None:
         
         browser_url = f"http://localhost:{http_port}"
         logger.info(f"You can also access the web interface at {browser_url}")
-
+        open_browser(browser_url, delay=2.0)
         # Wait for server to close
         await server.wait_closed()
             

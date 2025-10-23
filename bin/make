@@ -73,7 +73,7 @@ clean_proto() {
 
 run(){
   echo "Launching Tools" 
-  python -m tools.launch_tools
+  python -m tools.web_server
 }
 
 # Generate all protobuf definitions
