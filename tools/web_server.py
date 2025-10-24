@@ -603,7 +603,6 @@ async def handle_websocket_message(websocket: Any, data: Dict[str, Any]) -> None
 
 async def monitor_log_files() -> None:
     """Enhanced log file monitoring with better error handling"""
-    logger.info("Starting real-time log monitoring task")
     
     while True:
         try:
@@ -700,7 +699,6 @@ async def websocket_handler(websocket: Any) -> None:
         logger.error(f"WebSocket error: {e}")
     finally:
         connected_clients.discard(websocket)
-        logger.info(f"Client disconnected. Total: {len(connected_clients)}")
 
 class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
     """Custom HTTP handler to serve static files"""
