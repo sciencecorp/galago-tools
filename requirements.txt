@@ -24,3 +24,4 @@ appdirs==1.4.4
 pyhamilton==1.491.17
 PyLabRobot
 websockets==15.0.1
+opentrons==8.7.0
