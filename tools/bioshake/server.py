@@ -36,15 +36,18 @@ class BioShakeServer(ToolServer):
         self.driver.home()
 
     def StartShake(self, params: Command.StartShake) -> None:
+
         if params.duration > 0:
             self.driver.shake_on_with_runtime(
                 seconds=params.duration,
                 speed=params.speed,
                 acceleration=params.acceleration,
             )
-        #If a negative duration is give, initialize non blocking shake
         else:
-            self.driver.start_shake()
+            self.driver.start_shake(
+                speed=params.speed,
+                acceleration=params.acceleration,
+            )
 
     def StopShake(self, params: Command.StopShake) -> None:
         self.driver.stop_shake()
@@ -67,25 +70,25 @@ class BioShakeServer(ToolServer):
         self.driver.set_tmp(params.temperature)
     
     def EstimateGrip(self, params: Command.Grip) -> int:
-        return 1
+        return 4
 
     def EstimateUngrip(self, params: Command.Ungrip) -> int:
-        return 1
+        return 4
 
     def EstimateHome(self, params: Command.Home) -> int:
-        return 1
+        return 10
 
     def EstimateStartShake(self, params: Command.StartShake) -> int:
-        return 1
+        return params.duration
 
     def EstimateStopShake(self, params: Command.StopShake) -> int:
-        return 1
+        return 10
 
     def EstimateReset(self, params: Command.Reset) -> int:
-        return 1
+        return 2
 
     def EstimateWaitForShakeToFinish(self, params: Command.WaitForShakeToFinish) -> int:
-        return 1
+        return 5
 
 
 if __name__ == "__main__":

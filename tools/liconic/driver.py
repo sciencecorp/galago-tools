@@ -288,9 +288,6 @@ class LiconicStxDriver(ABCToolDriver):
                         self.co2_out_of_range = True
                         error_message = f"CO2 level is low: {co2_level}%"
                         logging.warning(error_message)
-                    # if co2_level > 4 and self.co2_out_of_range:
-                    #     if self.config.app_config.slack_error_channel:
-                    #           logging.warning(f"CO2 level is back to normal: {co2_level}%")
                         self.co2_out_of_range = False
                 time.sleep(300)
                 

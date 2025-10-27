@@ -21,6 +21,12 @@ run_debug() {
   python -m tools.launch_tools --debug
 }
 
+dev_deps() {
+  echo "Installing Development Dependencies"
+  python -m pip install -r requirements-dev.txt
+  echo "Development Dependencies Installed"
+}
+
 deps() {
   echo "Installing Python Dependencies"
   python -m pip install -r requirements.txt
@@ -67,7 +73,7 @@ clean_proto() {
 
 run(){
   echo "Launching Tools" 
-  python -m tools.launch_tools
+  python -m tools.web_server
 }
 
 # Generate all protobuf definitions

@@ -1,5 +1,4 @@
 import logging
-import os
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.microserve_pb2 import Command, Config
 from .driver import MicroServeDriver
@@ -73,4 +72,4 @@ if __name__ == "__main__":
     logging.info("Running server")
     if not args.port:
          raise RuntimeWarning("Port must be provided...")
-    serve(MicroserveServer(), os.environ.get("PORT", str(args.port)))
+    serve(MicroserveServer(), str(args.port))

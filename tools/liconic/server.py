@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 
 from tools.base_server import ToolServer, serve
@@ -69,7 +68,6 @@ class LiconicServer(ToolServer):
         return self.driver.raw(params.cmd)
 
 if __name__ == "__main__":
-    #logging.basicConfig(level=logging.DEBUG)
     logging.getLogger().setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument('--port')
@@ -77,4 +75,4 @@ if __name__ == "__main__":
     logging.info("Running server")
     if not args.port:
          raise RuntimeWarning("Port must be provided...")
-    serve(LiconicServer(), os.environ.get("PORT", str(args.port)))
+    serve(LiconicServer(), str(args.port))

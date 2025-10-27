@@ -1,25 +1,8 @@
 import os
-from os.path import join 
-from tools.app_config import Config
-
 
 class Data():
     def __init__(self)-> None:
         return
-    
-    @staticmethod
-    def get_workcells() -> list[str]:
-        workcells_directory = join(os.getcwd(),"workspace")
-        dir_exists = os.path.isdir(workcells_directory)
-        workcells = os.listdir(workcells_directory)
-        workcells.remove("data")
-        if dir_exists:
-            return workcells
-        else:
-            return list()
-    
-    def save_new_config(config:Config) -> None:
-        return None
     
     # @staticmethod
     # def get_media_exchange_logs_by_date(date:str) -> list[dict]:
@@ -158,11 +141,3 @@ class Data():
         else:
             return False
         
-# if __name__ == "__main__":
-#     d = Data()
-#     d.get_media_exchange_logs("2024-07-31")
-    # print(d.get_ot2_images_by_date("2024-07-21"))
-    # #Data.log_media_exchange("Diff1","WP1234","12341243","WP1234","!2312312","A1:A2:A3:",50)
-    # # #Data.get_liconic_sensor_data("liconic","2024-07-17")
-    # # images_bites = Data.get_ot2_image_bites_by_file_name("2024-07-21","ot2_2024-07-20_09-38-47_pre_run.jpg")
-    # # print(images_bites)

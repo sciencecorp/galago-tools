@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galago Tools Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            filter: invert(1) drop-shadow(0 2px 8px rgba(79, 172, 254, 0.3));
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin: 0;
+            background: white;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: RED;
+            font-size: 1.1rem;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .tab-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin: 0 20px 20px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px 12px 0 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: none;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            color: #888;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button:first-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .tab-button:last-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .tab-button.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+        }
+
+        .tab-content {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0 0 12px 12px;
+            padding: 20px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tools Tab Styles */
+        .controls-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .control-button:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .control-button.reload {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(33, 150, 243, 0.15));
+            border: 1px solid rgba(33, 150, 243, 0.4);
+        }
+
+        .control-button.reload:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.4), rgba(33, 150, 243, 0.2));
+            border: 1px solid rgba(33, 150, 243, 0.6);
+        }
+
+        .control-button.relaunch {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.15));
+            border: 1px solid rgba(255, 152, 0, 0.4);
+        }
+
+        .control-button.relaunch:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.4), rgba(255, 152, 0, 0.2));
+            border: 1px solid rgba(255, 152, 0, 0.6);
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        .tool-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tool-card:hover::before {
+            opacity: 1;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 16px;
+        }
+
+        .status-indicator:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-indicator:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status-indicator.running {
+            background: rgba(244, 67, 54, 0.2);
+            border-color: rgba(244, 67, 54, 0.4);
+            color: #f44336;
+        }
+
+        .status-indicator.running:hover:not(:disabled) {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: rgba(244, 67, 54, 0.6);
+        }
+
+        .status-indicator.stopped {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: rgba(76, 175, 80, 0.4);
+            color: #4CAF50;
+        }
+
+        .status-indicator.stopped:hover:not(:disabled) {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: rgba(76, 175, 80, 0.6);
+        }
+
+        .status-indicator.loading {
+            background: rgba(33, 150, 243, 0.2);
+            border-color: rgba(33, 150, 243, 0.4);
+            color: #2196F3;
+            animation: pulse 1.5s infinite;
+        }
+
+        .tool-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: white;
+            background: #4facfe;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .tool-icon img {
+            width: 85%;
+            height: 85%;
+            object-fit: fill;
+        }
+
+        .tool-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-type {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 4px;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tool-port {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-status.running {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .tool-status.stopped {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .tool-status.loading {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196F3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .action-button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+            min-width: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .start-button {
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+            color: white;
+        }
+
+        .start-button:hover:not(:disabled) {
+            background: linear-gradient(45deg, #45a049, #7CB342);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .stop-button {
+            background: linear-gradient(45deg, #f44336, #FF5722);
+            color: white;
+        }
+
+        .stop-button:hover:not(:disabled) {
+            background: linear-gradient(45deg, #da190b, #E64A19);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .action-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Logs Tab Styles */
+        .logs-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logs-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .logs-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .log-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .log-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .logs-content {
+            flex: 1;
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            min-height: 400px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .log-entry.error {
+            color: #f44747;
+        }
+
+        .log-entry.warning {
+            color: #ffcc02;
+        }
+
+        .log-entry.info {
+            color: #4ec9b0;
+        }
+
+        .log-entry.debug {
+            color: #9cdcfe;
+        }
+
+        .log-source {
+            color: #569cd6;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+            backdrop-filter: blur(10px);
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 0); opacity: 1; }
+            to { transform: translate(-50%, -100%); opacity: 0; }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .tools-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 12px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .header-content {
+                gap: 12px;
+            }
+            
+            .header-icon {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .tool-card {
+                padding: 14px;
+            }
+            
+            .controls-bar {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 8px;
+            }
+            
+            .control-button {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .logs-controls {
+                justify-content: center;
+            }
+
+            .tab-button {
+                font-size: 1rem;
+                padding: 12px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Disconnected</div>
+    
+    <div class="header">
+        <div class="header-content">
+            <img src="site_logo.png" alt="Galago Tools Logo" class="header-icon">
+            <h1>Galago Tools Manager</h1>
+        </div>
+    </div>
+
+    <div class="tab-container">
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="switchTab('tools')">Tools</button>
+            <button class="tab-button" onclick="switchTab('logs')">Trace Logs</button>
+        </div>
+
+        <!-- Tools Tab -->
+        <div class="tab-content active" id="toolsTab">
+            <div class="controls-bar">
+                <button class="control-button relaunch" onclick="relaunchAllTools()" id="relaunchBtn">
+                    Relaunch Server
+                </button>
+                <button class="control-button" onclick="startAllTools()">
+                    Start All
+                </button>
+                <button class="control-button" onclick="stopAllTools()">
+                    Stop All
+                </button>
+            </div>
+
+            <div class="tools-grid" id="toolsGrid">
+                <div class="tool-card" style="opacity: 0.5;">
+                    <button class="status-indicator loading" disabled>⏳</button>
+                    <div class="tool-icon">⏳</div>
+                    <div class="tool-name">Loading...</div>
+                    <div class="tool-type">Connecting to server...</div>
+                    <div class="tool-status loading">Initializing...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div class="tab-content" id="logsTab">
+            <div class="logs-container">
+                <div class="logs-header">
+                    <h3 class="logs-title">System Logs</h3>
+                    <div class="logs-controls">
+                        <button class="log-button" onclick="clearLogs()">Clear</button>
+                        <button class="log-button" onclick="toggleAutoScroll()" id="autoScrollBtn">Auto-scroll: ON</button>
+                    </div>
+                </div>
+                <div class="logs-content" id="logsContent">
+                    <div class="log-entry">System starting up...</div>
+                    <div class="log-entry info">Connecting to WebSocket server...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ToolsManager {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.tools = [];
+                this.autoScroll = true;
+                this.autoUpdate = true;
+                this.init();
+            }
+
+            init() {
+                this.connect();
+                this.setupEventListeners();
+            }
+
+            connect() {
+                try {
+                    this.ws = new WebSocket('ws://localhost:8765');
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.updateConnectionStatus(true);
+                        this.reconnectAttempts = 0;
+                        this.requestToolStatus();
+                        this.addLog('Connected to server', 'info');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message);
+                        } catch (e) {
+                            console.error('Error parsing message:', e);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        this.updateConnectionStatus(false);
+                        this.addLog('Disconnected from server', 'error');
+                        this.attemptReconnect();
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.addLog('Connection error', 'error');
+                    };
+
+                } catch (error) {
+                    console.error('Failed to connect:', error);
+                    this.updateConnectionStatus(false);
+                    this.attemptReconnect();
+                }
+            }
+
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    this.addLog(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`, 'warning');
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, this.reconnectDelay * this.reconnectAttempts);
+                } else {
+                    this.addLog('Failed to reconnect. Please refresh the page.', 'error');
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+                statusEl.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+            }
+
+            loadInitialLogs(logs) {
+                const container = document.getElementById('logsContent');
+                // For initial load, replace the placeholder content
+                container.innerHTML = logs.map(log => {
+                    const logType = this.getLogType(log.content);
+                    return `<div class="log-entry ${logType}"><span class="log-source">[${log.source}]</span>${log.content}</div>`;
+                }).join('');
+                
+                if (this.autoScroll) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'tool_status':
+                        this.updateToolsDisplay(message.data);
+                        break;
+                    case 'response':
+                        this.handleResponse(message);
+                        break;
+                    case 'logs':
+                        this.updateLogs(message.data);
+                        break;
+                    case 'initial_logs':
+                        // For initial logs, we can replace the content
+                        this.loadInitialLogs(message.data);
+                        break;
+                    default:
+                        console.log('Unknown message type:', message.type);
+                }
+            }
+
+            handleResponse(response) {
+                if (response.success) {
+                    this.showNotification(response.message);
+                } else {
+                    this.showNotification(response.message, true);
+                }
+                this.addLog(response.message, response.success ? 'info' : 'error');
+            }
+
+            updateToolsDisplay(tools) {
+                this.tools = tools;
+                const container = document.getElementById('toolsGrid');
+                
+                container.innerHTML = tools.map(tool => {
+                    const statusText = tool.status === 'running' ? 'Connected' : 
+                                     tool.status === 'loading' ? 'Connecting...' : 'Not Connected';
+                    const icon = tool.status === 'running' ? '⏹' : 
+                               tool.status === 'loading' ? '⏳' : '▶';
+                    
+                    return `
+                    <div class="tool-card" data-tool="${tool.name}">
+                        <button class="status-indicator ${tool.status}" 
+                                onclick="toolsManager.toggleTool('${tool.name}', '${tool.type}', ${tool.port}, '${tool.status}')"
+                                id="btn-${tool.name}"
+                                title="${tool.status === 'running' ? 'Stop' : 'Start'} ${tool.name}">
+                            ${icon}
+                        </button>
+                        <div class="tool-icon">
+                            <img src="/images/${tool.image}" alt="${tool.name}" onerror="this.style.display='none'; this.parentNode.innerHTML='🔧';">
+                        </div>
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-type">${tool.type}</div>
+                        <div class="tool-port">Port: ${tool.port}</div>
+                        <div class="tool-status ${tool.status}">${statusText}</div>
+                    </div>
+                `}).join('');
+            }
+
+            toggleTool(toolName, toolType, port, currentStatus) {
+                const button = document.getElementById(`btn-${toolName}`);
+                const card = document.querySelector(`[data-tool="${toolName}"]`);
+                const statusText = card.querySelector('.tool-status');
+                
+                // Disable button and show loading state
+                button.disabled = true;
+                button.innerHTML = '⏳';
+                button.className = 'status-indicator loading';
+                if (statusText) {
+                    statusText.textContent = 'Processing...';
+                    statusText.className = 'tool-status loading';
+                }
+
+                const action = currentStatus === 'running' ? 'stop_tool' : 'start_tool';
+                
+                this.sendMessage({
+                    action: action,
+                    tool_name: toolName,
+                    tool_type: toolType,
+                    port: port
+                });
+
+                // Re-enable button after a delay (will be updated by status response)
+                setTimeout(() => {
+                    button.disabled = false;
+                }, 2000);
+            }
+
+            sendMessage(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                } else {
+                    this.showNotification('Not connected to server', true);
+                    this.addLog('Failed to send message - not connected', 'error');
+                }
+            }
+
+            requestToolStatus() {
+                this.sendMessage({ action: 'get_status' });
+            }
+
+            refreshLogs() {
+                this.sendMessage({ action: 'get_logs' });
+            }
+
+            reloadConfig() {
+                const button = document.getElementById('reloadBtn');
+                button.disabled = true;
+                button.innerHTML = '<div class="loading-spinner"></div>Reloading...';
+                
+                this.sendMessage({ action: 'reload_config' });
+                this.addLog('Reloading configuration...', 'info');
+                
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = 'Reload Config';
+                }, 3000);
+            }
+
+            relaunchAllTools() {
+                const button = document.getElementById('relaunchBtn');
+                button.disabled = true;
+                button.innerHTML = '<div class="loading-spinner"></div>Relaunching...';
+                
+                this.sendMessage({ action: 'relaunch_all' });
+                this.addLog('Relaunching all tools...', 'info');
+                
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = 'Relaunch Server';
+                }, 10000); // Longer timeout for relaunch
+            }
+
+                updateLogs(logs) {
+                    const container = document.getElementById('logsContent');
+                    const maxLogs = 1000; // Maximum number of logs to keep in memory
+                    
+                    // Append new logs instead of replacing all content
+                    logs.forEach(log => {
+                        const logType = this.getLogType(log.content);
+                        const logEntry = document.createElement('div');
+                        logEntry.className = `log-entry ${logType}`;
+                        logEntry.innerHTML = `<span class="log-source">[${log.source}]</span>${log.content}`;
+                        container.appendChild(logEntry);
+                    });
+                    
+                    // Remove old logs if we exceed the maximum
+                    const allLogs = container.querySelectorAll('.log-entry');
+                    if (allLogs.length > maxLogs) {
+                        const excessLogs = allLogs.length - maxLogs;
+                        for (let i = 0; i < excessLogs; i++) {
+                            container.removeChild(allLogs[i]);
+                        }
+                    }
+                    
+                    if (this.autoScroll) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }
+
+            getLogType(content) {
+                if (content.includes('ERROR')) return 'error';
+                if (content.includes('WARNING')) return 'warning';
+                if (content.includes('DEBUG')) return 'debug';
+                return 'info';
+            }
+
+            addLog(message, type = 'info') {
+                const container = document.getElementById('logsContent');
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.innerHTML = `<span class="log-source">[${timestamp}]</span>${message}`;
+                
+                container.appendChild(logEntry);
+                
+                if (this.autoScroll) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+
+            clearLogs() {
+                document.getElementById('logsContent').innerHTML = '';
+            }
+
+            toggleAutoScroll() {
+                this.autoScroll = !this.autoScroll;
+                document.getElementById('autoScrollBtn').textContent = `Auto-scroll: ${this.autoScroll ? 'ON' : 'OFF'}`;
+            }
+
+            showNotification(message, isError = false) {
+                const notification = document.createElement('div');
+                notification.className = `notification ${isError ? 'error' : ''}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideUp 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+
+            setupEventListeners() {
+                // Handle page unload
+                window.addEventListener('beforeunload', () => {
+                    if (this.ws) {
+                        this.ws.close();
+                    }
+                });
+
+                // Handle visibility change to reconnect when page becomes visible
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden && (!this.ws || this.ws.readyState !== WebSocket.OPEN)) {
+                        this.connect();
+                    }
+                });
+            }
+        }
+
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        // Global functions
+        function refreshStatus() {
+            toolsManager.requestToolStatus();
+            toolsManager.addLog('Refreshing tool status...', 'info');
+        }
+
+        function startAllTools() {
+            toolsManager.tools.forEach(tool => {
+                if (tool.status === 'stopped') {
+                    setTimeout(() => {
+                        toolsManager.toggleTool(tool.name, tool.type, tool.port, 'stopped');
+                    }, Math.random() * 1000); // Stagger starts
+                }
+            });
+            toolsManager.addLog('Starting all stopped tools...', 'info');
+        }
+
+        function stopAllTools() {
+            toolsManager.tools.forEach(tool => {
+                if (tool.status === 'running') {
+                    setTimeout(() => {
+                        toolsManager.toggleTool(tool.name, tool.type, tool.port, 'running');
+                    }, Math.random() * 1000); // Stagger stops
+                }
+            });
+            toolsManager.addLog('Stopping all running tools...', 'info');
+        }
+
+        function reloadConfig() {
+            toolsManager.reloadConfig();
+        }
+
+        function relaunchAllTools() {
+            toolsManager.relaunchAllTools();
+        }
+
+        function clearLogs() {
+            toolsManager.clearLogs();
+        }
+
+        function toggleAutoScroll() {
+            toolsManager.toggleAutoScroll();
+        }
+
+        // Initialize the application
+        let toolsManager;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            toolsManager = new ToolsManager();
+        });
+    </script>
+</body>
+</html>

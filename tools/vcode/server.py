@@ -1,5 +1,4 @@
 import logging
-import os
 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.vcode_pb2 import Command, Config
@@ -85,4 +84,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if not args.port:
          raise RuntimeWarning("Port must be provided...")
-    serve(VCodeServer(), os.environ.get("PORT",str(args.port)))
+    serve(VCodeServer(), str(args.port))

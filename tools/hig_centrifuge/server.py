@@ -1,5 +1,4 @@
 import logging 
-import os
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.hig_centrifuge_pb2 import Command, Config
 from .driver import HiGCentrifugeDriver
@@ -50,5 +49,5 @@ if __name__ == "__main__":
     parser.add_argument('--port')
     args = parser.parse_args()
     if not args.port:
-         raise RuntimeWarning("Port must be provided...")
-    serve(HiGCentrifugeServer(),os.environ.get("PORT",str(args.port)))
+        raise RuntimeWarning("Port must be provided...")
+    serve(HiGCentrifugeServer(), str(args.port))

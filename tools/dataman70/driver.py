@@ -1,182 +1,138 @@
-import typing as t
 import logging
-import time
-import traceback
-from tools.base_server import ABCToolDriver
-from typing import Union, Optional
 import serial
+from typing import Union, Optional
+from tools.toolbox.variables import update_variable 
+from tools.base_server import ABCToolDriver
 
-MAX_RETRIES = 5
-# How long to wait before firing another scanned barcode to the listeners.
-SCANNED_BARCODE_THROTTLE = 0.25
-READ_TIMEOUT = 1
+READ_TIMEOUT = 5  # Increased timeout for scan operations
 
-
-def try_utf_decode(data: Union[str,bytes]) -> str:
+def try_utf_decode(data: Union[str, bytes]) -> str:
+    """Convert bytes to UTF-8 string if needed."""
     if isinstance(data, str):
         return data
-    data_string = ""
     try:
-        data_string = data.decode("utf-8")
+        return data.decode("utf-8")
     except Exception:
-        raise serial.SerialException(f"error decoding to utf8 string: {data!r}")
-    return data_string
-
-
-def serial_read(serial_port: serial.Serial) -> str:
-    serial_port.reset_input_buffer()
-    reply = serial_port.read_until(expected=b"\n")
-    reply_string = try_utf_decode(reply)
-    if reply_string == "":
-        logging.warning("Dataman 70 returned empty response")
-        return ""
-    # The dataman 70 returns malformed responses every once in a while. Just ignore them.
-    if not (reply_string[-1] == "\n" and reply_string[-2] == "\r"):
-        logging.warning(f"Dataman 70 returned malformed response {reply_string}")
-        return ""
-    return reply_string[0:-2]
+        raise serial.SerialException(f"Error decoding to UTF-8: {data!r}")
 
 
 class Dataman70Driver(ABCToolDriver):
-    def __init__(self, com_port: str) -> None:
-        self.debug_output: bool = True
-        self.serial_timeout: int = 2
-        # The last barcode received.
-        self.last_barcode: str = ""
-        # The time the last barcode was received.
-        self.last_barcode_time: Optional[float] = None
-        # Listeners that will fire whenever a new barcode is received.
-        self.barcode_listeners = []
-
-        # Whether the driver is live.
-        # If the driver cannot receive a signal, it will set live to False.
-        # If the driver is not live, the reader_thread will halt.
-        # If the driver is not live, it will be marked as disconnected via the healthcheck.
-        self.live: bool = True
-
-        # NOTE: We've seen issues where when the serial is first connected,
-        # creating the serial port can take 10 seconds or more.
-        # This only occurs the first time.
-        self.serial_port: serial.Serial = serial.Serial(
-            com_port, write_timeout=1, timeout=READ_TIMEOUT
+    def __init__(self, com_port: str, timeout: int = READ_TIMEOUT) -> None:
+        """Initialize the barcode scanner driver.
+        
+        Args:
+            com_port: Serial port path (e.g., '/dev/ttyUSB0' or 'COM3')
+            timeout: Read timeout in seconds
+        """
+        self.serial_port = serial.Serial(
+            com_port, 
+            baudrate=9600,  # Common baudrate for barcode scanners
+            timeout=timeout,
+            write_timeout=1
         )
-
-        # self.reader_thread: threading.Thread = threading.Thread(target=self.read_dataman_output)
-        # self.reader_thread.daemon = True
-        # self.reader_thread.start()
-
-        # Responses from the dataman 70.
-        self.responses: dict[str, t.Any] = {}
+        logging.info(f"Connected to Dataman70 on {com_port}")
 
     def close(self) -> None:
-        self.live = False
-        self.serial_port.close()
-
-    def process_dataman_output(self, output: str) -> None:
-        if output == "":
-            return
-
-        if len(output) == 1:
-            self.responses["current_trigger_type"] = output
-            return
-
-        if (
-            self.last_barcode_time is None
-            or time.time() - self.last_barcode_time > SCANNED_BARCODE_THROTTLE
-        ):
-            if self.debug_output:
-                logging.info(f"Dataman detected barcode... {output}")
-            self.last_barcode = output
-            self.last_barcode_time = time.time()
-
+        """Close the serial connection."""
+        if self.serial_port.is_open:
+            # Disable scanning before closing
             try:
-                for listener in self.barcode_listeners:
-                    listener(self.last_barcode)
-            except Exception:
-                logging.error(traceback.format_exc())
+                self.serial_port.write(b"||>SET TRIGGER.TYPE 0\r\n")
+                logging.info("Disabled scanning mode")
+            except Exception as e:
+                logging.error(f"Error disabling scanning mode: {e}")
+            
+            self.serial_port.close()
+            logging.info("Dataman70 connection closed")
 
-    def read_dataman_output(self) -> None:
-        self.last_barcode = ""
-        self.last_barcode_time = time.time()
-        retries = 0
-        while self.live:
-            try:
-                # Read from the Dataman.
-                output = serial_read(self.serial_port)
-                # # Reset retries if read is successful.
-                # retries = 0
+    def _read_response(self) -> str:
+        """Read a response from the scanner."""
+        self.serial_port.reset_input_buffer()
+        reply = self.serial_port.read_until(expected=b"\n")
+        reply_string = try_utf_decode(reply)
+        
+        if not reply_string:
+            return ""
+            
+        # Check for proper line ending (should end with \r\n)
+        if reply_string.endswith("\r\n"):
+            return reply_string[:-2]  # Remove \r\n
+        elif reply_string.endswith("\n"):
+            return reply_string[:-1]  # Remove \n
+        
+        return reply_string.strip()
 
-                self.process_dataman_output(output)
 
-            except serial.SerialException:
-                if self.live:
-                    logging.error(traceback.format_exc())
-                    retries += 1
-                    time.sleep(1)
+    def assert_barcode(self, expected: str) -> None:
+        """Scan and assert that the scanned barcode matches the expected value.
+        Args:
+            expected: The expected barcode string  
+        """
+        scanned = self.scan_barcode()
+        if scanned is None:
+            logging.error("No barcode scanned")
+            raise RuntimeError("No barcode detected")
+        if scanned == expected:
+            logging.info(f"Scanned barcode matches expected: {scanned}")
+            return None
+        else:
+            logging.warning(f"Scanned barcode '{scanned}' does not match expected '{expected}'")
+            raise RuntimeError(f"Barcode mismatch: expected '{expected}', got '{scanned}'")
 
-            except TypeError:
-                # If not live anymore, we expect a error from read() in serial/serialposix.py.
-                if not self.live:
-                    pass
-                else:
-                    raise
-            retries += 1
-            # If we receive multiple errors attempting to receive data, set to disconnected.
-            # We assume that if the Dataman is disconnected, this will trigger.
-            if retries > MAX_RETRIES:
-                self.live = False
-                # read_dataman_output happens in its own thread, NOT inside the control_command decorator.
-                # Oo we cannot simply raise Exception to get the instrument marked as disconnected.
-                # To remedy this, we check self.live in the healthcheck.
-                logging.error(
-                    "Could not get valid data after multiple retries. Marking instrument as disconnected"
-                )
-
-    def power_on(self) -> None:
-        self.serial_port.write(b"||>SET TRIGGER.TYPE 1\r\n")
-        logging.info("Set trigger type to 1.")
-
-    def power_off(self) -> None:
-        self.serial_port.write(b"||>SET TRIGGER.TYPE 0\r\n")
-        logging.info("Set trigger type to 0.")
-
-    """
-        Wait for a response, which is filled by process_dataman_output.
-    """
-
-    def _wait_for_response(self, response_type: str) -> None:
-        response_retry_interval = 0.2
-        max_retries = self.serial_timeout / response_retry_interval
-        retries = 0
-        while retries < max_retries and self.responses[response_type] is None:
-            time.sleep(response_retry_interval)
-            retries += 1
-
-        # If no response is recorded, raise an error.
-        if self.responses[response_type] is None:
-            raise Exception(f"Timed out waiting for response {response_type}")
-
-    # Get the on state by querying the barcode reader.
-    def is_on(self) -> bool:
-        # Send command
-        self.responses["current_trigger_type"] = None
-        self.serial_port.write(b"||>GET TRIGGER.TYPE\r\n")
-
-        self._wait_for_response("current_trigger_type")
-        if self.responses["current_trigger_type"] == "1":
-            return True
-        return False
-
-    def read_barcode(self) -> str:
-        if not self.live:
-            raise Exception("Dataman 70 is not live")
-
-        for retry in range(MAX_RETRIES):
-            barcode = serial_read(self.serial_port)
-            if barcode != "":
+    def scan_barcode(self, mapped_variable: Optional[str]=None) -> Optional[str]:
+        """Trigger a barcode scan and return the result.
+        
+        Returns:
+            The scanned barcode as a string, or None if no barcode was scanned
+            
+        Raises:
+            serial.SerialException: If there's a communication error
+            Exception: If the scanner is not responding
+        """
+        try:
+            # Enable scanning (trigger type 1)
+            self.serial_port.write(b"||>SET TRIGGER.TYPE 1\r\n")
+            
+            # Read the barcode data
+            barcode = self._read_response()
+            # Always disable scanning after attempt (trigger type 0)
+            self.serial_port.write(b"||>SET TRIGGER.TYPE 0\r\n")
+            
+            if barcode and len(barcode) > 1:  # Valid barcode (more than 1 character)
+                logging.info(f"Scanned barcode: {barcode}")
+                if mapped_variable:
+                    update_variable(mapped_variable, barcode)
+                    logging.info(f"Updated variable '{mapped_variable}' with scanned barcode")
                 return barcode
+            
+            logging.warning("No barcode detected or scan timeout")
+            return None
+            
+        except serial.SerialException as e:
+            logging.error(f"Serial communication error: {e}")
+            # Try to disable scanning even on error
+            try:
+                self.serial_port.write(b"||>SET TRIGGER.TYPE 0\r\n")
+            except Exception as e:
+                raise RuntimeError("Failed to disable scanning after communication error")
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error during scan: {e}")
+            # Try to disable scanning even on error
+            try:
+                self.serial_port.write(b"||>SET TRIGGER.TYPE 0\r\n")
+            except Exception as e:
+                raise RuntimeError("Failed to disable scanning after error")
+            raise
 
-        return ""
+    def __exit__(self) -> None:
+        """Context manager exit - ensures connection is closed."""
+        self.close()
 
-    def register_barcode_listener(self, fn: t.Callable[[str], t.Any]) -> None:
-        self.barcode_listeners.append(fn)
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    driver = Dataman70Driver("/dev/tty.usbmodem1A1727PP2448261")  # Update with actual port
+    try:
+        barcode = driver.scan_barcode("barcsode")
+    finally:
+        driver.close()

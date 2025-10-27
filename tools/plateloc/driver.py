@@ -176,19 +176,3 @@ class PlateLocDriver(ABCToolDriver):
                     error = self.client.GetLastError()
                     raise RuntimeError(f"Failed to execute command {error}")
             return None
-
-
-##Non threaded commands work fine except via grpc, still not sure why but this is the only way I made it work. Eg. repace schedule_threaded_command with execute_command
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    driver = PlateLocDriver("plateLoc")
-    driver.initialize()
-    driver.set_seal_time(2.5)
-    # driver.set_temperature()
-    # driver.get_actual_temperature()
-    # driver.stage_in()
-    # driver.stage_out()
-    # driver.stage_in()
-    # driver.stage_out()
-    # driver.show_diagnostics()
-    # #driver.close()
