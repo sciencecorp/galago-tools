@@ -1,0 +1,123 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces;
+import "google/protobuf/struct.proto";
+
+import "tools/grpc_interfaces/liconic.proto";
+import "tools/grpc_interfaces/opentrons2.proto";
+import "tools/grpc_interfaces/pf400.proto";
+import "tools/grpc_interfaces/cytation.proto";
+import "tools/grpc_interfaces/dataman70.proto";
+import "tools/grpc_interfaces/spectramax.proto";
+import "tools/grpc_interfaces/bioshake.proto";
+import "tools/grpc_interfaces/hig_centrifuge.proto";
+import "tools/grpc_interfaces/bravo.proto";
+import "tools/grpc_interfaces/multidrop.proto";
+import "tools/grpc_interfaces/vcode.proto";
+import "tools/grpc_interfaces/plateloc.proto";
+import "tools/grpc_interfaces/xpeel.proto"; 
+import "tools/grpc_interfaces/alps3000.proto";
+import "tools/grpc_interfaces/toolbox.proto"; 
+import "tools/grpc_interfaces/hamilton.proto";
+import "tools/grpc_interfaces/microserve.proto";
+import "tools/grpc_interfaces/vprep.proto";
+import "tools/grpc_interfaces/plr.proto";
+import "tools/grpc_interfaces/pyhamilton.proto";
+
+message Command {
+  oneof tool_command {
+    tools.grpc_interfaces.cytation.Command cytation = 1;
+    tools.grpc_interfaces.opentrons2.Command opentrons2 = 2;
+    tools.grpc_interfaces.pf400.Command pf400 = 3;
+    tools.grpc_interfaces.liconic.Command liconic = 4;
+    tools.grpc_interfaces.dataman70.Command dataman70 = 5;
+    tools.grpc_interfaces.spectramax.Command spectramax = 6;
+    tools.grpc_interfaces.bioshake.Command bioshake = 7;
+    tools.grpc_interfaces.hig_centrifuge.Command hig_centrifuge = 8;
+    tools.grpc_interfaces.bravo.Command bravo = 9;
+    tools.grpc_interfaces.multidrop.Command multidrop = 10;
+    tools.grpc_interfaces.vcode.Command vcode = 11;
+    tools.grpc_interfaces.plateloc.Command plateloc=12;
+    tools.grpc_interfaces.xpeel.Command xpeel = 13;
+    tools.grpc_interfaces.alps3000.Command alps3000 = 14;
+    tools.grpc_interfaces.toolbox.Command toolbox = 15;
+    tools.grpc_interfaces.hamilton.Command hamilton = 16;
+    tools.grpc_interfaces.microserve.Command microserve = 17;
+    tools.grpc_interfaces.vprep.Command vprep = 18;
+    tools.grpc_interfaces.plr.Command plr = 19;
+    tools.grpc_interfaces.pyhamilton.Command pyhamilton = 20;
+  }
+} 
+
+message Config {
+  bool simulated = 1;
+  string toolId =  2;
+  oneof config {
+    tools.grpc_interfaces.cytation.Config cytation = 20;
+    tools.grpc_interfaces.opentrons2.Config opentrons2 = 21;
+    tools.grpc_interfaces.pf400.Config pf400 = 22;
+    tools.grpc_interfaces.liconic.Config liconic = 23;
+    tools.grpc_interfaces.dataman70.Config dataman70 = 24;
+    tools.grpc_interfaces.spectramax.Config spectramax = 25;
+    tools.grpc_interfaces.bioshake.Config bioshake = 26;
+    tools.grpc_interfaces.hig_centrifuge.Config hig_centrifuge = 27;
+    tools.grpc_interfaces.bravo.Config bravo = 28;
+    tools.grpc_interfaces.multidrop.Config multidrop = 29;
+    tools.grpc_interfaces.vcode.Config vcode = 30;
+    tools.grpc_interfaces.plateloc.Config plateloc = 31;
+    tools.grpc_interfaces.xpeel.Config xpeel = 32;
+    tools.grpc_interfaces.alps3000.Config alps3000 = 33;
+    tools.grpc_interfaces.toolbox.Config toolbox = 34;
+    tools.grpc_interfaces.hamilton.Config hamilton = 35;
+    tools.grpc_interfaces.microserve.Config microserve = 36;
+    tools.grpc_interfaces.vprep.Config vprep = 37;
+    tools.grpc_interfaces.plr.Config plr = 38;
+    tools.grpc_interfaces.pyhamilton.Config pyhamilton = 39;
+  }
+}
+
+enum ResponseCode {
+  UNKNOWN_RESPONSE = 0;
+  SUCCESS = 1;
+  WRONG_TOOL = 2;
+  UNRECOGNIZED_COMMAND = 3;
+  INVALID_ARGUMENTS = 4;
+  DRIVER_ERROR = 5;
+  NOT_READY = 6;
+  ERROR_FROM_TOOL = 7;
+}
+
+enum ToolStatus {
+  UNKNOWN_STATUS = 0;
+  NOT_CONFIGURED = 1;
+  INITIALIZING = 2;
+  READY = 3;
+  BUSY = 4;
+  FAILED = 5;
+  OFFLINE = 6;
+  SIMULATED = 7;
+}
+
+message ExecuteCommandReply {
+  ResponseCode response = 1;
+  string error_message = 2;
+  bool return_reply = 3;
+  google.protobuf.Struct meta_data = 4;
+}
+
+message EstimateDurationReply {
+  ResponseCode response = 1;
+  int32 estimated_duration_seconds = 2;
+  optional string error_message = 3;
+}
+
+message ConfigureReply {
+  ResponseCode response = 1;
+  optional string error_message = 2;
+}
+
+message StatusReply {
+  int32 uptime = 1;
+  ToolStatus status = 2;
+  optional string error_message = 3;
+}

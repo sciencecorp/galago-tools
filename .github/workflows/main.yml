@@ -1,0 +1,23 @@
+name: main
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Setup dependencies
+        uses: ./.github/actions/setup
+      - name: Build protobufs
+        run: ./bin/make proto
+        shell: bash
+      - name: Run tests
+        run: ./bin/make test
+        shell: bash

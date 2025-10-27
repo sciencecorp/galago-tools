@@ -1,0 +1,56 @@
+syntax = 'proto3';
+
+package com.science.foundry.controller;
+
+import "tools/grpc_interfaces/tool_base.proto";
+
+enum ToolType {
+  unknown = 0;
+  cytation = 1;
+  opentrons2 = 2;
+  pf400 = 3;
+  liconic = 4;
+  dataman70 = 5;
+  spectramax = 6;
+  bioshake = 7;
+  hig_centrifuge = 9;
+  bravo = 10;
+  vcode = 11;
+  plateloc = 12;
+  xpeel = 13;
+  alps3000 = 14;
+  toolbox = 15;
+  hamilton = 16;
+  microserve = 17;
+  vprep = 18;
+  plr = 19;
+  pyhamilton = 20;
+}
+
+message ToolConfig {
+  string name = 1;
+  ToolType type = 2;
+  string ip = 3;
+  int32 port = 4;
+  tools.grpc_interfaces.Config config = 5;
+  string description = 7;
+  string image_url = 8;
+}
+
+message WorkcellConfig {
+  string id = 1;
+  string name = 2;
+  string description =3;
+  string location =4;
+  repeated ToolConfig tools = 5;
+}
+
+message AppConfig {
+  string workcell = 1;
+  string host_ip = 2;
+  string redis_ip = 3;
+  string slack_bot_tocken = 4;
+  string slack_channel_id = 5;
+  bool enable_slack_error = 6;
+  repeated string slack_admins_ids = 7;
+}

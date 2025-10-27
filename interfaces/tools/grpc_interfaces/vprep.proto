@@ -1,0 +1,26 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.vprep;
+
+message Command {
+
+  oneof command {
+    Initialize initialize = 1;
+    RunProtocol run_protocol = 2;
+    RunRunset run_runset = 3;
+  }
+
+  message Initialize {}
+
+  message RunProtocol {
+    string protocol_file = 1;
+  }
+
+  message RunRunset {
+    string runset_file =1;
+  }
+}
+
+message Config {
+  string device_file = 1;
+}

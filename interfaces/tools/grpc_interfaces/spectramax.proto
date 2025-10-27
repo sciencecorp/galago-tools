@@ -1,0 +1,26 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.spectramax;
+
+message Command {
+  oneof command {
+    OpenDrawer open_drawer = 1;
+    CloseDrawer close_drawer = 2;
+    StartRead start_read = 3;
+  }
+
+  message OpenDrawer {}
+
+  message CloseDrawer {}
+
+  message StartRead {
+    string protocol_file = 1;
+    string experiment_name = 2;
+  }
+}
+
+message Config {
+  string protocol_dir = 1;
+  string experiment_dir = 2;
+}
+

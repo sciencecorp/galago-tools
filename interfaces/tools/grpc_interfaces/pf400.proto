@@ -1,0 +1,136 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.pf400;
+import "google/protobuf/struct.proto";
+
+message Command {
+  oneof command {
+    Move move = 1;
+    GraspPlate grasp_plate = 2;
+    ReleasePlate release_plate = 3;
+    Transfer transfer = 4;
+    Wait wait = 5;
+    Release release = 6;
+    Engage engage =7;
+    Unwind unwind = 8;
+    RunSequence run_sequence = 9;
+    RetrievePlate retrieve_plate = 10;
+    DropOffPlate dropoff_plate = 11;
+    PickLid pick_lid = 12;
+    PlaceLid place_lid = 13;
+    GetCurrentLocation get_current_location = 14;
+    Jog jog = 15;
+    RawCommand raw_command = 16;
+    RegisterMotionProfile register_motion_profile = 17;
+    LoadWaypoints load_waypoints = 18;
+    LoadLabware load_labware =19;
+  }
+
+  message RawCommand {
+    string command = 1;
+  } 
+
+  message GetCurrentLocation {
+  }
+
+  message Jog {
+    string axis = 1;
+    float distance = 2;
+  }
+  message PickLid {
+    string labware = 1;
+    string location = 2;
+    optional string motion_profile = 3;
+    optional bool pick_from_plate = 4;
+    optional float approach_height = 5;
+  }
+
+  message PlaceLid {
+    string labware = 1;
+    string location = 2;
+    optional string motion_profile = 3;
+    optional bool place_on_plate = 4;
+    optional float approach_height = 5;
+  }
+
+  message RetrievePlate {
+    string labware = 1;
+    string location = 2;
+    optional float approach_height = 3;
+    optional string motion_profile = 4;
+  }
+
+  message DropOffPlate {
+    string labware = 1;
+    string location = 2;
+    optional float approach_height = 3;
+    optional string motion_profile = 5;
+  }
+
+  message RunSequence {
+    string sequence_name = 1; 
+    string labware = 2;
+  }
+  
+  message Engage {}
+
+  message Release {}
+
+  message Unwind {
+  } 
+
+  message Move {
+    string location = 1;
+    optional string motion_profile = 2;
+    optional int32 approach_height=3;
+  }
+
+  message GraspPlate {
+    int32 width = 1;
+    int32 speed = 2;
+    int32 force = 3;
+  }
+
+  message ReleasePlate {
+    int32 width = 1;
+    int32 speed = 2;
+  }
+
+  message Transfer {
+    string source_nest = 1;
+    string destination_nest = 2;
+    string labware = 3;
+    optional string motion_profile = 4;
+  }
+
+  message Wait {
+    int32 duration = 1;
+  }
+
+  message RegisterMotionProfile {
+    int32 id = 1;
+    float speed = 2;
+    float speed2 = 3;
+    float accel = 4;
+    float decel = 5;
+    float accel_ramp = 6;
+    float decel_ramp = 7;
+    float inrange = 8;
+    int32 straight = 9;
+  }
+  
+  message LoadWaypoints {
+    google.protobuf.Struct waypoints = 1; 
+  }
+  
+  message LoadLabware {
+    google.protobuf.Struct labwares = 1;
+  }
+}
+
+message Config {
+  string host = 1;
+  int32 port = 2;
+  int32 joints = 3;
+  string gpl_version = 4;
+}

@@ -1,0 +1,26 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.xpeel;
+
+message Command {
+
+  oneof command {
+    Peel peel = 1;
+    CheckStatus check_status = 2;
+    Reset reset = 3;
+    Restart restart = 4;
+    GetRemainingTape get_remaining_tape =5;
+  }
+
+  message Peel {
+    int32 threshold = 1;
+  }
+  message CheckStatus {}
+  message Reset {}
+  message Restart {}
+  message GetRemainingTape {}
+
+}
+message Config {
+  string com_port =1;
+}

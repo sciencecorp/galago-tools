@@ -1,0 +1,5 @@
+name: galago
+channels:
+  - defaults
+dependencies:
+  - python=3.10

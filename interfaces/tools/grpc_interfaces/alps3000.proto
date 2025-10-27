@@ -1,0 +1,35 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.alps3000;
+
+message Command {
+  oneof command {
+    GetInstrumentStatus get_status = 1;
+    SealPlate seal_plate =2;
+    GetError get_error =3;
+    SetTemperature set_temperature = 4;
+    SetSealTime set_sealing_time =5;
+    GetTemperatureSetpoint get_sealing_temperature_setpoint=6;
+    SetSealTime get_sealing_time =7;
+    GetTemperatureActual get_sealing_temperature_actual =8;
+  }
+
+message SetTemperature {
+    int32 temperature = 1;
+}
+
+message SetSealTime {
+    int32 seal_time =1;
+}
+message GetInstrumentStatus {}
+message SealPlate {}
+message GetError {}
+message GetTemperatureActual {}
+message GetSealingTime {}
+message GetTemperatureSetpoint {}
+
+}
+message Config {
+  string profile = 1;
+  string com_port =2;
+}

@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+PROTOC_GEN_TS_PATH=".\\controller\\node_modules\\.bin\\protoc-gen-ts_proto"
+PROTO_SRC="./interfaces"
+WORKING_BRANCH=$(git symbolic-ref --short HEAD)
+ENV_NAME="galago" 
+
+build_env() {
+    echo "Creating conda environment '$ENV_NAME'..."
+    mamba create --name $ENV_NAME python=3.9.12
+    echo "Conda environment '$ENV_NAME' created."
+}
+
+run() {
+  echo "Launching Tools" 
+  python -m tools.launch_tools "$@"
+}
+
+run_debug() {
+  echo "Launching Tools in Debug Mode" 
+  python -m tools.launch_tools --debug
+}
+
+dev_deps() {
+  echo "Installing Development Dependencies"
+  python -m pip install -r requirements-dev.txt
+  echo "Development Dependencies Installed"
+}
+
+deps() {
+  echo "Installing Python Dependencies"
+  python -m pip install -r requirements.txt
+  for req in tools/*/requirements.txt; do
+    python -m pip install -r $req --no-cache-dir || echo "Failed to install $req" >&2 || true
+  done
+  echo "Python Dependencies Installed"
+} 
+
+test() {
+  echo "Running Python Tests"
+  echo "Ruff Check"
+  ruff check .
+  echo "Mypy Check Tools"
+  mypy --config-file=pyproject.toml tools --install-types --non-interactive
+  echo "Running Pytest"
+  python -m unittest discover -s tools/tests/ -p "*_test.py"
+  echo "Running Unittest"
+  pytest tools/tests/ -vv
+}
+
+# Generate protobuf definitions for Python
+proto_py() {
+  python -m grpc_tools.protoc \
+    -I${PROTO_SRC}/ \
+    --python_out=. \
+    --pyi_out=. \
+    --grpc_python_out=. \
+    ${PROTO_SRC}/tools/grpc_interfaces/*.proto
+  python -m grpc_tools.protoc \
+    -I${PROTO_SRC}/ \
+    --python_out=tools/grpc_interfaces/ \
+    --pyi_out=tools/grpc_interfaces \
+    --grpc_python_out=tools/grpc_interfaces/ \
+    ${PROTO_SRC}/*.proto
+}
+
+# Clean up all generated files
+clean_proto() {
+  echo "Cleaning up generated proto files"
+  rm -rf tools/*_pb2*.py*
+  echo "Cleaned up generated proto files"
+}
+
+run(){
+  echo "Launching Tools" 
+  python -m tools.web_server
+}
+
+# Generate all protobuf definitions
+proto() {
+  clean_proto
+  proto_py
+}
+
+for cmd in "$@"; do
+  set -ex
+  $cmd
+  set +ex
+done
+
+if [ $# -eq 0 ]; then
+  echo "No command specified, available commands:"
+  for cmd in $(compgen -A function | grep -E '^'); do
+    echo "  ${cmd#}"
+  done
+fi

@@ -1,0 +1,55 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.cytation;
+
+message Command {
+  oneof command {
+    OpenCarrier open_carrier = 1;
+    CloseCarrier close_carrier = 2;
+    StartRead start_read = 3;
+  }
+
+  message OpenCarrier {}
+
+  message CloseCarrier {}
+
+  message StartRead {
+    string protocol_file = 1;
+    optional string experiment_name = 2;
+    repeated string well_addresses = 3;
+  }
+}
+
+message Config {
+  string protocol_dir = 1;
+  string experiment_dir = 2;
+  CytationReaderType reader_type = 3;
+  
+  enum CytationReaderType {
+    CYTATION_UNKNOWN = 0;
+    CYTATION_READER_ELX800 = 2;
+    CYTATION_READER_ELX808 = 3;
+    CYTATION_READER_SYNERGY_HT = 6;
+    CYTATION_READER_FLX800 = 7;
+    CYTATION_READER_POWERWAVE = 8;
+    CYTATION_READER_SYNERGY2 = 10;
+    CYTATION_READER_POWERWAVEXS2 = 11;
+    CYTATION_READER_SYNERGY_MX = 13;
+    CYTATION_READER_EPOCH = 14;
+    CYTATION_READER_SYNERGY_H4 = 15;
+    CYTATION_READER_SYNERGY_H1 = 16;
+    CYTATION_READER_EON = 17;
+    CYTATION_READER_SYNERGY_NEO = 18;
+    CYTATION_READER_CYTATION3 = 19;
+    CYTATION_READER_SYNERGY_HTX = 20;
+    CYTATION_READER_CYTATION5 = 21;
+    CYTATION_READER_EPOCH2 = 22;
+    CYTATION_READER_SYNERGY_NEO2 = 23;
+    CYTATION_READER_LIONHEART_FX = 24;
+    CYTATION_READER_800TS = 25;
+    CYTATION_READER_CYTATION1 = 26;
+    CYTATION_READER_SYNERGY_LX = 27;
+    CYTATION_READER_LIONHEART_LX = 28;
+  }
+}
+

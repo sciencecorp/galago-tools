@@ -1,0 +1,36 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.plateloc;
+
+message Command {
+  oneof command {
+    Seal seal = 1;
+    SetTemperature set_temperature =2;
+    SetSealTime set_seal_time =3;
+    GetActualTemperature get_actual_temperature =4;
+    StageIn stage_in =5;
+    StageOut stage_out =6;
+    ShowDiagsDialog show_diagnostics = 7;
+  }
+
+message Seal {
+
+}
+
+message SetTemperature {
+    int32 temperature = 1;
+}
+
+message SetSealTime {
+    float time =1;
+}
+
+message GetActualTemperature {}
+message StageIn {}
+message StageOut {}
+message ShowDiagsDialog {}
+
+}
+message Config {
+  string profile = 1;
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "mrkdwn_in": ["text"],
+    "color": "<color_placeholder>",
+    "pretext": "",
+    "title": "<title_holder>",
+    "title_link": "https://api.slack.com/",
+    "text": "",
+    "fields": [
+      {
+        "title": "Workcell",
+        "value": "<workcell_holder>",
+        "short": true
+      },
+      {
+        "title": "Last Updated",
+        "value": "<time_holder>",
+        "short": true
+      },
+      {
+        "title": "Tool",
+        "value": "<tool_holder>",
+        "short": true
+      },
+      {
+        "title": "Protocol",
+        "value": "<protocol_holder>",
+        "short": true
+      },
+      {
+        "title": "Error",
+        "value": "<error_placeholder>",
+        "short": false
+      }
+    ],
+    "ts": "<time_holder_int>"
+  }
+]

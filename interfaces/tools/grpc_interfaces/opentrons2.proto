@@ -1,0 +1,33 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.opentrons2;
+
+import "google/protobuf/struct.proto";
+
+message Command {
+  oneof command {
+    RunProgram run_program = 1;
+    Pause pause = 2;
+    Resume resume = 3;
+    Cancel cancel = 4;
+    ToggleLight toggle_light = 5;
+  }
+
+  message RunProgram {
+    string script_content = 1;
+    google.protobuf.Struct variables = 2;
+    optional bool take_photos = 3;
+    optional bool simulate = 4;
+  }
+
+  message Pause {}
+  message Resume {}
+  message Cancel {}
+  message ToggleLight {}
+}
+
+message Config {
+  string robot_ip = 1;
+  int32 robot_port = 2;
+  optional string data_path =3;
+}

@@ -1,0 +1,51 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.toolbox;
+import "google/protobuf/struct.proto";
+
+message Command {
+  oneof command {
+    SlackMessage slack_message = 1;
+    RunScript run_script = 2;
+    SendSlackAlert send_slack_alert = 3;
+    ClearLastSlackAlert clear_last_slack_alert = 4;
+    WriteToJson write_to_json = 5;
+    TextToSpeech text_to_speech = 6;
+  }
+
+  message WriteToJson {
+    google.protobuf.Struct struct_object = 1;
+    string file_path = 2;
+  }
+
+  message SlackMessage {
+    string message = 1;
+  }
+
+  message TextToSpeech {
+    string text =1;
+  }
+
+  message RunScript {
+    string script_content = 1;
+    bool blocking = 2;
+  }
+
+  message SendSlackAlert {
+    string workcell =1;
+    string tool =2;
+    string protocol=3;
+    string error_message=4;
+  }
+
+  message ClearLastSlackAlert { }
+
+  message ValidateFolder { 
+    string folder_path = 1;
+  }
+
+}
+
+message Config {
+
+}

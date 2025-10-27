@@ -1,0 +1,11 @@
+recursive-include tools *.dll
+include requirements.txt
+include LICENSE
+recursive-include interfaces *.proto
+include *.md
+
+#include static web assets
+include index.html
+recursive-include tool_images *.png *.jpg *.jpeg *.gif *.svg
+recursive-include static *.css *.js *.html
+ecursive-include assets *

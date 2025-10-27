@@ -1,0 +1,40 @@
+*_pb2*.py
+*_pb2*.pyi
+*.pyc
+__pycache__/
+
+stdout.txt 
+tmp_file.py 
+
+
+# misc
+.DS_Store
+*.pem
+.vscode/ 
+trace_log.log
+*log
+workcells/*.log
+package-lock.json
+package.json
+dump.rdb
+
+
+# local env files
+.env*.local
+**/.env*.local
+.env
+Procfile.*
+Procfile.tools
+
+*.pdf 
+*.whl
+
+
+# python
+.ruff_cache
+**/*.egg-info
+.mypy_cache
+app_config.json
+build/*
+dist/*
+.eggs/*

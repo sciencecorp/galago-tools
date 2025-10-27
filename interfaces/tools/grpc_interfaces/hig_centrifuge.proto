@@ -1,0 +1,38 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.hig_centrifuge;
+
+message Command {
+  oneof command {
+    Home home = 1;
+    CloseShield close_shield = 2;
+    OpenShield open_shield = 3;
+    Spin spin = 4;
+    HomeShield home_shield = 5;
+  }
+
+  message Home {}
+
+  message CloseShield {}
+
+  message OpenShield {
+    int32 bucket_id = 1;
+  }
+
+  message Spin {
+    int32 speed = 1;
+    int32 acceleration = 2;
+    int32 decceleration = 3;
+    int32 duration = 4;
+  }
+
+  message AbortSpin {}
+
+  message Reset {}
+
+  message HomeShield {}
+}
+
+message Config {
+  int32 can_port = 1;
+}
