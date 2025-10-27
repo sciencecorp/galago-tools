@@ -112,7 +112,7 @@ def run_opentrons_simulation(script_path: str, verbose: bool = True) -> Tuple[bo
             print(f"✗ {error_msg}")
         return False, "", error_msg
 
-def create_executable_script(self, script_content: str, variables: dict) -> str:
+def create_executable_script(script_content: str, variables: dict) -> str:
     """
     Create an executable script by injecting variables at the top of the script.
     """

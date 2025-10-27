@@ -1,12 +1,16 @@
 import logging
 import os
+
+from google.protobuf.struct_pb2 import Struct
 from tools.base_server import ToolServer, serve
+from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
 from tools.grpc_interfaces.opentrons2_pb2 import Command, Config
 from google.protobuf import json_format
 from tools.app_config import Config as AppConfig 
 from .driver import Ot2Driver
 import argparse
 from .utils import run_opentrons_simulation, create_executable_script, check_opentrons_installation
+from tools.grpc_interfaces.tool_base_pb2 import  SUCCESS, ERROR_FROM_TOOL
 
 class Opentrons2Server(ToolServer):
     toolType = "opentrons2"
@@ -21,17 +25,22 @@ class Opentrons2Server(ToolServer):
           
     def _configure(self, config: Config) -> None:
         self.driver_config = config
-        # self.driver = Ot2Driver(robot_ip=config.robot_ip, robot_port=config.robot_port)
+        self.driver = Ot2Driver(robot_ip=config.robot_ip, robot_port=config.robot_port)
         # self.driver.ping()
 
 
-    def RunProgram(self, params: Command.RunProgram) -> None:
+    def RunProgram(self, params: Command.RunProgram) -> ExecuteCommandReply:
         """
         Execute a Python script with variables passed directly in the request.
         """
+        s = Struct()
+        response = ExecuteCommandReply()
+        response.return_reply = True
+        response.response = SUCCESS
         script_content = params.script_content
         variables_dict = json_format.MessageToDict(params.variables) if params.variables else {}
         logging.info(f"Running program with {len(variables_dict)} variables")
+        
         try:
             # Process the script and create executable file with injected variables
             executable_script = create_executable_script(script_content, variables_dict)
@@ -43,10 +52,20 @@ class Opentrons2Server(ToolServer):
                 if not success:
                     raise RuntimeError(f"Simulation failed:\n{stderr}")
                 logging.info("Simulation completed successfully.")
-              
+                result = stdout 
             else:
                 # Execute the script on the OT-2
-                self.driver.start_protocol(protocol_file=executable_script)
+                logging.info("Starting protocol on OT-2...")
+                result = self.driver.start_protocol(protocol_file=executable_script)
+                
+            # Populate response with result
+            logging.info(f"Program result: {result}")
+            if result:
+                s.update({'response': result})
+            else:
+                s.update({'response': ''})
+            response.meta_data.CopyFrom(s)
+            
             # Cleanup temporary file
             try:
                 os.unlink(executable_script)
@@ -54,9 +73,12 @@ class Opentrons2Server(ToolServer):
             except OSError as e:
                 logging.warning(f"Could not delete temporary file {executable_script}: {e}")
                 
-        except Exception as e:
-            logging.error(f"Error running program: {e}")
-            raise
+        except Exception as exc:
+            logging.exception(exc)
+            response.response = ERROR_FROM_TOOL
+            response.error_message = str(exc)
+            
+        return response
 
     def Pause(self, params: Command.Pause) -> None:
         logging.info("Pausing program")
