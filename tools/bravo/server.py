@@ -1,33 +1,27 @@
 import logging
 import argparse
-from typing import Optional
 from tools.base_server import ToolServer, serve
-from tools.grpc_interfaces.bravo_pb2 import Command, Config, Response
-from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply
-from tools.grpc_interfaces.tool_base_pb2 import SUCCESS
+from tools.grpc_interfaces.bravo_pb2 import Command, Config
 from .driver import BravoDriver
 
 
 class BravoServer(ToolServer):
     toolType = "bravo"
-    driver: Optional[BravoDriver]
-    config: Config
+    config : Config
     
     def __init__(self) -> None:
         super().__init__()
-        self.driver = None
+        self.driver : BravoDriver 
         
     def _configure(self, config: Config) -> None:
         self.config = config
         if self.driver:
             self.driver.close()
-        
+        self.driver = BravoDriver()
         profile = config.profile 
         if not profile:
             raise ValueError("Profile must be specified in configuration")
         self.driver.initialize(profile)
-    
-    # ==================== Command Implementations ====================
     
     def Initialize(self, params: Command.Initialize) -> None:
         if not self.driver:

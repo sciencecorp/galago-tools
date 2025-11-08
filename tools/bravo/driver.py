@@ -8,6 +8,7 @@ import logging
 import threading
 from functools import wraps
 from typing import Callable, Any, Optional, cast
+from tools.base_server import ABCToolDriver
 
 if os.name == "nt":
     import clr # type: ignore
@@ -52,7 +53,7 @@ class BravoCommandError(Exception):
     pass
 
 
-class BravoDriver:
+class BravoDriver(ABCToolDriver):
     def __init__(self, profile: Optional[str] = None) -> None:
         self.profile = profile
         self._initialized = False

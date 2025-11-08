@@ -5,7 +5,7 @@ import pythoncom
 import threading
 import time
 from tools.base_server import ToolServer, serve
-from tools.grpc_interfaces.bravo_pb2 import Command, Config
+from tools.grpc_interfaces.vprep_pb2 import Command, Config
 from .driver import VPrepDriver, kill_vworks
 from typing import Callable, Any 
 
