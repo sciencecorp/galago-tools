@@ -132,6 +132,7 @@ setup(
                             'vspin/deps/*.dll',
                             'hig_centrifuge/deps/*.dll',
                             'bravo/deps/*.dll',
+                            'vworks/deps/*.dll',
                             'minihub/deps/*.dll',
                             "favicon.ico",
                             'grpc_interfaces/*.py'],
