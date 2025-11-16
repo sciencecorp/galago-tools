@@ -66,12 +66,3 @@ def run_python_script(
         except Exception as e:
             logging.warning(f"Failed to cleanup temporary directory: {e}")
 
-
-if __name__ == "__main__":
-
-    path = "/Users/silvioo/Documents/git_projects/galago-tools/pyham.py"
-    result = run_python_script(
-        f"exec(open(r'''{path}''').read())",
-        blocking=True
-    )
-    print(f"Script output:\n{result}")
