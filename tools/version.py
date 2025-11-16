@@ -4,7 +4,7 @@ This file is auto-updated by the bump script.
 """
 
 # Version information
-__version__ = '0.16.2'  # Update this version string as needed
+__version__ = '0.16.3'  # Update this version string as needed
 
 # Parse version components for easier access
 VERSION_PARTS = __version__.split('.')
