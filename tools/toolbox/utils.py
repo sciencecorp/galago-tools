@@ -2,9 +2,6 @@ from google.protobuf.struct_pb2 import Struct
 import typing as t
 import subprocess
 import platform
-import json 
-import winreg
-from datetime import datetime
 
 def struct_to_dict(struct: Struct) -> t.Any:
     out = {}

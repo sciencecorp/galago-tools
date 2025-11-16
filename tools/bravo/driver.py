@@ -8,8 +8,9 @@ import logging
 import time
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
+from tools.vworks.driver import VWorksDriver
 from pathlib import Path
-
+from tools.base_server import ABCToolDriver
 
 @dataclass
 class BravoTask:
@@ -22,10 +23,10 @@ class BravoTask:
     pipette_head: Optional[Dict[str, Any]] = None
 
 
-class BravoProtocolBuilder:
+class BravoDriver(ABCToolDriver):
     """Builds VWorks protocol XML dynamically"""
     
-    def __init__(self, device_file: str, profile: str = "Mol Bio Bravo"):
+    def __init__(self, device_file: str, profile: str = "Mol Bio Bravo") -> None:
         self.device_file = device_file
         self.profile = profile
         self.tasks: List[BravoTask] = []
@@ -35,7 +36,7 @@ class BravoProtocolBuilder:
         # Parse device file to get device info
         self._parse_device_file()
     
-    def _parse_device_file(self):
+    def _parse_device_file(self) -> None:
         """Extract device and location info from device file"""
         if not os.path.exists(self.device_file):
             logging.warning(f"Device file not found: {self.device_file}")
@@ -60,7 +61,7 @@ class BravoProtocolBuilder:
         except Exception as e:
             logging.error(f"Error parsing device file: {e}")
     
-    def add_subprocess_task(self, labware_config: Dict[int, str]):
+    def add_subprocess_task(self, labware_config: Dict[int, str]) -> None:
         """Add subprocess initialization task with labware configuration"""
         params = {
             'Sub-process name': 'Bravo SubProcess 1',
@@ -80,7 +81,7 @@ class BravoProtocolBuilder:
         )
         self.tasks.append(task)
     
-    def add_move_to_location(self, location: int):
+    def add_move_to_location(self, location: int) -> None:
         """Add move to location task"""
         task = BravoTask(
             name='Bravo::secondary::Move To Location',
@@ -96,7 +97,7 @@ class BravoProtocolBuilder:
         )
         self.tasks.append(task)
     
-    def add_tips_on(self, location: int):
+    def add_tips_on(self, location: int) -> None:
         """Add tips on task"""
         task = BravoTask(
             name='Bravo::secondary::Tips On',
@@ -115,7 +116,7 @@ class BravoProtocolBuilder:
         )
         self.tasks.append(task)
     
-    def add_tips_off(self, location: int, mark_used: bool = True):
+    def add_tips_off(self, location: int, mark_used: bool = True) -> None:
         """Add tips off task"""
         task = BravoTask(
             name='Bravo::secondary::Tips Off',
@@ -140,7 +141,7 @@ class BravoProtocolBuilder:
                      pre_aspirate: float = 0.0,
                      post_aspirate: float = 0.0,
                      liquid_class: str = '',
-                     pipette_technique: str = ''):
+                     pipette_technique: str = '') -> None:
         """Add aspirate task"""
         task = BravoTask(
             name='Bravo::secondary::Aspirate',
@@ -174,7 +175,7 @@ class BravoProtocolBuilder:
                      empty_tips: bool = False,
                      blowout: float = 0.0,
                      liquid_class: str = '',
-                     pipette_technique: str = ''):
+                     pipette_technique: str = '') -> None:
         """Add dispense task"""
         task = BravoTask(
             name='Bravo::secondary::Dispense',
@@ -207,7 +208,7 @@ class BravoProtocolBuilder:
                 aspirate_distance: float = 2.0, dispense_distance: float = 2.0,
                 use_different_dispense_height: bool = False,
                 pre_aspirate: float = 0.0, blowout: float = 0.0,
-                liquid_class: str = '', pipette_technique: str = ''):
+                liquid_class: str = '', pipette_technique: str = '') -> None:
         """Add mix task with dual height support"""
         task = BravoTask(
             name='Bravo::secondary::Mix [Dual Height]',
@@ -239,7 +240,7 @@ class BravoProtocolBuilder:
         )
         self.tasks.append(task)
     
-    def add_initialize_axis(self, axis: str = 'XYZ', force_home: bool = True):
+    def add_initialize_axis(self, axis: str = 'XYZ', force_home: bool = True) -> None:
         """Add axis initialization/homing task
         
         Args:
@@ -504,21 +505,21 @@ class BravoProtocolBuilder:
 class BravoVWorksDriver:
     """High-level Bravo driver using VWorks protocols"""
     
-    def __init__(self, device_file: str, vworks_driver, 
+    def __init__(self, device_file: str, vworks_driver:VWorksDriver, 
                  profile: str = "Mol Bio Bravo",
-                 workspace_dir: str = r'C:\VWorks Workspace\Protocol Files'):
+                 workspace_dir: str = r'C:\VWorks Workspace\Protocol Files') -> None:
         self.device_file = device_file
         self.vworks = vworks_driver
         self.profile = profile
         self.workspace_dir = Path(workspace_dir)
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
         
-        self.builder = BravoProtocolBuilder(device_file, profile)
+        self.builder = BravoDriver(device_file, profile)
         self._initialized = False
         
         logging.info(f"Bravo driver initialized with device file: {device_file}")
     
-    def initialize(self, labware_config: Optional[Dict[int, str]] = None):
+    def initialize(self, labware_config: Optional[Dict[int, str]] = None) -> None:
         """Initialize Bravo with optional labware configuration"""
         if labware_config is None:
             labware_config = {}
@@ -527,21 +528,21 @@ class BravoVWorksDriver:
         self._initialized = True
         logging.info("✓ Bravo initialization queued")
     
-    def move_to_location(self, location: int):
+    def move_to_location(self, location: int) -> None:
         """Move to specified location"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
         self.builder.add_move_to_location(location)
         logging.info(f"✓ Move to location {location} queued")
     
-    def tips_on(self, location: int):
+    def tips_on(self, location: int) -> None:
         """Pick up tips at location"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
         self.builder.add_tips_on(location)
         logging.info(f"✓ Tips on at location {location} queued")
     
-    def tips_off(self, location: int, mark_used: bool = True):
+    def tips_off(self, location: int, mark_used: bool = True) -> None:
         """Eject tips at location"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
@@ -551,7 +552,7 @@ class BravoVWorksDriver:
     def aspirate(self, location: int, volume: float, 
                  distance_from_bottom: float = 2.0,
                  pre_aspirate: float = 0.0, post_aspirate: float = 0.0,
-                 liquid_class: str = '', pipette_technique: str = ''):
+                 liquid_class: str = '', pipette_technique: str = '') -> None:
         """Aspirate from location"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
@@ -562,7 +563,7 @@ class BravoVWorksDriver:
     def dispense(self, location: int, volume: float, 
                  distance_from_bottom: float = 2.0,
                  empty_tips: bool = False, blowout: float = 0.0,
-                 liquid_class: str = '', pipette_technique: str = ''):
+                 liquid_class: str = '', pipette_technique: str = '') -> None:
         """Dispense to location"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
@@ -574,7 +575,7 @@ class BravoVWorksDriver:
             aspirate_distance: float = 2.0, dispense_distance: float = 2.0,
             use_different_dispense_height: bool = False,
             pre_aspirate: float = 0.0, blowout: float = 0.0,
-            liquid_class: str = '', pipette_technique: str = ''):
+            liquid_class: str = '', pipette_technique: str = '') -> None:
         """Mix at location with dual height support"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
@@ -583,7 +584,7 @@ class BravoVWorksDriver:
                             pre_aspirate, blowout, liquid_class, pipette_technique)
         logging.info(f"✓ Mix {volume}µL x{cycles} at location {location} queued")
     
-    def home(self, axis: str = 'XYZ', force: bool = True):
+    def home(self, axis: str = 'XYZ', force: bool = True) -> None:
         """Home/initialize axes
         
         Args:
@@ -595,7 +596,7 @@ class BravoVWorksDriver:
         self.builder.add_initialize_axis(axis, force)
         logging.info(f"✓ Home {axis} axis queued")
     
-    def execute(self):
+    def execute(self) -> None:
         """Execute all queued commands"""
         if not self.builder.tasks:
             logging.warning("No tasks to execute")
@@ -630,7 +631,7 @@ class BravoVWorksDriver:
             except Exception as e:
                 logging.warning(f"Could not delete protocol file: {e}")
     
-    def close(self):
+    def close(self) -> None:
         """Close driver"""
         logging.info("✓ Bravo driver closed")
 
@@ -643,18 +644,18 @@ if __name__ == "__main__":
     )
     
     # Mock VWorks driver for testing
-    class MockVWorksDriver:
-        def run_protocol(self, path):
-            print(f"Would run protocol: {path}")
-            with open(path, 'r') as f:
-                content = f.read()
-                print(f"Protocol preview (first 1000 chars):")
-                print(content[:1000])
+    # class MockVWorksDriver:
+    #     def run_protocol(self, path: str) -> None:
+    #         print(f"Would run protocol: {path}")
+    #         with open(path, 'r') as f:
+    #             content = f.read()
+    #             print("Protocol preview (first 1000 chars):")
+    #             print(content[:1000])
     
     device_file = r'C:\VWorks Workspace\Device Files\bravo_molbio.dev'
     
     # Create driver
-    vworks = MockVWorksDriver()
+    vworks = VWorksDriver()
     bravo = BravoVWorksDriver(device_file, vworks)
     
     # Queue commands

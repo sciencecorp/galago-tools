@@ -13,7 +13,7 @@ class VWorksLabware:
     
     BASE_PATH = r"SOFTWARE\WOW6432Node\Velocity11\Shared\Labware\Labware_Entries"
     
-    def __init__(self):
+    def __init__(self) -> None:
         self._labware_cache: Optional[Dict[str, Dict[str, Any]]] = None
     
     def fetch_all(self) -> Dict[str, Dict[str, Any]]:
@@ -153,7 +153,7 @@ class VWorksLabware:
             logger.error(f"Error exporting to JSON: {e}")
             return None
 
-def main():
+def main() -> None:
     """CLI interface for VWorks labware operations"""
     parser = argparse.ArgumentParser(
         description="Access and export VWorks labware from registry"

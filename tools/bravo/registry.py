@@ -169,7 +169,7 @@ if __name__ == "__main__":
     # Fetch single axis
     y_props = bravo_reg.fetch_axis_properties('Y')
     if y_props:
-        print(f"\nY-axis properties:")
+        print("\nY-axis properties:")
         print(f"  Homing offset: {y_props.homing_offset}")
         print(f"  Homing acceleration: {y_props.homing_acceleration}")
         print(f"  Homing velocity: {y_props.homing_velocity}")

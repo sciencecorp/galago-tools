@@ -59,9 +59,8 @@ if os.name == "nt":
         "DLLs",
         "BravoShim.dll",
     )
-    import clr
     clr.AddReference(BRAVO_WRAPPER)
-    import BravoShim
+    import BravoShim  # type: ignore
 
     if not os.path.exists(SDK_DLL):
         raise FileNotFoundError(f"Bravo SDK DLL not found at {SDK_DLL}")
@@ -99,26 +98,26 @@ class BravoCommandError(Exception):
 
 class STAThread:
     """Dedicated STA thread for ActiveX control operations"""
-    def __init__(self):
-        self.command_queue: queue.Queue = queue.Queue()
-        self.result_queue: queue.Queue = queue.Queue()
+    def __init__(self) -> None:
+        self.command_queue: queue.Queue[Any] = queue.Queue()
+        self.result_queue: queue.Queue[Any] = queue.Queue()
         self.thread: Optional[threading.Thread] = None
         self.running = False
         
-    def start(self):
+    def start(self) -> None:
         """Start the STA thread"""
         self.running = True
         self.thread = threading.Thread(target=self._run_sta_thread, daemon=True)
         self.thread.start()
         
-    def stop(self):
+    def stop(self) -> None:
         """Stop the STA thread"""
         self.running = False
         self.command_queue.put(None)
         if self.thread:
             self.thread.join(timeout=5.0)
     
-    def _run_sta_thread(self):
+    def _run_sta_thread(self) -> None:
         """Run loop for STA thread"""
         import System  # type: ignore
         System.Threading.Thread.CurrentThread.SetApartmentState(
@@ -145,7 +144,7 @@ class STAThread:
         
         logging.info("STA thread stopped")
     
-    def execute(self, func: Callable, *args, **kwargs) -> Any:
+    def execute(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Execute a function on the STA thread and wait for result"""
         self.command_queue.put((func, args, kwargs))
         status, result = self.result_queue.get()
@@ -164,14 +163,14 @@ class BravoDriver(ABCToolDriver):
         
         # Start dedicated STA thread
         self.sta_thread.start()
-        self.registry : BravoRegistry = BravoRegistry(profile_name=profile)
+        self.registry: BravoRegistry = BravoRegistry(profile_name=profile or "")
         
         # Create control on STA thread
         logging.info("Creating Bravo control...")
         self.sta_thread.execute(self._create_control)
         logging.info("✓ Bravo control created")
 
-    def _create_control(self):
+    def _create_control(self) -> None:
         """Create ActiveX control - must run on STA thread"""
         self.client = AxHomewood()
         self.client.CreateControl()
@@ -187,19 +186,20 @@ class BravoDriver(ABCToolDriver):
     
     def enumerate_profiles(self) -> list[str]:
         """List available profiles"""
-        def _enumerate():
+        def _enumerate() -> list[str]:
             if self.client is None:
                 return []
             profiles_net = self.client.EnumerateProfiles()
-            profiles = list(profiles_net) if profiles_net else []
+            profiles: list[str] = list(profiles_net) if profiles_net else []
             logging.info(f"Available profiles: {profiles}")
             return profiles
         
-        return self.sta_thread.execute(_enumerate)
+        result: list[str] = self.sta_thread.execute(_enumerate)
+        return result
 
     def get_device_configuration(self) -> str:
         """Get device configuration"""
-        def _get_config():
+        def _get_config() -> str:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -214,13 +214,14 @@ class BravoDriver(ABCToolDriver):
                 raise BravoCommandError(f"GetDeviceConfiguration failed with code {error_code}: {error}")
             return str(config) if config else ""
         
-        return self.sta_thread.execute(_get_config)
+        result: str = self.sta_thread.execute(_get_config)
+        return result
     
     
     
-    def initialize_axis(self, axis: str, initialize_if_homed:bool) -> int:
+    def initialize_axis(self, axis: str, initialize_if_homed: bool) -> int:
         """Initialize a specific axis"""
-        def _initialize_axis():
+        def _initialize_axis() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -230,31 +231,34 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Axis {axis} initialized")
             return cast(int, result)
         
-        return self.sta_thread.execute(_initialize_axis)
+        result: int = self.sta_thread.execute(_initialize_axis)
+        return result
     
     def show_diagnostics(self) -> int:
         """Show diagnostics dialog"""
-        def _show_diags():
+        def _show_diags() -> int:
             if self.client is None:
                 raise BravoCommandError("Client not initialized")
             return cast(int, self.client.ShowDiagsDialog(True, 1))
         
-        return self.sta_thread.execute(_show_diags)
+        result: int = self.sta_thread.execute(_show_diags)
+        return result
 
     def get_firmware_version(self) -> str:
         """Get firmware version"""
-        def _get_version():
+        def _get_version() -> str:
             if self.client is None:
                 raise BravoCommandError("Client not initialized")
             result = self.client.GetFirmwareVersion()
             return str(result)
         
-        return self.sta_thread.execute(_get_version)
+        result: str = self.sta_thread.execute(_get_version)
+        return result
     
     @check_bravo_result
     def initialize(self, profile: Optional[str] = None) -> int:
         """Initialize with a profile"""
-        def _initialize():
+        def _initialize() -> int:
             if profile:
                 self.profile = profile
             
@@ -270,11 +274,12 @@ class BravoDriver(ABCToolDriver):
                 self._initialized = True
             return cast(int, result)
         
-        return self.sta_thread.execute(_initialize)
+        result: int = self.sta_thread.execute(_initialize)
+        return result
 
     def close(self) -> bool:
         """Close the connection"""
-        def _close():
+        def _close() -> bool:
             if not self._initialized:
                 return True
             
@@ -289,13 +294,13 @@ class BravoDriver(ABCToolDriver):
             except Exception as e:
                 raise BravoCommandError(f"Close failed: {e}")
         
-        result = self.sta_thread.execute(_close)
+        result: bool = self.sta_thread.execute(_close)
         self.sta_thread.stop()
         return result
 
     @check_bravo_result
     def home_w(self) -> int:
-        def _home_w():
+        def _home_w() -> int:
             if not self._initialized:
                 raise BravoCommandError("Bravo not initialized")
             if self.client is None:
@@ -305,12 +310,13 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ HomeW complete")
             return cast(int, result)
         
-        return self.sta_thread.execute(_home_w)
+        result: int = self.sta_thread.execute(_home_w)
+        return result
     
     @check_bravo_result
     def enable_y(self) -> int:
         """Enable Y axis"""
-        def _enable_y():
+        def _enable_y() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -320,12 +326,13 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ EnableY complete")
             return cast(int, result)
         
-        return self.sta_thread.execute(_enable_y)
+        result: int = self.sta_thread.execute(_enable_y)
+        return result
     
     @check_bravo_result
     def home_xyz(self) -> int:
         """Home X, Y, Z axes"""
-        def _home_xyz():
+        def _home_xyz() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -334,7 +341,8 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ HomeXYZ complete")
             return cast(int, result)
         
-        return self.sta_thread.execute(_home_xyz)
+        result: int = self.sta_thread.execute(_home_xyz)
+        return result
     
     @check_bravo_result
     def mix(self, 
@@ -347,7 +355,7 @@ class BravoDriver(ABCToolDriver):
             retract_distance_per_microliter: float
             ) -> int:
         """Mix liquid"""
-        def _mix():
+        def _mix() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -357,7 +365,8 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ Mix complete")
             return cast(int, result)
         
-        return self.sta_thread.execute(_mix)
+        result: int = self.sta_thread.execute(_mix)
+        return result
     
     @check_bravo_result
     def wash(self, 
@@ -373,7 +382,7 @@ class BravoDriver(ABCToolDriver):
              pump_out_flow_speed: float
              ) -> int:
         """Wash tips"""
-        def _wash():
+        def _wash() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -394,7 +403,8 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ Wash complete")
             return cast(int, result)
         
-        return self.sta_thread.execute(_wash)
+        result: int = self.sta_thread.execute(_wash)
+        return result
 
     @check_bravo_result
     def aspirate(self, volume: float, plate_location: int,
@@ -403,7 +413,7 @@ class BravoDriver(ABCToolDriver):
                  post_aspirate_volume: float = 0.0,
                  retract_distance_per_microliter: float = 0.0) -> int:
         """Aspirate liquid"""
-        def _aspirate():
+        def _aspirate() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -425,14 +435,15 @@ class BravoDriver(ABCToolDriver):
                 error = self.get_last_error()
                 raise BravoCommandError(f"Aspirate failed: {e}\nDevice error: {error}")
         
-        return self.sta_thread.execute(_aspirate)
+        result: int = self.sta_thread.execute(_aspirate)
+        return result
     
     @check_bravo_result
     def dispense(self, volume: float, empty_tips: bool, blow_out_volume: float,
                  plate_location: int, distance_from_well_bottom: float = 0.0,
                  retract_distance_per_microliter: float = 0.0) -> int:
         """Dispense liquid"""
-        def _dispense():
+        def _dispense() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -451,12 +462,13 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Dispensed {volume}µL to location {plate_location}")
             return cast(int, result)
         
-        return self.sta_thread.execute(_dispense)
+        result: int = self.sta_thread.execute(_dispense)
+        return result
 
     @check_bravo_result
     def tips_on(self, plate_location: int) -> int:
         """Pick up tips"""
-        def _tips_on():
+        def _tips_on() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -466,12 +478,13 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Tips on at location {plate_location}")
             return cast(int, result)
         
-        return self.sta_thread.execute(_tips_on)
+        result: int = self.sta_thread.execute(_tips_on)
+        return result
     
     @check_bravo_result
     def tips_off(self, plate_location: int) -> int:
         """Eject tips"""
-        def _tips_off():
+        def _tips_off() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -481,12 +494,13 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Tips off at location {plate_location}")
             return cast(int, result)
         
-        return self.sta_thread.execute(_tips_off)
+        result: int = self.sta_thread.execute(_tips_off)
+        return result
     
     @check_bravo_result
-    def move_to_position(self, axis: int, position:float, velocity:float, acceleration:float) -> int:
+    def move_to_position(self, axis: int, position: float, velocity: float, acceleration: float) -> int:
         """Move head to position"""
-        def _move():
+        def _move() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -502,12 +516,13 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"Result of move: {result}")
             return cast(int, result)
         
-        return self.sta_thread.execute(_move)
+        result: int = self.sta_thread.execute(_move)
+        return result
     
     @check_bravo_result
     def move_to_location(self, plate_location: int, only_z: bool = False) -> int:
         """Move head to location"""
-        def _move_to_loc():
+        def _move_to_loc() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -518,11 +533,12 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Moved to location {plate_location}")
             return cast(int, result)
         
-        return self.sta_thread.execute(_move_to_loc)
+        result: int = self.sta_thread.execute(_move_to_loc)
+        return result
     
     def set_labware_at_location(self, plate_location: int, labware_type: str) -> int:
         """Set labware at location"""
-        def _set_labware():
+        def _set_labware() -> int:
             # if not self._initialized:
             #     raise BravoCommandError("Not initialized")
             
@@ -535,12 +551,13 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Labware '{labware_type}' set at location {plate_location}")
             return cast(int, result)
         
-        return self.sta_thread.execute(_set_labware)
+        result: int = self.sta_thread.execute(_set_labware)
+        return result
 
 
-    def set_head_mode(self, head_mode:int) -> int:
+    def set_head_mode(self, head_mode: int) -> int:
         """Set head mode"""
-        def _set_head_mode():
+        def _set_head_mode() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -552,11 +569,12 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Head mode set to {head_mode}")
             return cast(int, result)
         
-        return self.sta_thread.execute(_set_head_mode)
+        result: int = self.sta_thread.execute(_set_head_mode)
+        return result
 
     def get_labware_at_location(self, plate_location: int) -> tuple[int, str]:
         """Get labware at location"""
-        def _get_labware():
+        def _get_labware() -> tuple[int, str]:
             if self.client is None:
                 raise BravoCommandError("Client not initialized")
 
@@ -564,12 +582,14 @@ class BravoDriver(ABCToolDriver):
 
             logging.info(f"✓ Labware at location {plate_location}: '{name}' (code {code})")
             return cast(int, code), str(name)
-        return self.sta_thread.execute(_get_labware)
+        
+        result: tuple[int, str] = self.sta_thread.execute(_get_labware)
+        return result
         
     @check_bravo_result
     def set_liquid_class(self, liquid_class: str) -> int:
         """Set liquid class"""
-        def _set_liquid():
+        def _set_liquid() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -580,12 +600,13 @@ class BravoDriver(ABCToolDriver):
             logging.info(f"✓ Set liquid class '{liquid_class}'")
             return cast(int, result)
         
-        return self.sta_thread.execute(_set_liquid)
+        result: int = self.sta_thread.execute(_set_liquid)
+        return result
 
     @check_bravo_result
     def pick_and_place(self, source_location: int, dest_location: int, gripper_offset: float, labware_thickness: float) -> int:
         """Picks a plate from start location and places at end location using gripper offset"""
-        def _pick_and_place():
+        def _pick_and_place() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             
@@ -597,11 +618,12 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ Pick and place complete")
             return cast(int, result)
         
-        return self.sta_thread.execute(_pick_and_place)
+        result: int = self.sta_thread.execute(_pick_and_place)
+        return result
 
     def disable_motors(self) -> int:
         """Disable motors"""
-        def _disable_motors():
+        def _disable_motors() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -611,10 +633,12 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ Motors disabled")
             return cast(int, result)
         
-        return self.sta_thread.execute(_disable_motors)
+        result: int = self.sta_thread.execute(_disable_motors)
+        return result
+        
     def enable_motors(self) -> int:
         """Enable motors"""
-        def _enable_motors():
+        def _enable_motors() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -624,11 +648,12 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ Motors enabled")
             return cast(int, result)
         
-        return self.sta_thread.execute(_enable_motors)
+        result: int = self.sta_thread.execute(_enable_motors)
+        return result
     
     def enable_x_axis(self) -> int:
         """Enable X axis"""
-        def _enable_x():
+        def _enable_x() -> int:
             if not self._initialized:
                 raise BravoCommandError("Not initialized")
             if self.client is None:
@@ -638,10 +663,12 @@ class BravoDriver(ABCToolDriver):
             logging.info("✓ X axis enabled")
             return cast(int, result)
         
-        return self.sta_thread.execute(_enable_x)
+        result: int = self.sta_thread.execute(_enable_x)
+        return result
+        
     def get_last_error(self) -> str:
         """Get last error"""
-        def _get_error():
+        def _get_error() -> str:
             try:
                 if self.client is None:
                     return "Client not initialized"
@@ -651,7 +678,8 @@ class BravoDriver(ABCToolDriver):
                 logging.error(f"Error retrieving last error: {e}")
                 return "Could not retrieve error"
         
-        return self.sta_thread.execute(_get_error)
+        result: str = self.sta_thread.execute(_get_error)
+        return result
 
     def __enter__(self) -> 'BravoDriver':
         """Context manager entry"""
@@ -669,7 +697,6 @@ if __name__ == "__main__":
     print("=" * 60)
     print("BRAVO DRIVER TEST")
     print("=" * 60)
-    import inspect 
     try:
         # Create driver
         with BravoDriver("Mol Bio Bravo") as bravo:

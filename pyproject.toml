@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 target-version = "py39"
 line-length = 100
 ignore = ["E501"]
-exclude = ["cytation.py"]
+exclude = ["cytation.py", "bravo.py"]
 
 [tool.mypy]
 python_version = "3.9"
@@ -22,7 +22,7 @@ warn_unused_ignores = "False"
 show_error_codes = "True"
 follow_imports = "silent"
 disable_error_code = ["misc", "var-annotated"]
-exclude = ['.*pb2.*', 'pyi$', 'cytation.py', "teach_pendant","opentrons"]
+exclude = ['.*pb2.*', 'pyi$', 'cytation.py','bravo.py', "teach_pendant","opentrons"]
 
 [[tool.mypy.overrides]]
 module = ""
