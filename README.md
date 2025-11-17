@@ -18,8 +18,28 @@ Galago Tools is a comprehensive Python library for lab automation that provides 
 
 ## 📦 Installation
 
-### Standard Installation
+### Fork the Repository (For Contributors)
 
+If you plan to contribute or customize Galago Tools, start by forking the repository:
+
+1. **Fork on GitHub**: Click the "Fork" button at the top right of the [repository page](https://github.com/sciencecorp/galago-tools), or use this direct link:
+   
+   **[Fork Galago Tools →](https://github.com/sciencecorp/galago-tools/fork)**
+
+2. **Clone your fork** (replace `your-username` with your GitHub username):
+```bash
+   git clone https://github.com/your-username/galago-tools.git
+   cd galago-tools
+```
+
+3. **Add upstream remote** (to keep your fork updated):
+```bash
+   git remote add upstream https://github.com/sciencecorp/galago-tools.git
+```
+
+> **Note**: If you just want to use Galago Tools without making changes, use the standard installation below.
+
+### Standard Installation
 ```bash
 pip install galago-tools
 ```
@@ -27,9 +47,8 @@ pip install galago-tools
 ### Development Installation
 
 For development or the latest features:
-
 ```bash
-# Clone the repository
+# Clone the repository (or your fork)
 git clone https://github.com/sciencecorp/galago-tools.git
 cd galago-tools
 
@@ -40,7 +59,6 @@ pip install -e .
 ### 32-bit Windows Environment
 
 Many legacy lab instruments require 32-bit Python on Windows. Set up a 32-bit environment using conda:
-
 ```bash
 # Set environment variables for 32-bit
 set CONDA_FORCE_32BIT=1
@@ -57,13 +75,11 @@ pip install galago-tools
 ## 🔧 Quick Start
 
 ### Starting the Tools Server Manager
-
 ```bash 
 galago 
 ```
 
 ### Using the CLI
-
 ```bash
 # List available tools
 galago --list
@@ -75,8 +91,6 @@ galago-serve --port=50010 --tool=opentrons2
 galago --info opentrons2
 ```
 
-``
-
 ## 📋 Requirements
 
 - **Python**: 3.9
@@ -86,37 +100,33 @@ galago --info opentrons2
 ## 🏗️ Development
 
 ### Setting Up Development Environment
-
 ```bash
-# Clone repository
+# Clone repository (or your fork)
 git clone https://github.com/sciencecorp/galago-tools.git
 cd galago-tools
 
-# Install galago indevelopment moode
+# Install galago in development mode
 pip install -e .
 pip install -r requirements-dev.txt
 
 # Generate protobuf interfaces (if needed)
 bin/make proto
 
-#Clear generated protobuf
+# Clear generated protobuf
 bin/make clean_proto
 
-#Run tools manager. 
+# Run tools manager
 bin/make run 
 
-#or alternatively cli command 
+# or alternatively cli command 
 galago
-
 ```
-
 
 ### Building Distribution
 
-Python distributions are automatically published via github workflows. See see [RELEASE](RELEASE.md) for more information.
+Python distributions are automatically published via github workflows. See [RELEASE](RELEASE.md) for more information.
 
 ### Running Tests
-
 ```bash
 # Run all tests
 bin/make test
@@ -126,7 +136,7 @@ bin/make test
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-1. Fork the repository
+1. **Fork the repository** using the link above
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
