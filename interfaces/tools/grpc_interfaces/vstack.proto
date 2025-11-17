@@ -8,16 +8,14 @@ message Command {
     Close close = 2;
     Downstack downstack = 3;
     Home home = 4;
-    Ignore ignore = 5;
-    Jog jog = 6;
-    LoadStack load_stack = 7;
-    OpenGripper open_gripper = 8;
-    ReleaseStack release_stack = 9;
-    Retry retry = 10;
-    SetButtonMode set_button_mode = 11;
-    SetLabware set_labware = 12;
-    ShowDiagsDialog show_diagnostics = 13;
-    Upstack upstack = 14;
+    Jog jog = 5;
+    LoadStack load_stack = 6;
+    OpenGripper open_gripper = 7;
+    ReleaseStack release_stack = 8;
+    SetButtonMode set_button_mode = 9;
+    SetLabware set_labware = 10;
+    ShowDiagsDialog show_diagnostics = 11;
+    Upstack upstack = 12;
   }
 
   message Abort {}
@@ -27,8 +25,6 @@ message Command {
   message Downstack {}
 
   message Home {}
-
-  message Ignore {}
 
   message Jog {
     float increment = 1;
@@ -41,8 +37,6 @@ message Command {
   }
 
   message ReleaseStack {}
-
-  message Retry {}
 
   message SetButtonMode {
     bool run_mode = 1;

@@ -144,10 +144,6 @@ class VStackDriver(ABCToolDriver):
         self.schedule_threaded_command("home", {})
         return 
     
-    def ignore(self) -> None:
-        self.schedule_threaded_command("ignore", {})
-        return 
-    
     def jog(self, increment: float) -> None:
         self.schedule_threaded_command("jog", {"increment": increment})
         return 

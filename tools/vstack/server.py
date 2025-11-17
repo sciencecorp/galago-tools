@@ -35,10 +35,6 @@ class VStackServer(ToolServer):
           logging.info("Homing stage")
           self.driver.home()
      
-     def Ignore(self, params: Command.Ignore) -> None:
-          logging.info("Ignoring error")
-          self.driver.ignore()
-     
      def Jog(self, params: Command.Jog) -> None:
           logging.info(f"Jogging stage by {params.increment} mm")
           self.driver.jog(params.increment)
@@ -54,10 +50,6 @@ class VStackServer(ToolServer):
      def ReleaseStack(self, params: Command.ReleaseStack) -> None:
           logging.info("Releasing stack")
           self.driver.release_stack()
-     
-     def Retry(self, params: Command.Retry) -> None:
-          logging.info("Retrying last action")
-          self.driver.retry()
      
      def SetButtonMode(self, params: Command.SetButtonMode) -> None:
           logging.info(f"Setting button mode: run_mode={params.run_mode}")
