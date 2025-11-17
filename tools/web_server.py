@@ -109,30 +109,59 @@ def check_for_updates() -> Tuple[bool, str, str]:
     return False, galago_version, galago_version
 
 def display_startup_message(log_folder: Path, update_available: bool = False, current_version: str = "", latest_version: str = "") -> None:
-    """Display startup message matching the tkinter ToolsManager format"""
     current_time = time.strftime('%Y-%m-%d %H:%M:%S')
     
-    # Print to console - keep it simple like tkinter version
+    # Detect if we can safely use emojis
+    try:
+        # Test if stdout can handle emojis
+        sys.stdout.write('\U0001f680')
+        sys.stdout.flush()
+        use_emojis = True
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        use_emojis = False
+    
+    # Choose symbols based on encoding support
+    if use_emojis:
+        rocket = "🚀"
+        robot = "🤖"
+        package = "📦"
+        clock = "⏰"
+        id_icon = "🆔"
+        computer = "💻"
+        folder = "📂"
+        checkmark = "✅"
+        refresh = "🔄"
+    else:
+        rocket = "*"
+        robot = "*"
+        package = "[*]"
+        clock = "[T]"
+        id_icon = "[#]"
+        computer = "[PC]"
+        folder = "[DIR]"
+        checkmark = "[OK]"
+        refresh = "[>>]"
+    
     print("=" * 80)
-    print("🚀 🤖 GALAGO WEB SERVER STARTED")
+    print(f"{rocket} {robot} GALAGO WEB SERVER STARTED")
     print("=" * 80)
     print("")
-    print(f"📦 Version: {galago_version}")
+    print(f"{package} Version: {galago_version}")
     if update_available:
         print(f"    A new version ({latest_version}) is available!")
         print("    Upgrade using: pip install --upgrade galago-tools")
-    print(f"⏰ Started: {current_time}")
-    print(f"🆔 Session: {LOG_TIME}")
-    print(f"💻 Platform: {os.name}")
+    print(f"{clock} Started: {current_time}")
+    print(f"{id_icon} Session: {LOG_TIME}")
+    print(f"{computer} Platform: {os.name}")
     print("")
-    print("📂 URLs:")
+    print(f"{folder} URLs:")
     print(f"   Tool Server IP: {LOCAL_IP}")
     print("   Web Interface Local: http://localhost:8080/")
     print(f"   Web Interface On Network: http://{LOCAL_IP}:8080/")
     print(f"   Logs Directory: {log_folder}")
     print("")
-    print("✅ Web Server initialized successfully")
-    print("🔄 Starting WebSocket and HTTP servers...")
+    print(f"{checkmark} Web Server initialized successfully")
+    print(f"{refresh} Starting WebSocket and HTTP servers...")
     print("-" * 80)
     print("")
 
