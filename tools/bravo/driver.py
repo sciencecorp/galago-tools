@@ -667,8 +667,8 @@ class BravoVWorksDriver:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
         self.builder.add_initialize_axis(axis, force)
         logging.info(f"✓ Home {axis} axis queued")
-    
-    def execute(self) -> None:
+
+    def execute(self, simulate: bool = False, clear_after_execution: bool = True) -> None:
         """Execute all queued commands"""
         if not self.builder.tasks:
             logging.warning("No tasks to execute")
@@ -687,6 +687,10 @@ class BravoVWorksDriver:
             
             logging.info(f"Executing protocol with {len(self.builder.tasks)} tasks: {protocol_path}")
             
+            if simulate or os.name != 'nt':
+                logging.info(f"✓ Protocol simulation mode - not executing. See protocol at {protocol_path}")
+                return
+            
             # Run via VWorks driver
             self.vworks.run_protocol(str(protocol_path))
             
@@ -697,9 +701,9 @@ class BravoVWorksDriver:
         finally:
             # Clean up
             try:
-                if protocol_path.exists():
+                if protocol_path.exists() and clear_after_execution:
                     time.sleep(0.5)
-                    # protocol_path.unlink()
+                    protocol_path.unlink()
             except Exception as e:
                 logging.warning(f"Could not delete protocol file: {e}")
     
@@ -714,16 +718,7 @@ if __name__ == "__main__":
         level=logging.INFO,
         format='%(asctime)s | %(levelname)s | %(message)s'
     )
-    
-    # Mock VWorks driver for testing
-    # class MockVWorksDriver:
-    #     def run_protocol(self, path: str) -> None:
-    #         print(f"Would run protocol: {path}")
-    #         with open(path, 'r') as f:
-    #             content = f.read()
-    #             print("Protocol preview (first 1000 chars):")
-    #             print(content[:1000])
-    
+
     device_file = r'C:\VWorks Workspace\Device Files\bravo_molbio.dev'
     
     # Create driver
