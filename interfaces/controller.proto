@@ -25,6 +25,7 @@ enum ToolType {
   vprep = 18;
   plr = 19;
   pyhamilton = 20;
+  vworks = 21;
 }
 
 message ToolConfig {

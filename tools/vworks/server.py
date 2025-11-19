@@ -1,24 +1,26 @@
 import logging
 import os
 import argparse
-import pythoncom
 import threading
 import time
 from tools.base_server import ToolServer, serve
-from tools.grpc_interfaces.vprep_pb2 import Command, Config
-from .driver import VPrepDriver, kill_vworks
+from tools.grpc_interfaces.vworks_pb2 import Command, Config
+from .driver import VWorksDriver, kill_vworks
 from typing import Callable, Any 
 
+if os.name == "nt":
+    import pythoncom
+    
 _thread_local = threading.local()
 
-class VPrepServer(ToolServer):
-    toolType = "vprep"
+class VWorksServer(ToolServer):
+    toolType = "vworks"
     config: Config
     
     def __init__(self) -> None:
         super().__init__()
         self.main_thread_id = threading.get_ident()
-        logging.info(f"VPrepServer initialized in thread ID: {self.main_thread_id}")
+        logging.info(f"BravoServer initialized in thread ID: {self.main_thread_id}")
         
         # Initialize COM in the main thread
         if os.name == "nt":
@@ -29,9 +31,9 @@ class VPrepServer(ToolServer):
         self.shutdown = False
     
     def _configure(self, request: Config) -> None:
-        logging.info(f"Configuring VPrep in thread ID: {threading.get_ident()}")
+        logging.info(f"Configuring VWorks in thread ID: {threading.get_ident()}")
         self.config = request
-        logging.info("VPrep configuration complete")
+        logging.info("VWorks configuration complete")
     
     def _get_thread_driver(self, force_new:bool=False) -> Any:
 
@@ -60,10 +62,10 @@ class VPrepServer(ToolServer):
                 time.sleep(0.5)
                 
                 # Create new driver
-                logging.info(f"Creating new VPrepDriver in thread ID: {thread_id}")
-                _thread_local.driver = VPrepDriver(init_com=False)
+                logging.info(f"Creating new VWorksDriver in thread ID: {thread_id}")
+                _thread_local.driver = VWorksDriver(init_com=False)
                 _thread_local.driver.login()
-                logging.info(f"VPrepDriver created and logged in for thread ID: {thread_id}")
+                logging.info(f"VWorksDriver created and logged in for thread ID: {thread_id}")
             else:
                 # Verify the existing driver is still responsive
                 try:
@@ -76,18 +78,18 @@ class VPrepServer(ToolServer):
             return _thread_local.driver
             
         except Exception as e:
-            logging.error(f"Failed to create VPrepDriver in thread {thread_id}: {e}")
+            logging.error(f"Failed to create VWorksDriver in thread {thread_id}: {e}")
             # Clean up and try again with a fresh environment
             if hasattr(_thread_local, 'driver'):
                 try:
                     _thread_local.driver.close()
                 except Exception as e:
-                    logging.warning(f"Failed to close VPrepDriver: {e}")
+                    logging.warning(f"Failed to close VWorksDriver: {e}")
                 delattr(_thread_local, 'driver')
             
             # If this is already a retry, give up to avoid infinite recursion
             if force_new:
-                raise RuntimeError(f"Failed to initialize VPrep driver after recovery attempt: {str(e)}")
+                raise RuntimeError(f"Failed to initialize VWorks driver after recovery attempt: {str(e)}")
             
             # Try once more with force_new=True
             logging.info("Attempting recovery by creating a fresh driver")
@@ -126,7 +128,7 @@ class VPrepServer(ToolServer):
     def _execute_with_retry(
         self,
         operation_name: str,
-        operation_func: Callable[[VPrepDriver], None],
+        operation_func: Callable[[VWorksDriver], None],
         max_retries: int = 2
     ) -> None:
         """Execute an operation with automatic retry on RPC errors"""
@@ -174,7 +176,7 @@ class VPrepServer(ToolServer):
         thread_id = threading.get_ident()
         logging.info(f"RunProtocol called from thread ID: {thread_id}")
         
-        def run_op(driver:VPrepDriver) -> None:
+        def run_op(driver:VWorksDriver) -> None:
             return driver.run_protocol(params.protocol_file)
         
         self._execute_with_retry("RunProtocol", run_op)
@@ -182,7 +184,7 @@ class VPrepServer(ToolServer):
     def RunRunset(self, params: Command.RunRunset) -> None:
         thread_id = threading.get_ident()
         logging.info(f"RunRunset called from thread ID: {thread_id}")
-        def run_op(driver: VPrepDriver) -> None:
+        def run_op(driver: VWorksDriver) -> None:
             return driver.run_runset(params.runset_file)
         
         self._execute_with_retry("RunRunset", run_op)
@@ -194,10 +196,18 @@ class VPrepServer(ToolServer):
         return 120  # Return a more realistic estimate in seconds
     
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s | %(levelname)s | %(message)s', 
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port')
+    parser.add_argument('--port', required=True, help='Port for the gRPC server')
+    args = parser.parse_args()
+    
+    server = None
     args = parser.parse_args()
     if not args.port:
-         raise RuntimeWarning("Port must be provided...")
-    serve(VPrepServer(), str(args.port))
+        raise RuntimeWarning("Port must be provided...")
+    serve(VWorksServer(), str(args.port))

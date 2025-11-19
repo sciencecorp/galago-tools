@@ -79,6 +79,8 @@ pip install galago-tools
 galago 
 ```
 
+The Galago Tools Web Manager can be accessed at [localhost:8080](localhost:8080)
+
 ### Using the CLI
 ```bash
 # List available tools

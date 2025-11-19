@@ -3,24 +3,120 @@ syntax = 'proto3';
 package com.science.foundry.tools.grpc_interfaces.bravo;
 
 message Command {
-
   oneof command {
-    Initialize initialize = 1;
-    RunProtocol run_protocol = 2;
-    RunRunset run_runset = 3;
+    Home home = 1;
+    Mix mix = 2;
+    Aspirate aspirate = 3;
+    Dispense dispense = 4;
+    TipsOn tips_on = 5;
+    TipsOff tips_off = 6;
+    MoveToLocation move_to_location = 7;
+    ConfigureDeck configure_deck = 8;
+    ShowDiagnostics show_diagnostics = 9;
   }
 
-  message Initialize {}
-
-  message RunProtocol {
-    string protocol_file = 1;
+  message Home{
+    string axis =1;
+    bool force_initialize = 2; 
   }
 
-  message RunRunset {
-    string runset_file =1;
+  message Mix {
+    int32 location = 1;
+    float volume = 2;
+    float pre_aspirate_volume = 3;  
+    float blow_out_volume = 4;
+    string liquid_class = 5;
+    int32 cycles = 6;
+    float retract_distance_per_microliter = 7;
+    string pipette_technique = 8;
+    float aspirate_distance = 9;
+    float dispense_distance = 10;
+    bool perform_tip_touch = 11;
+    string tip_touch_side =12;
+    float tip_touch_retract_distance = 13;
+    float tip_touch_horizonal_offset = 14; 
+  }
+
+  message Aspirate {
+    int32 location = 1;
+    float volume = 2;
+    float pre_aspirate_volume = 3;  
+    float post_aspirate_volume = 4;
+    string liquid_class = 5;
+    float distance_from_well_bottom = 6;
+    float retract_distance_per_microliter = 7;
+    string pipette_technique = 8;
+    bool perform_tip_touch = 9;
+    string tip_touch_side =10;
+    float tip_touch_retract_distance = 11;
+    float tip_touch_horizonal_offset = 12; 
+  }
+
+  message Dispense {
+    int32 location = 1;
+    bool empty_tips = 2;
+    float volume = 3;
+    float blow_out_volume = 4;  
+    string liquid_class = 6;
+    float distance_from_well_bottom = 7;
+    float retract_distance_per_microliter = 8;
+    string pipette_technique = 9;
+    bool perform_tip_touch = 10;
+    string tip_touch_side =11;
+    float tip_touch_retract_distance = 12;
+    float tip_touch_horizonal_offset = 13; 
+  }
+
+  message TipsOn {
+    int32 plate_location = 1;
+  }
+
+  message TipsOff {
+    int32 plate_location = 1;
+  }
+
+  message MoveToLocation {
+    int32 plate_location = 1;
+  }
+
+  message ShowDiagnostics {}
+
+  message ConfigureDeck {
+    google.protobuf.Struct deck_configuration = 2;
+  }
+}
+
+message Response {
+  oneof response {
+    Success success = 1;
+    Error error = 2;
+    DeviceConfiguration device_configuration = 3;
+    FirmwareVersion firmware_version = 4;
+    ProfilesList profiles_list = 5;
+  }
+
+  message Success {
+    string message = 1;
+  }
+
+  message Error {
+    string error_message = 1;
+    int32 error_code = 2;
+  }
+
+  message DeviceConfiguration {
+    string configuration = 1;
+  }
+
+  message FirmwareVersion {
+    string version = 1;
+  }
+
+  message ProfilesList {
+    repeated string profiles = 1;
   }
 }
 
 message Config {
-  string device_file = 1;
+    string device_file = 1;
 }
