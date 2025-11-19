@@ -1,9 +1,15 @@
-import winreg
 import logging
-from typing import Dict, Any, Optional
+from typing import TYPE_CHECKING, Dict, Any, Optional
 from dataclasses import dataclass
+import os
 
 logger = logging.getLogger(__name__)
+
+# Import winreg only on Windows, but always make it available for type checking
+if TYPE_CHECKING:
+    import winreg
+elif os.name == "nt":
+    import winreg
 
 
 @dataclass
@@ -35,6 +41,8 @@ class BravoRegistry:
         Args:
             profile_name: Name of the Bravo profile (default: "Mol Bio Bravo")
         """
+        if os.name != "nt":
+            raise RuntimeError("Bravo registry access is only supported on Windows systems.")
         self.profile_name = profile_name
         self.profile_path = f"{self.BASE_PATH}\\{profile_name}"
         self._axes_cache: Optional[Dict[str, AxisProperties]] = None
@@ -44,16 +52,16 @@ class BravoRegistry:
         values = {}
         
         try:
-            with winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE, key_path, 0, winreg.KEY_READ
+            with winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_LOCAL_MACHINE, key_path, 0, winreg.KEY_READ  # type: ignore[attr-defined]
             ) as key:
                 i = 0
                 while True:
                     try:
-                        name, value, reg_type = winreg.EnumValue(key, i)
+                        name, value, reg_type = winreg.EnumValue(key, i)  # type: ignore[attr-defined]
                         values[name] = value
                         i += 1
-                    except WindowsError:
+                    except OSError:
                         break
         except Exception as e:
             logger.error(f"Error reading registry key {key_path}: {e}")
@@ -72,7 +80,7 @@ class BravoRegistry:
         """
         axis = axis.upper()
         if axis not in ['X', 'Y', 'Z', 'W']:
-            logger.error(f"Invalid axis: {axis}. Must be X, Y, or Z")
+            logger.error(f"Invalid axis: {axis}. Must be X, Y, Z, or W")
             return None
         
         axis_path = f"{self.profile_path}\\Axes\\{axis}"
@@ -122,16 +130,16 @@ class BravoRegistry:
         profiles = []
         
         try:
-            with winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE, self.BASE_PATH, 0, winreg.KEY_READ
+            with winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_LOCAL_MACHINE, self.BASE_PATH, 0, winreg.KEY_READ  # type: ignore[attr-defined]
             ) as base_key:
                 i = 0
                 while True:
                     try:
-                        profile_name = winreg.EnumKey(base_key, i)
+                        profile_name = winreg.EnumKey(base_key, i)  # type: ignore[attr-defined]
                         profiles.append(profile_name)
                         i += 1
-                    except WindowsError:
+                    except OSError:
                         break
         except Exception as e:
             logger.error(f"Error listing profiles: {e}")

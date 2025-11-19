@@ -1,11 +1,17 @@
-import winreg
 import json
 import argparse
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import TYPE_CHECKING, Dict, Any, Optional
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+# Import winreg only on Windows, but always make it available for type checking
+if TYPE_CHECKING:
+    import winreg
+elif os.name == "nt":
+    import winreg
 
 
 class VWorksLabware:
@@ -14,6 +20,8 @@ class VWorksLabware:
     BASE_PATH = r"SOFTWARE\WOW6432Node\Velocity11\Shared\Labware\Labware_Entries"
     
     def __init__(self) -> None:
+        if os.name != "nt":
+            raise RuntimeError("VWorks labware registry access is only supported on Windows systems.")
         self._labware_cache: Optional[Dict[str, Dict[str, Any]]] = None
     
     def fetch_all(self) -> Dict[str, Dict[str, Any]]:
@@ -21,31 +29,31 @@ class VWorksLabware:
         all_labware = {}
 
         try:
-            with winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE, self.BASE_PATH, 0, winreg.KEY_READ
+            with winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_LOCAL_MACHINE, self.BASE_PATH, 0, winreg.KEY_READ  # type: ignore[attr-defined]
             ) as base_key:
                 i = 0
                 while True:
                     try:
-                        entry_name = winreg.EnumKey(base_key, i)
+                        entry_name = winreg.EnumKey(base_key, i)  # type: ignore[attr-defined]
                         entry_path = f"{self.BASE_PATH}\\{entry_name}"
                         
-                        with winreg.OpenKey(
-                            winreg.HKEY_LOCAL_MACHINE, entry_path, 0, winreg.KEY_READ
+                        with winreg.OpenKey(  # type: ignore[attr-defined]
+                            winreg.HKEY_LOCAL_MACHINE, entry_path, 0, winreg.KEY_READ  # type: ignore[attr-defined]
                         ) as entry_key:
                             entry_data = {}
                             j = 0
                             while True:
                                 try:
-                                    name, value, reg_type = winreg.EnumValue(entry_key, j)
+                                    name, value, reg_type = winreg.EnumValue(entry_key, j)  # type: ignore[attr-defined]
                                     entry_data[name] = value
                                     j += 1
-                                except WindowsError:
+                                except OSError:
                                     break
                         
                         all_labware[entry_name] = entry_data
                         i += 1
-                    except WindowsError:
+                    except OSError:
                         break
             
             logger.info(f"Found {len(all_labware)} labware entries in registry")
@@ -90,8 +98,8 @@ class VWorksLabware:
             filename = f"vworks_labware_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 
         try:
-            with winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE, self.BASE_PATH, 0, winreg.KEY_READ
+            with winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_LOCAL_MACHINE, self.BASE_PATH, 0, winreg.KEY_READ  # type: ignore[attr-defined]
             ) as base_key:
                 with open(filename, "w") as f:
                     f.write("VELOCITY11 LABWARE REGISTRY EXPORT\n")
@@ -100,32 +108,32 @@ class VWorksLabware:
                     i = 0
                     while True:
                         try:
-                            entry_name = winreg.EnumKey(base_key, i)
+                            entry_name = winreg.EnumKey(base_key, i)  # type: ignore[attr-defined]
                             f.write(f"ENTRY: {entry_name}\n")
                             f.write("-" * 30 + "\n")
 
                             entry_path = f"{self.BASE_PATH}\\{entry_name}"
-                            with winreg.OpenKey(
-                                winreg.HKEY_LOCAL_MACHINE, entry_path, 0, winreg.KEY_READ
+                            with winreg.OpenKey(  # type: ignore[attr-defined]
+                                winreg.HKEY_LOCAL_MACHINE, entry_path, 0, winreg.KEY_READ  # type: ignore[attr-defined]
                             ) as entry_key:
                                 j = 0
                                 while True:
                                     try:
-                                        name, value, reg_type = winreg.EnumValue(entry_key, j)
+                                        name, value, reg_type = winreg.EnumValue(entry_key, j)  # type: ignore[attr-defined]
                                         type_str = {
-                                            winreg.REG_SZ: "REG_SZ",
-                                            winreg.REG_DWORD: "REG_DWORD",
-                                            winreg.REG_BINARY: "REG_BINARY",
+                                            winreg.REG_SZ: "REG_SZ",  # type: ignore[attr-defined]
+                                            winreg.REG_DWORD: "REG_DWORD",  # type: ignore[attr-defined]
+                                            winreg.REG_BINARY: "REG_BINARY",  # type: ignore[attr-defined]
                                         }.get(reg_type, f"REG_TYPE_{reg_type}")
 
                                         f.write(f"  {name}: {value} ({type_str})\n")
                                         j += 1
-                                    except WindowsError:
+                                    except OSError:
                                         break
 
                             f.write("\n")
                             i += 1
-                        except WindowsError:
+                        except OSError:
                             break
 
             logger.info(f"Registry data exported to: {filename}")
@@ -152,6 +160,7 @@ class VWorksLabware:
         except Exception as e:
             logger.error(f"Error exporting to JSON: {e}")
             return None
+
 
 def main() -> None:
     """CLI interface for VWorks labware operations"""

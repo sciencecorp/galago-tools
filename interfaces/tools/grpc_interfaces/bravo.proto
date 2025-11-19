@@ -12,7 +12,7 @@ message Command {
     TipsOff tips_off = 6;
     MoveToLocation move_to_location = 7;
     ConfigureDeck configure_deck = 8;
-    ShowDiagnostics show_diagnostics = 8;
+    ShowDiagnostics show_diagnostics = 9;
   }
 
   message Home{
@@ -28,11 +28,11 @@ message Command {
     int32 cycles = 6;
     float retract_distance_per_microliter = 7;
     float aspirate_distance = 8;
-    float32 dispense_distance = 9;
+    float dispense_distance = 9;
     bool perform_tip_touch = 10;
     string tip_touch_side =11;
-    tip_touch_retract_distance = 12;
-    tip_touch_horizonal_offset = 13; 
+    float tip_touch_retract_distance = 12;
+    float tip_touch_horizonal_offset = 13; 
   }
 
   message Aspirate {
@@ -67,6 +67,8 @@ message Command {
   }
 
   message ShowDiagnostics {}
+
+  message ConfigureDeck {}
 }
 
 message Response {
