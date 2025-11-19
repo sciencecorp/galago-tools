@@ -12,6 +12,17 @@ from tools.vworks.driver import VWorksDriver
 from pathlib import Path
 from tools.base_server import ABCToolDriver
 
+TASK_TYPE_BY_NAME = {
+    'Mix': 4096,
+    'Aspirate': 1,
+    'Dispense': 2,
+    'Tips On': 16,
+    'Tips Off': 32,
+    'Move To Location': 1024,
+    'Initialize axis': 1024
+}
+
+
 @dataclass
 class BravoTask:
     """Represents a single Bravo task in a protocol"""
@@ -26,7 +37,10 @@ class BravoTask:
 class BravoDriver(ABCToolDriver):
     """Builds VWorks protocol XML dynamically"""
     
-    def __init__(self, device_file: str, profile: str = "Mol Bio Bravo") -> None:
+    def __init__(self, 
+                device_file: str, 
+                profile: str = "Mol Bio Bravo"
+                ) -> None:
         self.device_file = device_file
         self.profile = profile
         self.tasks: List[BravoTask] = []
@@ -52,7 +66,6 @@ class BravoDriver(ABCToolDriver):
             if device is not None:
                 self.device_name = device.get('Name', self.device_name)
                 logging.info(f"Found Bravo device: {self.device_name}")
-                
                 # Get first location
                 location = device.find(".//Location")
                 if location is not None:
@@ -85,7 +98,7 @@ class BravoDriver(ABCToolDriver):
         """Add move to location task"""
         task = BravoTask(
             name='Bravo::secondary::Move To Location',
-            task_type=1024,
+            task_type=TASK_TYPE_BY_NAME['Move To Location'],
             parameters={
                 'Location': str(location),
                 'Task description': f'Move To Location {location} (Bravo)',
@@ -101,7 +114,7 @@ class BravoDriver(ABCToolDriver):
         """Add tips on task"""
         task = BravoTask(
             name='Bravo::secondary::Tips On',
-            task_type=16,
+            task_type=TASK_TYPE_BY_NAME['Tips On'],
             parameters={
                 'Location, plate': str(location),
                 'Location, location': '<auto-select>',
@@ -120,7 +133,7 @@ class BravoDriver(ABCToolDriver):
         """Add tips off task"""
         task = BravoTask(
             name='Bravo::secondary::Tips Off',
-            task_type=32,
+            task_type=TASK_TYPE_BY_NAME['Tips Off'],
             parameters={
                 'Location, plate': str(location),
                 'Location, location': '<auto-select>',
@@ -145,7 +158,7 @@ class BravoDriver(ABCToolDriver):
         """Add aspirate task"""
         task = BravoTask(
             name='Bravo::secondary::Aspirate',
-            task_type=1,
+            task_type=TASK_TYPE_BY_NAME['Aspirate'],
             parameters={
                 'Location, plate': str(location),
                 'Location, location': '<auto-select>',
@@ -179,7 +192,7 @@ class BravoDriver(ABCToolDriver):
         """Add dispense task"""
         task = BravoTask(
             name='Bravo::secondary::Dispense',
-            task_type=2,
+            task_type=TASK_TYPE_BY_NAME['Dispense'],
             parameters={
                 'Location, plate': str(location),
                 'Location, location': '<auto-select>',
@@ -204,31 +217,42 @@ class BravoDriver(ABCToolDriver):
         )
         self.tasks.append(task)
     
-    def add_mix(self, location: int, volume: float, cycles: int = 3,
-                aspirate_distance: float = 2.0, dispense_distance: float = 2.0,
-                use_different_dispense_height: bool = False,
-                pre_aspirate: float = 0.0, blowout: float = 0.0,
-                liquid_class: str = '', pipette_technique: str = '') -> None:
+    def add_mix(self, 
+            location: int, 
+            volume: float, 
+            pre_aspirate_volume: float = 0.0, 
+            blowout_volume: float = 0.0,
+            liquid_class: str = '', 
+            cycles: int = 3,
+            retract_distance_per_microliter: float = 0.0,
+            pipette_technique: str = '',
+            aspirate_distance: float = 2.0, 
+            dispense_distance: float = 2.0,
+            perform_tip_touch: bool = False,
+            tip_touch_side: str = 'None', 
+            tip_touch_retract_distance: float = 0.0,
+            tip_touch_horizontal_offset: float = 0.0
+                ) -> None:
         """Add mix task with dual height support"""
         task = BravoTask(
             name='Bravo::secondary::Mix [Dual Height]',
-            task_type=4096,
+            task_type=TASK_TYPE_BY_NAME['Mix'],
             parameters={
                 'Location, plate': str(location),
                 'Location, location': '<auto-select>',
                 'Volume': str(volume),
-                'Pre-aspirate volume': str(pre_aspirate),
-                'Blowout volume': str(blowout),
+                'Pre-aspirate volume': str(pre_aspirate_volume),
+                'Blowout volume': str(blowout_volume),
                 'Liquid class': liquid_class,
                 'Mix cycles': str(cycles),
-                'Dynamic tip extension': '0',
+                'Dynamic tip extension': str(retract_distance_per_microliter),
                 'Aspirate distance': str(aspirate_distance),
-                'Dispense at different distance': '1' if use_different_dispense_height else '0',
+                'Dispense at different distance': '1' if aspirate_distance != dispense_distance else '0',
                 'Dispense distance': str(dispense_distance),
-                'Perform tip touch': '0',
-                'Which sides to use for tip touch': 'None',
-                'Tip touch retract distance': '0',
-                'Tip touch horizontal offset': '0',
+                'Perform tip touch': '1' if perform_tip_touch else '0',
+                'Which sides to use for tip touch': tip_touch_side,
+                'Tip touch retract distance': str(tip_touch_retract_distance),
+                'Tip touch horizontal offset': str(tip_touch_horizontal_offset),
                 'Well selection': self._get_well_selection_xml(),
                 'Pipette technique': pipette_technique,
                 'Task description': f'Mix {volume}µL x{cycles} at location {location} (Bravo)',
@@ -244,16 +268,16 @@ class BravoDriver(ABCToolDriver):
         """Add axis initialization/homing task
         
         Args:
-            axis: Axis to initialize - 'X', 'Y', 'Z', 'W', 'XYZ', or specific combinations
+            axis: Axis to initialize - 'X', 'Y', 'Z', 'W', 'G', 'Zg
             force_home: Initialize even if already homed
         """
-        valid_axes = ['X', 'Y', 'Z', 'W', 'XY', 'XZ', 'YZ', 'XYZ']
+        valid_axes = ['X', 'Y', 'Z', 'W', 'G', 'Zg']
         if axis.upper() not in valid_axes:
             raise ValueError(f"Invalid axis '{axis}'. Must be one of {valid_axes}")
         
         task = BravoTask(
             name='Bravo::secondary::Initialize axis',
-            task_type=1024,
+            task_type=TASK_TYPE_BY_NAME['Initialize axis'],
             parameters={
                 'Axis': axis.upper(),
                 'Initialize even if already homed': '1' if force_home else '0',
@@ -261,7 +285,7 @@ class BravoDriver(ABCToolDriver):
                 'Use default task description': '1'
             },
             description=f'Initialize {axis} axis',
-            estimated_time=15.0 if 'XYZ' in axis.upper() else 5.0,
+            estimated_time=15.0 if 'Z' in axis.upper() else 5.0,
             pipette_head=self._get_default_pipette_head()
         )
         self.tasks.append(task)
@@ -571,24 +595,72 @@ class BravoVWorksDriver:
                                    empty_tips, blowout, liquid_class, pipette_technique)
         logging.info(f"✓ Dispense {volume}µL to location {location} queued")
     
-    def mix(self, location: int, volume: float, cycles: int = 3,
-            aspirate_distance: float = 2.0, dispense_distance: float = 2.0,
-            use_different_dispense_height: bool = False,
-            pre_aspirate: float = 0.0, blowout: float = 0.0,
-            liquid_class: str = '', pipette_technique: str = '') -> None:
-        """Mix at location with dual height support"""
+    def mix(self, 
+            location: int, 
+            volume: float, 
+            pre_aspirate_volume: float = 0.0, 
+            blowout_volume: float = 0.0,
+            liquid_class: str = '', 
+            cycles: int = 3,
+            retract_distance_per_microliter: float = 0.0,
+            pipette_technique: str = '',
+            aspirate_distance: float = 2.0, 
+            dispense_distance: float = 2.0,
+            perform_tip_touch: bool = False,
+            tip_touch_side: str = 'None', 
+            tip_touch_retract_distance: float = 0.0,
+            tip_touch_horizontal_offset: float = 0.0) -> None:
+        """
+        Mix at location with dual height support
+        
+        Args:
+            location: Location to mix at
+            volume: Volume to mix (0 - 250 µL)
+            pre_aspirate_volume: Volume to pre-aspirate (µL)
+            blowout_volume: Volume to blowout after mixing (µL)
+            liquid_class: Liquid class name
+            cycles: Number of mix cycles
+            retract_distance_per_microliter:  Amount the Z axis retracts per µL aspirated (mm/µL)
+            pipette_technique: Pipette technique name
+            aspirate_distance: Distance from bottom for aspirate (mm)
+            dispense_distance: Distance from bottom for dispense (mm)
+            perform_tip_touch: Whether to perform tip touch after mix
+            tip_touch_side: Side(s) to perform tip touch on ('None', 'South', 'West', 'North', 'Front', 'East', 'South/North', 'West/East', 'West/East/South/North')
+            tip_touch_retract_distance: Distance to retract after tip touch (mm) (-20 to 50)
+            tip_touch_horizontal_offset: Horizontal offset for tip touch (mm) (-9 to 5)
+       """
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
-        self.builder.add_mix(location, volume, cycles, aspirate_distance, 
-                            dispense_distance, use_different_dispense_height,
-                            pre_aspirate, blowout, liquid_class, pipette_technique)
+        
+        assert volume > 0 and volume <= 250, "Volume must be between 0 and 250 µL"
+        assert cycles > 0, "Cycles must be greater than 0"
+        assert tip_touch_side in ['None', 'South', 'West', 'North', 'Front', 'East', 
+                                  'South/North', 'West/East', 'West/East/South/North'], "Invalid tip touch side"
+        assert tip_touch_retract_distance >= -20 and tip_touch_retract_distance <= 50, "Tip touch retract distance must be non-negative"
+        assert tip_touch_horizontal_offset >= -9 and tip_touch_horizontal_offset <= 5, "Tip touch horizontal offset must be non-negative"
+        assert tip_touch_horizontal_offset >= 0, "Tip touch horizontal offset must be non-negative" 
+
+        self.builder.add_mix(location, 
+                                volume, 
+                                pre_aspirate_volume, 
+                                blowout_volume, 
+                                liquid_class, 
+                                cycles, 
+                                retract_distance_per_microliter,
+                                pipette_technique, 
+                                aspirate_distance, 
+                                dispense_distance,
+                                perform_tip_touch,
+                                tip_touch_side,
+                                tip_touch_retract_distance,
+                                tip_touch_horizontal_offset)
         logging.info(f"✓ Mix {volume}µL x{cycles} at location {location} queued")
     
-    def home(self, axis: str = 'XYZ', force: bool = True) -> None:
+    def home(self, axis: str = 'X', force: bool = True) -> None:
         """Home/initialize axes
         
         Args:
-            axis: Axis to home - 'X', 'Y', 'Z', 'W', 'XYZ', or combinations like 'XY'
+            axis: Axis to home - 'X', 'Y', 'Z', 'W', 'G', 'Zg'
             force: Initialize even if already homed
         """
         if not self._initialized:
