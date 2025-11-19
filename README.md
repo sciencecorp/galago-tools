@@ -18,7 +18,13 @@ Galago Tools is a comprehensive Python library for lab automation that provides 
 
 ## 📦 Installation
 
-### Fork the Repository (For Contributors)
+### Option 1: Fork the Repository (For Contributors)
+
+
+## 📋 Requirements
+
+- **Python**: 3.9
+- **Operating System**: Windows, macOS, Linux
 
 If you plan to contribute or customize Galago Tools, start by forking the repository:
 
@@ -37,28 +43,42 @@ If you plan to contribute or customize Galago Tools, start by forking the reposi
    git remote add upstream https://github.com/sciencecorp/galago-tools.git
 ```
 
-> **Note**: If you just want to use Galago Tools without making changes, use the standard installation below.
+4. **Install in dev mode and dev deps** 
+```bash 
+   pip install -e .
+   pip install -r requirements-dev.txt
+```
 
-### Standard Installation
+5. **Build proto files**
+```bash 
+bin/make proto
+```
+
+5. **Launch Galago Tools Manager** (The server used by [Galago Core](https://github.com/sciencecorp/galago-core))
+```bash 
+   galago 
+```
+
+## Option 2: Install via pip  directly. 
+
 ```bash
+#Install latest distribution
 pip install galago-tools
+
+#Launch tools manager
+galago 
 ```
 
-### Development Installation
+## Option3: Windows Installer 
 
-For development or the latest features:
-```bash
-# Clone the repository (or your fork)
-git clone https://github.com/sciencecorp/galago-tools.git
-cd galago-tools
+We also provide a Windows Installer that does all this for you. [Download Here](https://galago.bio/assets/installer/Galago%20Installer_x86.exe). A launch icon will automatically be created in the desktop. 
 
-# Install in development mode
-pip install -e .
-```
 
-### 32-bit Windows Environment
+## 32-bit Windows Environment
 
-Many legacy lab instruments require 32-bit Python on Windows. Set up a 32-bit environment using conda:
+Many legacy lab instruments require 32-bit Python on Windows. If you are doing local development (Option 1) and are using any of the Agilent tools you need to download python 32-bits or set up a 32-bit environment using conda:
+
+
 ```bash
 # Set environment variables for 32-bit
 set CONDA_FORCE_32BIT=1
@@ -72,15 +92,13 @@ conda activate galago-tools
 pip install galago-tools
 ```
 
-## 🔧 Quick Start
 
-### Starting the Tools Server Manager
-```bash 
-galago 
-```
-
-### Using the CLI
+## Using the CLI
 ```bash
+
+## Starting the tools server manager. 
+galago 
+
 # List available tools
 galago --list
 
@@ -91,38 +109,7 @@ galago-serve --port=50010 --tool=opentrons2
 galago --info opentrons2
 ```
 
-## 📋 Requirements
-
-- **Python**: 3.9
-- **Operating System**: Windows, macOS, Linux
-- **Dependencies**: Listed in `requirements.txt`
-
-## 🏗️ Development
-
-### Setting Up Development Environment
-```bash
-# Clone repository (or your fork)
-git clone https://github.com/sciencecorp/galago-tools.git
-cd galago-tools
-
-# Install galago in development mode
-pip install -e .
-pip install -r requirements-dev.txt
-
-# Generate protobuf interfaces (if needed)
-bin/make proto
-
-# Clear generated protobuf
-bin/make clean_proto
-
-# Run tools manager
-bin/make run 
-
-# or alternatively cli command 
-galago
-```
-
-### Building Distribution
+## Building Distribution
 
 Python distributions are automatically published via github workflows. See [RELEASE](RELEASE.md) for more information.
 
@@ -136,7 +123,7 @@ bin/make test
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-1. **Fork the repository** using the link above
+1. **[Fork Galago Tools →](https://github.com/sciencecorp/galago-tools/fork)**
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
