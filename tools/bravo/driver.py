@@ -74,8 +74,12 @@ class BravoDriver(ABCToolDriver):
         except Exception as e:
             logging.error(f"Error parsing device file: {e}")
     
-    def add_subprocess_task(self, labware_config: Dict[int, str]) -> None:
-        """Add subprocess initialization task with labware configuration"""
+    def add_subprocess_task(self, deck_configuration: Dict[int, str]) -> None:
+        """Add subprocess initialization task with labware configuration
+        
+        Args:
+            deck_configuration: Dictionary mapping position (1-9) to labware name
+        """
         params = {
             'Sub-process name': 'Bravo SubProcess 1',
             'Display confirmation': "Don't display"
@@ -83,7 +87,7 @@ class BravoDriver(ABCToolDriver):
         
         # Add labware configuration for positions 1-9
         for pos in range(1, 10):
-            params[str(pos)] = labware_config.get(pos, '<use default>')
+            params[str(pos)] = deck_configuration.get(pos, '<use default>')
         
         task = BravoTask(
             name='Bravo::SubProcess',
@@ -94,68 +98,112 @@ class BravoDriver(ABCToolDriver):
         )
         self.tasks.append(task)
     
-    def add_move_to_location(self, location: int) -> None:
-        """Add move to location task"""
+    def add_move_to_location(self, plate_location: int) -> None:
+        """Add move to location task
+        
+        Args:
+            plate_location: Location to move to
+        """
         task = BravoTask(
             name='Bravo::secondary::Move To Location',
             task_type=TASK_TYPE_BY_NAME['Move To Location'],
             parameters={
-                'Location': str(location),
-                'Task description': f'Move To Location {location} (Bravo)',
+                'Location': str(plate_location),
+                'Task description': f'Move To Location {plate_location} (Bravo)',
                 'Use default task description': '1'
             },
-            description=f'Move to location {location}',
+            description=f'Move to location {plate_location}',
             estimated_time=26.0,
             pipette_head=self._get_default_pipette_head()
         )
         self.tasks.append(task)
-    
-    def add_tips_on(self, location: int) -> None:
-        """Add tips on task"""
+
+    def add_tips_on(self, plate_location: int) -> None:
+        """Add tips on task
+        
+        Args:
+            plate_location: Location of tip box
+        """
         task = BravoTask(
             name='Bravo::secondary::Tips On',
             task_type=TASK_TYPE_BY_NAME['Tips On'],
             parameters={
-                'Location, plate': str(location),
+                'Location, plate': str(plate_location),
                 'Location, location': '<auto-select>',
                 'Allow automatic tracking of tip usage': '0',
                 'Well selection': self._get_well_selection_xml(),
-                'Task description': f'Tips On at {location} (Bravo)',
+                'Task description': f'Tips On at {plate_location} (Bravo)',
                 'Use default task description': '1'
             },
-            description=f'Pick up tips at location {location}',
+            description=f'Pick up tips at location {plate_location}',
             estimated_time=5.0,
             pipette_head=self._get_default_pipette_head()
         )
         self.tasks.append(task)
+
     
-    def add_tips_off(self, location: int, mark_used: bool = True) -> None:
-        """Add tips off task"""
+    def add_tips_off(self, plate_location: int, mark_used: bool = True) -> None:
+        """Add tips off task
+        
+        Args:
+            plate_location: Location of tip disposal
+            mark_used: Whether to mark tips as used (This is only relevant within the VWorks context, we can track tips outside of VWorks)
+        """
         task = BravoTask(
             name='Bravo::secondary::Tips Off',
             task_type=TASK_TYPE_BY_NAME['Tips Off'],
             parameters={
-                'Location, plate': str(location),
+                'Location, plate': str(plate_location),
                 'Location, location': '<auto-select>',
                 'Allow automatic tracking of tip usage': '0',
                 'Mark tips as used': '1' if mark_used else '0',
                 'Well selection': self._get_well_selection_xml(),
-                'Task description': f'Tips Off at {location} (Bravo)',
+                'Task description': f'Tips Off at {plate_location} (Bravo)',
                 'Use default task description': '1'
             },
-            description=f'Eject tips at location {location}',
+            description=f'Eject tips at location {plate_location}',
             estimated_time=5.0,
             pipette_head=self._get_default_pipette_head()
         )
         self.tasks.append(task)
     
-    def add_aspirate(self, location: int, volume: float, 
-                     distance_from_bottom: float = 2.0,
-                     pre_aspirate: float = 0.0,
-                     post_aspirate: float = 0.0,
-                     liquid_class: str = '',
-                     pipette_technique: str = '') -> None:
-        """Add aspirate task"""
+    def add_aspirate(self, 
+                    location: int, 
+                    volume: float,
+                    pre_aspirate_volume: float = 0.0,
+                    post_aspirate_volume: float = 0.0,
+                    liquid_class: str = '',
+                    distance_from_well_bottom: float = 2.0,
+                    retract_distance_per_microliter: float = 0.0,
+                    pipette_technique: str = '',
+                    perform_tip_touch: bool = False,
+                    tip_touch_side: str = 'None',
+                    tip_touch_retract_distance: float = 0.0,
+                    tip_touch_horizontal_offset: float = 0.0) -> None:
+        """Add aspirate task
+        
+        Args:
+            location: Location to aspirate from
+            volume: Volume to aspirate (µL)
+            pre_aspirate_volume: Volume to pre-aspirate (µL)
+            post_aspirate_volume: Volume to post-aspirate (µL)
+            liquid_class: Liquid class name
+            distance_from_well_bottom: Distance from well bottom (mm)
+            retract_distance_per_microliter: Amount the Z axis retracts per µL aspirated (mm/µL)
+            pipette_technique: Pipette technique name
+            perform_tip_touch: Whether to perform tip touch after aspirate
+            tip_touch_side: Side(s) to perform tip touch on
+            tip_touch_retract_distance: Distance to retract after tip touch (mm) (-20 to 50)
+            tip_touch_horizontal_offset: Horizontal offset for tip touch (mm) (-9 to 5)
+        """
+        assert volume > 0 and volume <= 250, "Volume must be between 0 and 250 µL"
+        assert distance_from_well_bottom >= 0, "Distance from well bottom must be non-negative"
+        assert retract_distance_per_microliter >= 0, "Retract distance per microliter must be non-negative"
+        assert tip_touch_side in ['None', 'South', 'West', 'North', 'Front', 'East', 
+                                'South/North', 'West/East', 'West/East/South/North'], "Invalid tip touch side"
+        assert tip_touch_retract_distance >= -20 and tip_touch_retract_distance <= 50, "Tip touch retract distance must be between -20 and 50 mm"
+        assert tip_touch_horizontal_offset >= -9 and tip_touch_horizontal_offset <= 5, "Tip touch horizontal offset must be between -9 and 5 mm"
+        
         task = BravoTask(
             name='Bravo::secondary::Aspirate',
             task_type=TASK_TYPE_BY_NAME['Aspirate'],
@@ -163,15 +211,15 @@ class BravoDriver(ABCToolDriver):
                 'Location, plate': str(location),
                 'Location, location': '<auto-select>',
                 'Volume': str(volume),
-                'Pre-aspirate volume': str(pre_aspirate),
-                'Post-aspirate volume': str(post_aspirate),
+                'Pre-aspirate volume': str(pre_aspirate_volume),
+                'Post-aspirate volume': str(post_aspirate_volume),
                 'Liquid class': liquid_class,
-                'Distance from well bottom': str(distance_from_bottom),
-                'Dynamic tip extension': '0',
-                'Perform tip touch': '0',
-                'Which sides to use for tip touch': 'None',
-                'Tip touch retract distance': '0',
-                'Tip touch horizontal offset': '0',
+                'Distance from well bottom': str(distance_from_well_bottom),
+                'Dynamic tip extension': str(retract_distance_per_microliter),
+                'Perform tip touch': '1' if perform_tip_touch else '0',
+                'Which sides to use for tip touch': tip_touch_side,
+                'Tip touch retract distance': str(tip_touch_retract_distance),
+                'Tip touch horizontal offset': str(tip_touch_horizontal_offset),
                 'Well selection': self._get_well_selection_xml(),
                 'Pipette technique': pipette_technique,
                 'Task description': f'Aspirate {volume}µL from {location} (Bravo)',
@@ -182,14 +230,45 @@ class BravoDriver(ABCToolDriver):
             pipette_head=self._get_default_pipette_head()
         )
         self.tasks.append(task)
-    
-    def add_dispense(self, location: int, volume: float,
-                     distance_from_bottom: float = 2.0,
-                     empty_tips: bool = False,
-                     blowout: float = 0.0,
-                     liquid_class: str = '',
-                     pipette_technique: str = '') -> None:
-        """Add dispense task"""
+
+
+    def add_dispense(self, 
+                    location: int,
+                    empty_tips: bool = False,
+                    volume: float = 0.0,
+                    blowout_volume: float = 0.0,
+                    liquid_class: str = '',
+                    distance_from_well_bottom: float = 2.0,
+                    retract_distance_per_microliter: float = 0.0,
+                    pipette_technique: str = '',
+                    perform_tip_touch: bool = False,
+                    tip_touch_side: str = 'None',
+                    tip_touch_retract_distance: float = 0.0,
+                    tip_touch_horizontal_offset: float = 0.0) -> None:
+        """Add dispense task
+        
+        Args:
+            location: Location to dispense to
+            empty_tips: Whether to empty tips completely
+            volume: Volume to dispense (µL)
+            blowout_volume: Volume to blowout after dispense (µL)
+            liquid_class: Liquid class name
+            distance_from_well_bottom: Distance from well bottom (mm)
+            retract_distance_per_microliter: Amount the Z axis retracts per µL dispensed (mm/µL)
+            pipette_technique: Pipette technique name
+            perform_tip_touch: Whether to perform tip touch after dispense
+            tip_touch_side: Side(s) to perform tip touch on
+            tip_touch_retract_distance: Distance to retract after tip touch (mm) (-20 to 50)
+            tip_touch_horizontal_offset: Horizontal offset for tip touch (mm) (-9 to 5)
+        """
+        assert volume >= 0 and volume <= 250, "Volume must be between 0 and 250 µL"
+        assert distance_from_well_bottom >= 0, "Distance from well bottom must be non-negative"
+        assert retract_distance_per_microliter >= 0, "Retract distance per microliter must be non-negative"
+        assert tip_touch_side in ['None', 'South', 'West', 'North', 'Front', 'East', 
+                                'South/North', 'West/East', 'West/East/South/North'], "Invalid tip touch side"
+        assert tip_touch_retract_distance >= -20 and tip_touch_retract_distance <= 50, "Tip touch retract distance must be between -20 and 50 mm"
+        assert tip_touch_horizontal_offset >= -9 and tip_touch_horizontal_offset <= 5, "Tip touch horizontal offset must be between -9 and 5 mm"
+        
         task = BravoTask(
             name='Bravo::secondary::Dispense',
             task_type=TASK_TYPE_BY_NAME['Dispense'],
@@ -198,14 +277,14 @@ class BravoDriver(ABCToolDriver):
                 'Location, location': '<auto-select>',
                 'Empty tips': '1' if empty_tips else '0',
                 'Volume': str(volume),
-                'Blowout volume': str(blowout),
+                'Blowout volume': str(blowout_volume),
                 'Liquid class': liquid_class,
-                'Distance from well bottom': str(distance_from_bottom),
-                'Dynamic tip retraction': '0',
-                'Perform tip touch': '0',
-                'Which sides to use for tip touch': 'None',
-                'Tip touch retract distance': '0',
-                'Tip touch horizontal offset': '0',
+                'Distance from well bottom': str(distance_from_well_bottom),
+                'Dynamic tip retraction': str(retract_distance_per_microliter),
+                'Perform tip touch': '1' if perform_tip_touch else '0',
+                'Which sides to use for tip touch': tip_touch_side,
+                'Tip touch retract distance': str(tip_touch_retract_distance),
+                'Tip touch horizontal offset': str(tip_touch_horizontal_offset),
                 'Well selection': self._get_well_selection_xml(),
                 'Pipette technique': pipette_technique,
                 'Task description': f'Dispense {volume}µL to {location} (Bravo)',
@@ -216,6 +295,7 @@ class BravoDriver(ABCToolDriver):
             pipette_head=self._get_default_pipette_head()
         )
         self.tasks.append(task)
+
     
     def add_mix(self, 
             location: int, 
@@ -543,57 +623,100 @@ class BravoVWorksDriver:
         
         logging.info(f"Bravo driver initialized with device file: {device_file}")
     
-    def initialize(self, labware_config: Optional[Dict[int, str]] = None) -> None:
-        """Initialize Bravo with optional labware configuration"""
-        if labware_config is None:
-            labware_config = {}
+    def move_to_location(self, plate_location: int) -> None:
+        """Move to specified location
         
-        self.builder.add_subprocess_task(labware_config)
-        self._initialized = True
-        logging.info("✓ Bravo initialization queued")
-    
-    def move_to_location(self, location: int) -> None:
-        """Move to specified location"""
+        Args:
+            plate_location: Location to move to
+        """
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
-        self.builder.add_move_to_location(location)
-        logging.info(f"✓ Move to location {location} queued")
-    
-    def tips_on(self, location: int) -> None:
-        """Pick up tips at location"""
+        self.builder.add_move_to_location(plate_location)
+        logging.info(f"✓ Move to location {plate_location} queued")
+
+    def tips_on(self, plate_location: int) -> None:
+        """Pick up tips at location
+        
+        Args:
+            plate_location: Location of tip box
+        """
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
-        self.builder.add_tips_on(location)
-        logging.info(f"✓ Tips on at location {location} queued")
-    
-    def tips_off(self, location: int, mark_used: bool = True) -> None:
-        """Eject tips at location"""
+        self.builder.add_tips_on(plate_location)
+        logging.info(f"✓ Tips on at location {plate_location} queued")
+
+    def tips_off(self, plate_location: int, mark_used: bool = True) -> None:
+        """Eject tips at location
+        
+        Args:
+            plate_location: Location of tip disposal
+            mark_used: Whether to mark tips as used
+        """
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
-        self.builder.add_tips_off(location, mark_used)
-        logging.info(f"✓ Tips off at location {location} queued")
-    
-    def aspirate(self, location: int, volume: float, 
-                 distance_from_bottom: float = 2.0,
-                 pre_aspirate: float = 0.0, post_aspirate: float = 0.0,
-                 liquid_class: str = '', pipette_technique: str = '') -> None:
+        self.builder.add_tips_off(plate_location, mark_used)
+        logging.info(f"✓ Tips off at location {plate_location} queued")
+
+    def aspirate(self, 
+                location: int, 
+                volume: float,
+                pre_aspirate_volume: float = 0.0,
+                post_aspirate_volume: float = 0.0,
+                liquid_class: str = '',
+                distance_from_well_bottom: float = 2.0,
+                retract_distance_per_microliter: float = 0.0,
+                pipette_technique: str = '',
+                perform_tip_touch: bool = False,
+                tip_touch_side: str = 'None',
+                tip_touch_retract_distance: float = 0.0,
+                tip_touch_horizontal_offset: float = 0.0) -> None:
         """Aspirate from location"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
-        self.builder.add_aspirate(location, volume, distance_from_bottom, 
-                                   pre_aspirate, post_aspirate, liquid_class, pipette_technique)
+        self.builder.add_aspirate(location, volume, pre_aspirate_volume, post_aspirate_volume,
+                                liquid_class, distance_from_well_bottom, 
+                                retract_distance_per_microliter, pipette_technique,
+                                perform_tip_touch, tip_touch_side, 
+                                tip_touch_retract_distance, tip_touch_horizontal_offset)
         logging.info(f"✓ Aspirate {volume}µL from location {location} queued")
-    
-    def dispense(self, location: int, volume: float, 
-                 distance_from_bottom: float = 2.0,
-                 empty_tips: bool = False, blowout: float = 0.0,
-                 liquid_class: str = '', pipette_technique: str = '') -> None:
+
+    def dispense(self, 
+                location: int,
+                empty_tips: bool = False,
+                volume: float = 0.0,
+                blowout_volume: float = 0.0,
+                liquid_class: str = '',
+                distance_from_well_bottom: float = 2.0,
+                retract_distance_per_microliter: float = 0.0,
+                pipette_technique: str = '',
+                perform_tip_touch: bool = False,
+                tip_touch_side: str = 'None',
+                tip_touch_retract_distance: float = 0.0,
+                tip_touch_horizontal_offset: float = 0.0) -> None:
         """Dispense to location"""
         if not self._initialized:
             raise RuntimeError("Bravo not initialized. Call initialize() first.")
-        self.builder.add_dispense(location, volume, distance_from_bottom,
-                                   empty_tips, blowout, liquid_class, pipette_technique)
+        self.builder.add_dispense(location, empty_tips, volume, blowout_volume,
+                                liquid_class, distance_from_well_bottom,
+                                retract_distance_per_microliter, pipette_technique,
+                                perform_tip_touch, tip_touch_side,
+                                tip_touch_retract_distance, tip_touch_horizontal_offset)
         logging.info(f"✓ Dispense {volume}µL to location {location} queued")
+
+
+
+    def initialize(self, deck_configuration: Optional[Dict[int, str]] = None) -> None:
+        """Initialize Bravo with deck configuration
+        
+        Args:
+            deck_configuration: Dictionary mapping position (1-9) to labware name
+        """
+        if deck_configuration is None:
+            deck_configuration = {}
+        
+        self.builder.add_subprocess_task(deck_configuration)
+        self._initialized = True
+        logging.info("✓ Bravo initialization queued")
     
     def mix(self, 
             location: int, 
@@ -732,8 +855,8 @@ if __name__ == "__main__":
     })
     bravo.move_to_location(2)
     bravo.tips_on(2)
-    bravo.aspirate(4, 50.0, distance_from_bottom=2.0)
-    bravo.dispense(4, 50.0, distance_from_bottom=2.0)
+    bravo.aspirate(4, 100.0, pre_aspirate_volume=10.0, distance_from_well_bottom=1.0)
+    bravo.dispense(4, volume=100.0, blowout_volume=10.0, distance_from_well_bottom=3.0)
     bravo.mix(4, 30.0, cycles=5, aspirate_distance=1.0, dispense_distance=3.0)
     bravo.tips_off(2)
     bravo.home('X')  # Can also do 'X', 'Y', 'Z', 'W' individually
