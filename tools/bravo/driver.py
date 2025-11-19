@@ -610,13 +610,10 @@ class BravoVWorksDriver:
     """High-level Bravo driver using VWorks protocols"""
     
     def __init__(self, device_file: str, vworks_driver:VWorksDriver, 
-                 profile: str = "Mol Bio Bravo",
-                 workspace_dir: str = r'C:\VWorks Workspace\Protocol Files') -> None:
+                 profile: str = "Mol Bio Bravo") -> None:
         self.device_file = device_file
         self.vworks = vworks_driver
         self.profile = profile
-        self.workspace_dir = Path(workspace_dir)
-        self.workspace_dir.mkdir(parents=True, exist_ok=True)
         
         self.builder = BravoDriver(device_file, profile)
         self._initialized = False
@@ -800,8 +797,11 @@ class BravoVWorksDriver:
         # Generate protocol XML
         xml_content = self.builder.build_xml()
         
+        # this file path
+        output_dir = Path('outputs')
+        output_dir.mkdir(parents=True, exist_ok=True)
         # Save to file
-        protocol_path = self.workspace_dir / f'bravo_protocol_{int(time.time())}.pro'
+        protocol_path = output_dir / f'bravo_protocol_{int(time.time())}.pro'
         
         try:
             # Write with UTF-8 to handle µ character
@@ -837,30 +837,71 @@ class BravoVWorksDriver:
 
 # Example usage
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s | %(levelname)s | %(message)s'
-    )
+    # Device configuration
+    device_file = r'bravo_molbio.dev'
 
-    device_file = r'C:\VWorks Workspace\Device Files\bravo_molbio.dev'
-    
     # Create driver
     vworks = VWorksDriver()
     bravo = BravoVWorksDriver(device_file, vworks)
-    
-    # Queue commands
+
+    # Initialize Bravo with deck configuration
     bravo.initialize({
+        1: '96 V11 LT250 Tip Box Standard',
         2: '96 V11 LT250 Tip Box Standard',
-        4: '96 Greiner 655101 PS Clr Rnd Well Flat Btm'
+        3: '96 V11 LT250 Tip Box Standard',
+        4: '96 Greiner 655101 PS Clr Rnd Well Flat Btm',  # Source plate 1
+        5: '96 Greiner 655101 PS Clr Rnd Well Flat Btm',  # Source plate 2
+        6: '96 Greiner 655101 PS Clr Rnd Well Flat Btm',  # Source plate 3
+        7: '96 Greiner 655101 PS Clr Rnd Well Flat Btm',  # Destination plate 1
+        8: '96 Greiner 655101 PS Clr Rnd Well Flat Btm',  # Destination plate 2
+        9: '96 Greiner 655101 PS Clr Rnd Well Flat Btm',  # Destination plate 3
     })
-    bravo.move_to_location(2)
-    bravo.tips_on(2)
-    bravo.aspirate(4, 100.0, pre_aspirate_volume=10.0, distance_from_well_bottom=1.0)
-    bravo.dispense(4, volume=100.0, blowout_volume=10.0, distance_from_well_bottom=3.0)
-    bravo.mix(4, 30.0, cycles=5, aspirate_distance=1.0, dispense_distance=3.0)
-    bravo.tips_off(2)
-    bravo.home('X')  # Can also do 'X', 'Y', 'Z', 'W' individually
-    
-    # Execute
-    bravo.execute()
+
+    # Define deck layout
+    tip_positions = [1, 2, 3]
+    source_positions = [4, 5, 6]
+    destination_positions = [7, 8, 9]
+
+    # Transfer parameters
+    transfer_volume = 50.0  # µL
+    aspirate_height = 2.0   # mm from bottom
+    dispense_height = 5.0   # mm from bottom
+
+    # Iterate through each column
+    for column_idx in range(3):
+        tip_loc = tip_positions[column_idx]
+        source_loc = source_positions[column_idx]
+        dest_loc = destination_positions[column_idx]
+        
+        logging.info(f"--- Processing Column {column_idx + 1} ---")
+        
+        # Pick up tips
+        bravo.tips_on(tip_loc)
+        
+        # Aspirate from source
+        bravo.aspirate(
+            location=source_loc,
+            volume=transfer_volume,
+            distance_from_well_bottom=aspirate_height
+        )
+        
+        # Dispense to destination
+        bravo.dispense(
+            location=dest_loc,
+            volume=transfer_volume,
+            distance_from_well_bottom=dispense_height
+        )
+        
+        # Eject tips
+        bravo.tips_off(tip_loc)
+
+    # Home the pipette head when done
+    bravo.home('X')
+
+    # Execute the protocol
+    bravo.execute(simulate=True, clear_after_execution=False)
+
+    # Close driver
     bravo.close()
+
+    logging.info("✓ Automated transfer complete!")
