@@ -3,12 +3,13 @@ from typing import Union, Any
 import logging
 import json
 from pathlib import Path
-import appdirs
+import appdirs # type: ignore
 
 APP_NAME = "galago"
 APP_AUTHOR = "sciencecorp"
 DATA_DIR = Path(appdirs.user_data_dir(APP_NAME, APP_AUTHOR))
 CONFIG_FILE = DATA_DIR / "api_config.json"
+logging.info(f"Config file path: {CONFIG_FILE}")
 
 class Db:
     _api_url = "http://localhost:8000/api"  # Default
@@ -19,8 +20,9 @@ class Db:
         try:
             if CONFIG_FILE.exists():
                 with open(CONFIG_FILE, 'r') as f:
-                    config = json.load(f)
-                    return config.get('api_url', cls._api_url)
+                    config: dict[str, Any] = json.load(f)
+                    url = config.get('api_url', cls._api_url)
+                    return str(url) if url else cls._api_url
         except Exception as e:
             logging.warning(f"Failed to read API config: {e}")
         return cls._api_url
