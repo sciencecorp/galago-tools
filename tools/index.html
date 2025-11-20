@@ -155,6 +155,37 @@
             flex-wrap: wrap;
         }
 
+        .api-url-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .api-url-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 0.9rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            transition: all 0.2s ease;
+        }
+
+        .api-url-input:focus {
+            outline: none;
+            border-color: rgba(79, 172, 254, 0.6);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .api-url-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
         .control-button {
             padding: 12px 24px;
             border: none;
@@ -182,6 +213,22 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
+        }
+
+        .control-button.api-button {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.3), rgba(0, 242, 254, 0.15));
+            border: 1px solid rgba(79, 172, 254, 0.4);
+            min-width: 120px;
+        }
+
+        .control-button.api-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.4), rgba(0, 242, 254, 0.2));
+            border: 1px solid rgba(79, 172, 254, 0.6);
+        }
+
+        .control-button.api-button.info {
+            min-width: 44px;
+            padding: 12px;
         }
 
         .control-button.reload {
@@ -599,6 +646,16 @@
                 max-width: 300px;
             }
 
+            .api-url-container {
+                flex-direction: column;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .api-url-input {
+                width: 100%;
+            }
+
             .logs-controls {
                 justify-content: center;
             }
@@ -629,6 +686,12 @@
         <!-- Tools Tab -->
         <div class="tab-content active" id="toolsTab">
             <div class="controls-bar">
+                <div class="api-url-container">
+                    <input type="text" id="apiUrlInput" class="api-url-input" placeholder="API URL (e.g., http://localhost:8000/api)">
+                    <button class="control-button api-button" onclick="updateApiUrl()" id="apiUrlBtn">
+                        Update
+                    </button>
+                </div>
                 <button class="control-button relaunch" onclick="relaunchAllTools()" id="relaunchBtn">
                     Relaunch Server
                 </button>
@@ -680,11 +743,22 @@
                 this.autoScroll = true;
                 this.autoUpdate = true;
                 this.init();
+                
+                // Request current API URL on startup
+                setTimeout(() => {
+                    this.getCurrentApiUrl();
+                }, 1000);
             }
 
             init() {
                 this.connect();
                 this.setupEventListeners();
+            }
+
+            getCurrentApiUrl() {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.sendMessage({ action: 'get_api_url' });
+                }
             }
 
             connect() {
@@ -748,7 +822,6 @@
 
             loadInitialLogs(logs) {
                 const container = document.getElementById('logsContent');
-                // For initial load, replace the placeholder content
                 container.innerHTML = logs.map(log => {
                     const logType = this.getLogType(log.content);
                     return `<div class="log-entry ${logType}"><span class="log-source">[${log.source}]</span>${log.content}</div>`;
@@ -771,8 +844,10 @@
                         this.updateLogs(message.data);
                         break;
                     case 'initial_logs':
-                        // For initial logs, we can replace the content
                         this.loadInitialLogs(message.data);
+                        break;
+                    case 'api_url':
+                        this.handleApiUrl(message);
                         break;
                     default:
                         console.log('Unknown message type:', message.type);
@@ -786,6 +861,18 @@
                     this.showNotification(response.message, true);
                 }
                 this.addLog(response.message, response.success ? 'info' : 'error');
+            }
+
+            handleApiUrl(message) {
+                const input = document.getElementById('apiUrlInput');
+                if (input && message.url) {
+                    input.value = message.url;
+                    input.placeholder = message.url;
+                }
+                if (message.success) {
+                    this.showNotification(`Current API URL: ${message.url}`);
+                    this.addLog(`Current API URL: ${message.url}`, 'info');
+                }
             }
 
             updateToolsDisplay(tools) {
@@ -822,7 +909,6 @@
                 const card = document.querySelector(`[data-tool="${toolName}"]`);
                 const statusText = card.querySelector('.tool-status');
                 
-                // Disable button and show loading state
                 button.disabled = true;
                 button.innerHTML = '⏳';
                 button.className = 'status-indicator loading';
@@ -840,7 +926,6 @@
                     port: port
                 });
 
-                // Re-enable button after a delay (will be updated by status response)
                 setTimeout(() => {
                     button.disabled = false;
                 }, 2000);
@@ -888,35 +973,33 @@
                 setTimeout(() => {
                     button.disabled = false;
                     button.innerHTML = 'Relaunch Server';
-                }, 10000); // Longer timeout for relaunch
+                }, 10000);
             }
 
-                updateLogs(logs) {
-                    const container = document.getElementById('logsContent');
-                    const maxLogs = 1000; // Maximum number of logs to keep in memory
-                    
-                    // Append new logs instead of replacing all content
-                    logs.forEach(log => {
-                        const logType = this.getLogType(log.content);
-                        const logEntry = document.createElement('div');
-                        logEntry.className = `log-entry ${logType}`;
-                        logEntry.innerHTML = `<span class="log-source">[${log.source}]</span>${log.content}`;
-                        container.appendChild(logEntry);
-                    });
-                    
-                    // Remove old logs if we exceed the maximum
-                    const allLogs = container.querySelectorAll('.log-entry');
-                    if (allLogs.length > maxLogs) {
-                        const excessLogs = allLogs.length - maxLogs;
-                        for (let i = 0; i < excessLogs; i++) {
-                            container.removeChild(allLogs[i]);
-                        }
-                    }
-                    
-                    if (this.autoScroll) {
-                        container.scrollTop = container.scrollHeight;
+            updateLogs(logs) {
+                const container = document.getElementById('logsContent');
+                const maxLogs = 1000;
+                
+                logs.forEach(log => {
+                    const logType = this.getLogType(log.content);
+                    const logEntry = document.createElement('div');
+                    logEntry.className = `log-entry ${logType}`;
+                    logEntry.innerHTML = `<span class="log-source">[${log.source}]</span>${log.content}`;
+                    container.appendChild(logEntry);
+                });
+                
+                const allLogs = container.querySelectorAll('.log-entry');
+                if (allLogs.length > maxLogs) {
+                    const excessLogs = allLogs.length - maxLogs;
+                    for (let i = 0; i < excessLogs; i++) {
+                        container.removeChild(allLogs[i]);
                     }
                 }
+                
+                if (this.autoScroll) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
 
             getLogType(content) {
                 if (content.includes('ERROR')) return 'error';
@@ -961,14 +1044,12 @@
             }
 
             setupEventListeners() {
-                // Handle page unload
                 window.addEventListener('beforeunload', () => {
                     if (this.ws) {
                         this.ws.close();
                     }
                 });
 
-                // Handle visibility change to reconnect when page becomes visible
                 document.addEventListener('visibilitychange', () => {
                     if (!document.hidden && (!this.ws || this.ws.readyState !== WebSocket.OPEN)) {
                         this.connect();
@@ -979,20 +1060,15 @@
 
         // Tab switching functionality
         function switchTab(tabName) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Remove active class from all buttons
             document.querySelectorAll('.tab-button').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // Show selected tab
             document.getElementById(tabName + 'Tab').classList.add('active');
-            
-            // Add active class to clicked button
             event.target.classList.add('active');
         }
 
@@ -1007,7 +1083,7 @@
                 if (tool.status === 'stopped') {
                     setTimeout(() => {
                         toolsManager.toggleTool(tool.name, tool.type, tool.port, 'stopped');
-                    }, Math.random() * 1000); // Stagger starts
+                    }, Math.random() * 1000);
                 }
             });
             toolsManager.addLog('Starting all stopped tools...', 'info');
@@ -1018,7 +1094,7 @@
                 if (tool.status === 'running') {
                     setTimeout(() => {
                         toolsManager.toggleTool(tool.name, tool.type, tool.port, 'running');
-                    }, Math.random() * 1000); // Stagger stops
+                    }, Math.random() * 1000);
                 }
             });
             toolsManager.addLog('Stopping all running tools...', 'info');
@@ -1038,6 +1114,41 @@
 
         function toggleAutoScroll() {
             toolsManager.toggleAutoScroll();
+        }
+
+        function updateApiUrl() {
+            const input = document.getElementById('apiUrlInput');
+            const newUrl = input.value.trim();
+            
+            if (!newUrl) {
+                toolsManager.showNotification('Please enter an API URL', true);
+                return;
+            }
+            
+            if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+                toolsManager.showNotification('API URL must start with http:// or https://', true);
+                return;
+            }
+
+            const button = document.getElementById('apiUrlBtn');
+            button.disabled = true;
+            button.innerHTML = '<div class="loading-spinner"></div>Updating...';
+            
+            toolsManager.sendMessage({
+                action: 'set_api_url',
+                url: newUrl
+            });
+            
+            toolsManager.addLog(`Updating API URL to: ${newUrl}`, 'info');
+            
+            setTimeout(() => {
+                button.disabled = false;
+                button.innerHTML = 'Update API';
+            }, 3000);
+        }
+
+        function showCurrentApiUrl() {
+            toolsManager.getCurrentApiUrl();
         }
 
         // Initialize the application

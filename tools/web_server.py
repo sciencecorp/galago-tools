@@ -20,7 +20,8 @@ import appdirs #type: ignore
 import requests
 from packaging import version
 from tools import __version__ as galago_version
-
+import argparse
+from tools.toolbox.db import Db
 
 # Add the project root to Python path
 ROOT_DIR = Path(__file__).parent
@@ -480,6 +481,7 @@ async def get_recent_logs(lines: int = 100) -> List[Dict[str, Any]]:
     logs.sort(key=lambda x: x['timestamp'], reverse=True)
     return logs[:lines]
 
+
 async def immediate_log_check(tool_name: str, delay: float = 0.1) -> None:
     """Immediately check for logs from a newly started tool"""
     if not log_folder:
@@ -607,7 +609,40 @@ async def handle_websocket_message(websocket: Any, data: Dict[str, Any]) -> None
                 "success": success,
                 "message": f"{'All tools relaunched successfully' if success else 'Failed to relaunch tools'}"
             }
-                
+        elif action == "get_api_url":
+            current_url = Db.get_api_url()
+            response = {
+                "type": "api_url",
+                "url": current_url,
+                "success": True
+            }
+        elif action == "set_api_url":
+            new_url = data.get('url', '').strip()
+            if not new_url:
+                response = {
+                    "type": "response",
+                    "success": False,
+                    "message": "API URL cannot be empty"
+                }
+            else:
+                # Validate URL format
+                if not new_url.startswith(('http://', 'https://')):
+                    response = {
+                        "type": "response",
+                        "success": False,
+                        "message": "API URL must start with http:// or https://"
+                    }
+                else:
+                    success = Db.set_api_url(new_url)
+                    response = {
+                        "type": "response",
+                        "success": success,
+                        "message": f"{'API URL updated successfully to: ' + new_url if success else 'Failed to update API URL'}"
+                    }
+                    if success:
+                        # Reload config with new API URL
+                        await reload_config()
+
         elif action == "get_logs":
             logs = await get_recent_logs()
             response = {
@@ -817,13 +852,37 @@ def cleanup_processes() -> None:
     for tool_name in list(server_processes.keys()):
         kill_process_by_name(tool_name)
 
+def parse_arguments() -> argparse.Namespace:
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='Galago Web Server')
+    parser.add_argument(
+        '--api-url',
+        type=str,
+        default=None,
+        help='API URL for the Galago backend (default: http://localhost:8000/api)'
+    )
+
+    return parser.parse_args()
+
 async def main() -> None:
     """Main function"""
     global config, log_folder, last_tool_status
     
     try:
+        # Parse command line arguments
+        args = parse_arguments()
+        
         # Setup logging first
         log_folder = setup_logging()
+        
+        # Set API URL if provided via command line
+        if args.api_url:
+            logger.info(f"Setting API URL from command line: {args.api_url}")
+            Db.set_api_url(args.api_url)
+        else:
+            # Load from config or use default
+            current_url = Db.get_api_url()
+            logger.info(f"Using API URL: {current_url}")
         
         # Check for updates
         update_available, current_version, latest_version = check_for_updates()
