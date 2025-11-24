@@ -9,7 +9,6 @@ import time
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from tools.vworks.driver import VWorksDriver
-from pathlib import Path
 from tools.base_server import ABCToolDriver
 
 TASK_TYPE_BY_NAME = {
@@ -848,7 +847,7 @@ class BravoVWorksDriver:
             logging.info(f"Runset file created: {runset_path}")
             
             if simulate or os.name != 'nt':
-                logging.info(f"✓ Protocol simulation mode - not executing. See files at:")
+                logging.info("✓ Protocol simulation mode - not executing. See files at:")
                 logging.info(f"  Protocol: {protocol_path}")
                 logging.info(f"  Runset: {runset_path}")
                 return
