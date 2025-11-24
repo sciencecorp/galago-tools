@@ -38,13 +38,11 @@ class BravoDriver(ABCToolDriver):
     """Builds VWorks protocol XML dynamically"""
     
     def __init__(self, 
-                device_file: str, 
-                profile: str = "Mol Bio Bravo"
+                device_file: str
                 ) -> None:
         self.device_file = device_file
-        self.profile = profile
         self.tasks: List[BravoTask] = []
-        self.device_name = "Agilent Bravo - 1"
+        self.device_name = ""
         self.location_name = "Default Location"
         
         # Parse device file to get device info
@@ -54,7 +52,7 @@ class BravoDriver(ABCToolDriver):
         """Extract device and location info from device file"""
         if not os.path.exists(self.device_file):
             logging.warning(f"Device file not found: {self.device_file}")
-            return
+            raise FileNotFoundError(f"Device file not found: {self.device_file}")
         
         try:
             import xml.etree.ElementTree as ET
@@ -66,10 +64,6 @@ class BravoDriver(ABCToolDriver):
             if device is not None:
                 self.device_name = device.get('Name', self.device_name)
                 logging.info(f"Found Bravo device: {self.device_name}")
-                # Get first location
-                location = device.find(".//Location")
-                if location is not None:
-                    self.location_name = location.get('Name', self.location_name)
                     
         except Exception as e:
             logging.error(f"Error parsing device file: {e}")
@@ -609,13 +603,10 @@ class BravoDriver(ABCToolDriver):
 class BravoVWorksDriver:
     """High-level Bravo driver using VWorks protocols"""
     
-    def __init__(self, device_file: str, vworks_driver:VWorksDriver, 
-                 profile: str = "Mol Bio Bravo") -> None:
+    def __init__(self, device_file: str) -> None:
         self.device_file = device_file
-        self.vworks = vworks_driver
-        self.profile = profile
-        
-        self.builder = BravoDriver(device_file, profile)
+        self.vworks = VWorksDriver()
+        self.builder = BravoDriver(device_file)
         self._initialized = False
         
         logging.info(f"Bravo driver initialized with device file: {device_file}")
@@ -837,12 +828,12 @@ class BravoVWorksDriver:
 
 # Example usage
 if __name__ == "__main__":
+
     # Device configuration
-    device_file = r'bravo_molbio.dev'
+    device_file = r'/Users/silvioo/Documents/git_projects/galago-tools/tools/bravo/bravo_molbio.dev'
 
     # Create driver
-    vworks = VWorksDriver()
-    bravo = BravoVWorksDriver(device_file, vworks)
+    bravo = BravoVWorksDriver(device_file)
 
     # Initialize Bravo with deck configuration
     bravo.initialize({
@@ -867,39 +858,39 @@ if __name__ == "__main__":
     aspirate_height = 2.0   # mm from bottom
     dispense_height = 5.0   # mm from bottom
 
-    # Iterate through each column
-    for column_idx in range(3):
-        tip_loc = tip_positions[column_idx]
-        source_loc = source_positions[column_idx]
-        dest_loc = destination_positions[column_idx]
+    # # Iterate through each column
+    # for column_idx in range(3):
+    #     tip_loc = tip_positions[column_idx]
+    #     source_loc = source_positions[column_idx]
+    #     dest_loc = destination_positions[column_idx]
         
-        logging.info(f"--- Processing Column {column_idx + 1} ---")
+    #     logging.info(f"--- Processing Column {column_idx + 1} ---")
         
-        # Pick up tips
-        bravo.tips_on(tip_loc)
+    #     # Pick up tips
+    #     bravo.tips_on(tip_loc)
         
-        # Aspirate from source
-        bravo.aspirate(
-            location=source_loc,
-            volume=transfer_volume,
-            distance_from_well_bottom=aspirate_height
-        )
+    #     # Aspirate from source
+    #     bravo.aspirate(
+    #         location=source_loc,
+    #         volume=transfer_volume,
+    #         distance_from_well_bottom=aspirate_height
+    #     )
         
-        # Dispense to destination
-        bravo.dispense(
-            location=dest_loc,
-            volume=transfer_volume,
-            distance_from_well_bottom=dispense_height
-        )
+    #     # Dispense to destination
+    #     bravo.dispense(
+    #         location=dest_loc,
+    #         volume=transfer_volume,
+    #         distance_from_well_bottom=dispense_height
+    #     )
         
-        # Eject tips
-        bravo.tips_off(tip_loc)
+    #     # Eject tips
+    #     bravo.tips_off(tip_loc)
 
-    # Home the pipette head when done
-    bravo.home('X')
+    # # Home the pipette head when done
+    # bravo.home('X')
 
-    # Execute the protocol
-    bravo.execute(simulate=True, clear_after_execution=False)
+    # # Execute the protocol
+    # bravo.execute(simulate=True, clear_after_execution=False)
 
     # Close driver
     bravo.close()

@@ -5,8 +5,8 @@ Direct Bravo hardware control using Python.
 *** For future reference *** 
 Turns out that Agilent only made some of the Bravo SDK available via ActiveX, despite an activex object available. 
 (python -m win32com.client.makepy)
-methods like home, tips on, tips off DO NOT work properly via COM. And SetLabwareAtLocation
-fails with no obvious exception. Others such as Initialize and MoveTolocation work fine. There are some workarounds to some of these such as setting labware,
+methods like home, tips on, tips off DO NOT work properly via COM. SetLabwareAtLocation
+fails with no obvious exception. We suspect vworks models (labware,deck and state, etc) are required for proper functionality. Others such as Initialize and MoveTolocation work fine. There are some workarounds to some of these such as setting labware,
 via diagnostics dialog, but this requires manual intervention. The same behavior is observed 
 when using an ActiveX Object via a vworks protocol which sort of proves this is not necessarily a dependency issue. 
 
