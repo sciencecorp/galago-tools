@@ -38,35 +38,49 @@ class BravoDriver(ABCToolDriver):
     """Builds VWorks protocol XML dynamically"""
     
     def __init__(self, 
-                device_file: str
+                device_file: str, 
+                device_name: Optional[str] = None
                 ) -> None:
         self.device_file = device_file
         self.tasks: List[BravoTask] = []
-        self.device_name = ""
+        self.device_name = device_name if device_name else "Agilent Bravo - 1"
         self.location_name = "Default Location"
         
         # Parse device file to get device info
         self._parse_device_file()
     
     def _parse_device_file(self) -> None:
-        """Extract device and location info from device file"""
-        if not os.path.exists(self.device_file):
-            logging.warning(f"Device file not found: {self.device_file}")
-            raise FileNotFoundError(f"Device file not found: {self.device_file}")
-        
-        try:
-            import xml.etree.ElementTree as ET
-            tree = ET.parse(self.device_file)
-            root = tree.getroot()
+            """Extract device and location info from device file"""
+            if not os.path.exists(self.device_file):
+                logging.warning(f"Device file not found: {self.device_file}")
+                raise FileNotFoundError(f"Device file not found: {self.device_file}")
             
-            # Find device
-            device = root.find(".//Device[@Object_Type='Bravo']")
-            if device is not None:
-                self.device_name = device.get('Name', self.device_name)
-                logging.info(f"Found Bravo device: {self.device_name}")
-                    
-        except Exception as e:
-            logging.error(f"Error parsing device file: {e}")
+            try:
+                import xml.etree.ElementTree as ET
+                tree = ET.parse(self.device_file)
+                root = tree.getroot()
+                
+                # Find all Bravo devices
+                devices = root.findall(".//Device[@Object_Type='Bravo']")
+                
+                if len(devices) == 0:
+                    logging.warning("No Bravo devices found in device file")
+                elif len(devices) > 1:
+                    device_names = [d.get('Name', 'Unknown') for d in devices]
+                    logging.warning(
+                        f"Multiple Bravo devices found in configuration file: {', '.join(device_names)}. "
+                        f"Defaulting to first device: '{device_names[0]}'. "
+                        f"Specify device_name if you would like to use a different device."
+                    )
+                    self.device_name = devices[0].get('Name', self.device_name)
+                    logging.info(f"Using Bravo device: {self.device_name}")
+                else:
+                    # Single device found
+                    self.device_name = devices[0].get('Name', self.device_name)
+                    logging.info(f"Found Bravo device: {self.device_name}")
+                        
+            except Exception as e:
+                logging.error(f"Error parsing device file: {e}")
     
     def add_subprocess_task(self, deck_configuration: Dict[int, str]) -> None:
         """Add subprocess initialization task with labware configuration
@@ -787,12 +801,15 @@ class BravoVWorksDriver:
         
         # Generate protocol XML
         xml_content = self.builder.build_xml()
+        output_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "outputs"
+        )
         
-        # this file path
-        output_dir = Path('outputs')
-        output_dir.mkdir(parents=True, exist_ok=True)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         # Save to file
-        protocol_path = output_dir / f'bravo_protocol_{int(time.time())}.pro'
+        protocol_path = os.path.join(output_dir, f'bravo_protocol_{int(time.time())}.pro')
         
         try:
             # Write with UTF-8 to handle µ character
@@ -815,9 +832,9 @@ class BravoVWorksDriver:
         finally:
             # Clean up
             try:
-                if protocol_path.exists() and clear_after_execution:
-                    time.sleep(0.5)
-                    protocol_path.unlink()
+                if os.path.exists(protocol_path):
+                    os.remove(protocol_path)
+                    logging.info("✓ Protocol file deleted after execution")
             except Exception as e:
                 logging.warning(f"Could not delete protocol file: {e}")
     
@@ -830,7 +847,7 @@ class BravoVWorksDriver:
 if __name__ == "__main__":
 
     # Device configuration
-    device_file = r'/Users/silvioo/Documents/git_projects/galago-tools/tools/bravo/bravo_molbio.dev'
+    device_file = r'/Users/silvioo/Documents/git_projects/galago-tools/tools/bravo/multiple_devices.dev'
 
     # Create driver
     bravo = BravoVWorksDriver(device_file)
@@ -887,10 +904,10 @@ if __name__ == "__main__":
     #     bravo.tips_off(tip_loc)
 
     # # Home the pipette head when done
-    # bravo.home('X')
+    bravo.home('X')
 
     # # Execute the protocol
-    # bravo.execute(simulate=True, clear_after_execution=False)
+    bravo.execute(simulate=True, clear_after_execution=False)
 
     # Close driver
     bravo.close()

@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='ASCII' ?>
+<Velocity11 file='Device_Data' md5sum='6c4bdf3768f8d72b03e615d43af0b921' version='2.0' >
+	<Devices >
+		<Device DevicePreviousStatus='1' Disable='0' Name='Agilent Bravo - 1' Object_Type='Bravo' >
+			<Locations >
+				<Location DeadlockAvoidance='1' Door='' Name='1' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='1' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='2' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='2' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='3' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='3' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='4' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='4' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='5' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='5' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='6' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='6' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='7' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='7' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='8' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='8' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='9' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='9' Robot='Agilent Bravo - 1' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Default Location' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+			</Locations>
+			<Parameters >
+				<Parameter Name='Profile' Value='Mol Bio Bravo' />
+			</Parameters>
+		</Device>
+		<Device DevicePreviousStatus='0' Disable='0' Name='Agilent Bravo - 2' Object_Type='Bravo' >
+			<Locations >
+				<Location DeadlockAvoidance='1' Door='' Name='1' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='1' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='2' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='2' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='3' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='3' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='4' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='4' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='5' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='5' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='6' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='6' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='7' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='7' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='8' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='8' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='9' Stack_Height='100' >
+					<Teachpoints >
+						<Teachpoint Name='9' Robot='Agilent Bravo - 2' />
+					</Teachpoints>
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Default Location' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+			</Locations>
+			<Parameters >
+				<Parameter Name='Profile' Value='Mol Bio Bravo' />
+			</Parameters>
+		</Device>
+		<Device DevicePreviousStatus='0' Disable='0' Name='Agilent PlateLoc - 1' Object_Type='PlateLoc' >
+			<Locations >
+				<Location DeadlockAvoidance='1' Door='' Name='Default Location' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Stage' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+			</Locations>
+			<Parameters >
+				<Parameter Name='Profile' Value='' />
+			</Parameters>
+		</Device>
+		<Device DevicePreviousStatus='0' Disable='0' Name='Agilent Vertical Pipetting Station - 1' Object_Type='Vertical Pipetting Station' >
+			<Locations >
+				<Location DeadlockAvoidance='1' Door='' Name='Default Location' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 1' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 2' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 3' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 4' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 5' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 6' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 7' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+				<Location DeadlockAvoidance='1' Door='' Name='Shelf 8' >
+					<Allowed_Labware_Classes >
+						<Allowed_Labware_Class Name='Uses Standard Platepad' />
+					</Allowed_Labware_Classes>
+				</Location>
+			</Locations>
+			<Parameters >
+				<Parameter Name='Profile' Value='' />
+			</Parameters>
+		</Device>
+	</Devices>
+</Velocity11>
