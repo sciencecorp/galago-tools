@@ -46,8 +46,8 @@ class BravoDriver(ABCToolDriver):
         self.device_name = device_name if device_name else "Agilent Bravo - 1"
         self.location_name = "Default Location"
         
-        # Parse device file to get device info
-        self._parse_device_file()
+        if not device_name or device_name == "":
+            self._parse_device_file()
     
     def _parse_device_file(self) -> None:
             """Extract device and location info from device file"""
@@ -808,35 +808,71 @@ class BravoVWorksDriver:
         
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        # Save to file
+        
+        # Save protocol file
         protocol_path = os.path.join(output_dir, f'bravo_protocol_{int(time.time())}.pro')
+        runset_path = os.path.join(output_dir, f'bravo_runset_{int(time.time())}.rst')
         
         try:
-            # Write with UTF-8 to handle µ character
+            # Write protocol with UTF-8 to handle µ character
             with open(protocol_path, 'w', encoding='utf-8') as f:
                 f.write(xml_content)
             
-            logging.info(f"Executing protocol with {len(self.builder.tasks)} tasks: {protocol_path}")
+            logging.info(f"Protocol created with {len(self.builder.tasks)} tasks: {protocol_path}")
+            
+            # Load runset template
+            template_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "templates"
+            )
+            template_path = os.path.join(template_dir, "runset.rst")
+            
+            if not os.path.exists(template_path):
+                raise FileNotFoundError(f"Runset template not found: {template_path}")
+            
+            # Read and modify runset template
+            import xml.etree.ElementTree as ET
+            tree = ET.parse(template_path)
+            root = tree.getroot()
+            
+            # Find and update the Protocol Name parameter
+            protocol_param = root.find(".//Parameter[@Name='Protocol Name']")
+            if protocol_param is not None:
+                protocol_param.set('Value', protocol_path)
+                logging.info(f"Updated runset template with protocol path: {protocol_path}")
+            else:
+                raise RuntimeError("Could not find 'Protocol Name' parameter in runset template")
+            
+            # Write modified runset
+            tree.write(runset_path, encoding='ASCII', xml_declaration=True)
+            logging.info(f"Runset file created: {runset_path}")
             
             if simulate or os.name != 'nt':
-                logging.info(f"✓ Protocol simulation mode - not executing. See protocol at {protocol_path}")
+                logging.info(f"✓ Protocol simulation mode - not executing. See files at:")
+                logging.info(f"  Protocol: {protocol_path}")
+                logging.info(f"  Runset: {runset_path}")
                 return
             
-            # Run via VWorks driver
-            self.vworks.run_protocol(str(protocol_path))
+            # Run via VWorks driver using runset
+            self.vworks.run_runset(str(runset_path))
             
             # Clear tasks after successful execution
-            self.builder.tasks = []
+            if clear_after_execution:
+                self.builder.tasks = []
             logging.info("✓ Protocol executed successfully")
             
         finally:
-            # Clean up
-            try:
-                if os.path.exists(protocol_path):
-                    os.remove(protocol_path)
-                    logging.info("✓ Protocol file deleted after execution")
-            except Exception as e:
-                logging.warning(f"Could not delete protocol file: {e}")
+            # Clean up files
+            if not simulate and os.name == 'nt':
+                try:
+                    if os.path.exists(protocol_path):
+                        os.remove(protocol_path)
+                        logging.info("✓ Protocol file deleted after execution")
+                    if os.path.exists(runset_path):
+                        os.remove(runset_path)
+                        logging.info("✓ Runset file deleted after execution")
+                except Exception as e:
+                    logging.warning(f"Could not delete temporary files: {e}")
     
     def close(self) -> None:
         """Close driver"""
