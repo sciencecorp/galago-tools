@@ -4,7 +4,7 @@ grpcio-tools==1.70.0
 grpcio-reflection==1.70.0
 pydantic==2.8.2
 pythonnet==3.0.1
-requests==2.29.0 
+requests==2.29.0
 grpc-stubs==1.24.12.1
 networkx==3.1
 networkx-stubs==0.0.1
@@ -24,3 +24,4 @@ appdirs==1.4.4
 pyhamilton==1.491.17
 PyLabRobot
 websockets==15.0.1
+colorama==0.4.6
