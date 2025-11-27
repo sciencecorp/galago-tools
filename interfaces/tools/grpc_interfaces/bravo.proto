@@ -19,13 +19,13 @@ message Command {
 
   message Home{
     string axis =1;
-    bool force_initialize = 2; 
+    bool force_initialize = 2;
   }
 
   message Mix {
     int32 location = 1;
     float volume = 2;
-    float pre_aspirate_volume = 3;  
+    float pre_aspirate_volume = 3;
     float blow_out_volume = 4;
     string liquid_class = 5;
     int32 cycles = 6;
@@ -36,13 +36,13 @@ message Command {
     bool perform_tip_touch = 11;
     string tip_touch_side =12;
     float tip_touch_retract_distance = 13;
-    float tip_touch_horizonal_offset = 14; 
+    float tip_touch_horizonal_offset = 14;
   }
 
   message Aspirate {
     int32 location = 1;
     float volume = 2;
-    float pre_aspirate_volume = 3;  
+    float pre_aspirate_volume = 3;
     float post_aspirate_volume = 4;
     string liquid_class = 5;
     float distance_from_well_bottom = 6;
@@ -51,14 +51,14 @@ message Command {
     bool perform_tip_touch = 9;
     string tip_touch_side =10;
     float tip_touch_retract_distance = 11;
-    float tip_touch_horizonal_offset = 12; 
+    float tip_touch_horizonal_offset = 12;
   }
 
   message Dispense {
     int32 location = 1;
     bool empty_tips = 2;
     float volume = 3;
-    float blow_out_volume = 4;  
+    float blow_out_volume = 4;
     string liquid_class = 6;
     float distance_from_well_bottom = 7;
     float retract_distance_per_microliter = 8;
@@ -66,7 +66,7 @@ message Command {
     bool perform_tip_touch = 10;
     string tip_touch_side =11;
     float tip_touch_retract_distance = 12;
-    float tip_touch_horizonal_offset = 13; 
+    float tip_touch_horizonal_offset = 13;
   }
 
   message TipsOn {
@@ -84,7 +84,15 @@ message Command {
   message ShowDiagnostics {}
 
   message ConfigureDeck {
-    google.protobuf.Struct deck_configuration = 2;
+    optional string location_1  = 1;
+    optional string location_2 = 2;
+    optional string location_3 = 3;
+    optional string location_4 = 4;
+    optional string location_5 = 5;
+    optional string location_6 = 6;
+    optional string location_7 = 7;
+    optional string location_8 = 8;
+    optional string location_9 = 9;
   }
 }
 
