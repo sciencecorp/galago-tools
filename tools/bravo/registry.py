@@ -11,6 +11,16 @@ if TYPE_CHECKING:
 elif os.name == "nt":
     import winreg
 
+HEAD_TYPES_BY_ID = {
+    0: "96ST, 70 µL Series III",
+    1: "384ST, 70 µL Series III",
+    3: "96LT, 200 µL Series III",
+    11: "96ST, 70 µL Series II",
+    12: "384ST, 70 µL Series II",
+    13: "96LT, 200 µL Series II",
+
+}
+
 
 @dataclass
 class AxisProperties:
@@ -161,27 +171,36 @@ class BravoRegistry:
         except Exception as e:
             logger.error(f"Error getting profile info: {e}")
             return {}
-
-
+    
+    def get_head_type(self) -> Optional[str]:
+        """
+        Get the Head Type property from the profile
+        
+        Returns:
+            Head Type value or None if not found
+        """
+        profile_data = self.get_profile_info()
+        head_type_id = profile_data.get('Head type')
+        logging.debug(f"Head Type ID from registry: {head_type_id}")
+        head_type = HEAD_TYPES_BY_ID.get(head_type_id)
+        
+        if head_type:
+            logger.info(f"Head Type for '{self.profile_name}': {head_type}")
+        else:
+            logger.warning(f"Head Type not found for '{self.profile_name}'")
+        
+        return head_type
 # Example usage
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     
     # Create registry reader
     bravo_reg = BravoRegistry("Mol Bio Bravo")
-    
-    # List available profiles
-    profiles = bravo_reg.list_available_profiles()
-    print(f"\nAvailable profiles: {profiles}")
-    
-    # Fetch single axis
-    y_props = bravo_reg.fetch_axis_properties('Y')
-    if y_props:
-        print("\nY-axis properties:")
-        print(f"  Homing offset: {y_props.homing_offset}")
-        print(f"  Homing acceleration: {y_props.homing_acceleration}")
-        print(f"  Homing velocity: {y_props.homing_velocity}")
-    
-    # Fetch all axes
-    all_axes = bravo_reg.fetch_all_axes()
-    print(f"\nAll axes: {all_axes.keys()}")
+
+    # # Get all profile attributes
+    all_attributes = bravo_reg.get_profile_info()
+    print(all_attributes)  # Dictionary with all registry values
+
+    # # Get Head Type specifically
+    head_type = bravo_reg.get_head_type()
+    print(f"Head Type: {head_type}")
