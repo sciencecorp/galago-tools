@@ -42,6 +42,12 @@ hiddenimports = [
     'concurrent.futures',
     # Tool-specific imports
     'pydantic',
+    'appdirs',
+    'serial',
+    'serial.tools',
+    'serial.tools.list_ports',
+    'serial.tools.list_ports_posix',
+    'serial.tools.list_ports_common',
     # Local modules
     'tools',
     'tools.hamilton',
@@ -49,6 +55,10 @@ hiddenimports = [
     'tools.hamilton.driver',
     'tools.base_server',
     'tools.grpc_interfaces',
+    'tools.grpc_interfaces.tool_base_pb2',
+    'tools.grpc_interfaces.tool_base_pb2_grpc',
+    'tools.grpc_interfaces.tool_driver_pb2',
+    'tools.grpc_interfaces.tool_driver_pb2_grpc',
 ]
 
 a = Analysis(

@@ -1,7 +1,8 @@
 asyncio==4.0.0
-grpcio==1.70.0
-grpcio-tools==1.70.0
-grpcio-reflection==1.70.0
+grpcio>=1.76.0
+grpcio-tools>=1.76.0
+grpcio-reflection>=1.76.0
+protobuf>=6.31.0
 pydantic==2.8.2
 pythonnet==3.0.1
 requests==2.29.0

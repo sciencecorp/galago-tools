@@ -5,11 +5,11 @@
 pyinstaller>=6.0.0
 
 # gRPC dependencies (required by all tools)
-# IMPORTANT: Pin protobuf to 5.x to match grpcio-tools output
-grpcio>=1.60.0,<2.0.0
-grpcio-tools>=1.60.0,<2.0.0
-grpcio-reflection>=1.60.0,<2.0.0
-protobuf>=5.26.0,<6.0.0
+# Use protobuf>=6.31.0
+grpcio>=1.71.2
+grpcio-tools>=1.71.2
+grpcio-reflection>=1.71.2
+protobuf>=6.31.0
 
 # Common dependencies
 pydantic>=2.0.0

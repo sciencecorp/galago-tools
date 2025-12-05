@@ -93,8 +93,8 @@ fi
 echo -e "${YELLOW}Generating gRPC interfaces...${NC}"
 cd "$PROJECT_ROOT"
 
-# Install grpcio-tools with pinned protobuf to ensure version compatibility
-$PYTHON -m pip install "grpcio-tools>=1.60.0,<2.0.0" "protobuf>=5.26.0,<6.0.0" --quiet 2>/dev/null || true
+# Install grpcio-tools with protobuf 6.x for version compatibility
+$PYTHON -m pip install "grpcio-tools>=1.71.2" "protobuf>=6.31.1,<7.0.0" --quiet 2>/dev/null || true
 
 # Clear old generated files to avoid version conflicts
 rm -f tools/grpc_interfaces/*.py tools/grpc_interfaces/*.pyi 2>/dev/null || true
@@ -144,9 +144,9 @@ for tool in $TOOLS; do
     echo -e "${YELLOW}Building $tool...${NC}"
     echo "----------------------------------------"
     
-    cd "$tool_dir"
-    
     # Create virtual environment if not skipping
+    # NOTE: We create venv from project root to avoid shadowing issues
+    # (e.g., tools/toolbox/logging.py shadows Python's logging module)
     if [ "$SKIP_VENV" = false ]; then
         venv_path="$tool_dir/venv"
         
@@ -157,17 +157,23 @@ for tool in $TOOLS; do
         
         if [ ! -d "$venv_path" ]; then
             echo "  Creating virtual environment..."
+            # Create venv from project root to avoid local module shadowing
+            cd "$PROJECT_ROOT"
             $PYTHON -m venv "$venv_path"
         fi
         
         # Activate venv
         source "$venv_path/bin/activate"
-        
-        # Install dependencies
+    fi
+    
+    cd "$tool_dir"
+    
+    # Install dependencies (only if using venv)
+    if [ "$SKIP_VENV" = false ]; then
         echo "  Installing dependencies..."
         pip install --quiet --upgrade pip
-        # Pin protobuf to 5.x to avoid version mismatch with generated code
-        pip install --quiet pyinstaller "grpcio>=1.60.0,<2.0.0" "grpcio-reflection>=1.60.0,<2.0.0" "protobuf>=5.26.0,<6.0.0" pydantic
+        # Use protobuf 6.x to match generated code
+        pip install --quiet pyinstaller "grpcio>=1.71.2" "grpcio-reflection>=1.71.2" "protobuf>=6.31.1,<7.0.0" pydantic
         
         # Install tool-specific dependencies
         if [ -f "$tool_dir/requirements.txt" ]; then
