@@ -1,0 +1,30 @@
+# Requirements for building Electron-compatible tool executables
+# Install these in your build environment before running PyInstaller
+
+# Core build tool
+pyinstaller>=6.0.0
+
+# gRPC dependencies (required by all tools)
+# IMPORTANT: Pin protobuf to 5.x to match grpcio-tools output
+grpcio>=1.60.0,<2.0.0
+grpcio-tools>=1.60.0,<2.0.0
+grpcio-reflection>=1.60.0,<2.0.0
+protobuf>=5.26.0,<6.0.0
+
+# Common dependencies
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Serial communication (for alps3000, bioshake, dataman70, liconic, xpeel)
+pyserial>=3.5
+
+# HTTP client (for opentrons2)
+requests>=2.29.0
+
+# Windows-specific dependencies (install on Windows only)
+# pywin32>=305  # For bravo, vprep, spectramax (COM automation)
+# pythonnet>=3.0.0  # For hig_centrifuge, plateloc, vcode (DLL interop)
+
+# Note: Some tools have additional dependencies in their specific
+# requirements.txt files within tools/<tool_name>/
+

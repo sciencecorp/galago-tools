@@ -1,0 +1,262 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Configuration for galago-tools Electron desktop integration",
+  "tools": [
+    {
+      "name": "alps3000",
+      "displayName": "ALPS 3000 Sealer",
+      "binaryName": "alps3000",
+      "description": "ALPS 3000 plate sealer driver",
+      "defaultPort": 50051,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "sealer"
+    },
+    {
+      "name": "bioshake",
+      "displayName": "BioShake Shaker",
+      "binaryName": "bioshake",
+      "description": "BioShake temperature-controlled shaker driver",
+      "defaultPort": 50052,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "shaker"
+    },
+    {
+      "name": "bravo",
+      "displayName": "Agilent Bravo",
+      "binaryName": "bravo",
+      "description": "Agilent Bravo liquid handler (VWorks) driver",
+      "defaultPort": 50053,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "liquid_handler"
+    },
+    {
+      "name": "cytation",
+      "displayName": "BioTek Cytation",
+      "binaryName": "cytation",
+      "description": "BioTek Cytation plate reader driver",
+      "defaultPort": 50054,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "reader"
+    },
+    {
+      "name": "dataman70",
+      "displayName": "DataMan 70 Barcode Reader",
+      "binaryName": "dataman70",
+      "description": "Cognex DataMan 70 barcode reader driver",
+      "defaultPort": 50055,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "barcode"
+    },
+    {
+      "name": "hamilton",
+      "displayName": "Hamilton STAR",
+      "binaryName": "hamilton",
+      "description": "Hamilton STAR liquid handler driver",
+      "defaultPort": 50056,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "liquid_handler"
+    },
+    {
+      "name": "hig_centrifuge",
+      "displayName": "HiG Centrifuge",
+      "binaryName": "hig_centrifuge",
+      "description": "HiG high-speed centrifuge driver",
+      "defaultPort": 50057,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "centrifuge"
+    },
+    {
+      "name": "liconic",
+      "displayName": "Liconic STX Incubator",
+      "binaryName": "liconic",
+      "description": "Liconic STX incubator driver",
+      "defaultPort": 50058,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "incubator"
+    },
+    {
+      "name": "microserve",
+      "displayName": "MicroServe Hotel",
+      "binaryName": "microserve",
+      "description": "MicroServe plate hotel driver",
+      "defaultPort": 50059,
+      "managed": true,
+      "is32bit": false,
+      "platform": ["windows", "linux", "darwin"],
+      "category": "storage"
+    },
+    {
+      "name": "opentrons2",
+      "displayName": "Opentrons OT-2",
+      "binaryName": "opentrons2",
+      "description": "Opentrons OT-2 liquid handler driver",
+      "defaultPort": 50060,
+      "managed": true,
+      "is32bit": false,
+      "platform": ["windows", "linux", "darwin"],
+      "category": "liquid_handler"
+    },
+    {
+      "name": "pf400",
+      "displayName": "Precise PF400 Robot",
+      "binaryName": "pf400",
+      "description": "Precise Automation PF400 robotic arm driver",
+      "defaultPort": 50061,
+      "managed": true,
+      "is32bit": false,
+      "platform": ["windows", "linux", "darwin"],
+      "category": "robot"
+    },
+    {
+      "name": "plateloc",
+      "displayName": "Agilent PlateLoc",
+      "binaryName": "plateloc",
+      "description": "Agilent PlateLoc plate sealer driver",
+      "defaultPort": 50062,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "sealer"
+    },
+    {
+      "name": "plr",
+      "displayName": "PyLabRobot",
+      "binaryName": "plr",
+      "description": "PyLabRobot universal driver",
+      "defaultPort": 50063,
+      "managed": true,
+      "is32bit": false,
+      "platform": ["windows", "linux", "darwin"],
+      "category": "utility"
+    },
+    {
+      "name": "pyhamilton",
+      "displayName": "PyHamilton",
+      "binaryName": "pyhamilton",
+      "description": "PyHamilton scripting interface driver",
+      "defaultPort": 50064,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "liquid_handler"
+    },
+    {
+      "name": "spectramax",
+      "displayName": "SpectraMax Reader",
+      "binaryName": "spectramax",
+      "description": "Molecular Devices SpectraMax plate reader driver",
+      "defaultPort": 50065,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "reader"
+    },
+    {
+      "name": "toolbox",
+      "displayName": "ToolBox Utility",
+      "binaryName": "toolbox",
+      "description": "Utility service for scripts and alerts",
+      "defaultPort": 50066,
+      "managed": true,
+      "is32bit": false,
+      "platform": ["windows", "linux", "darwin"],
+      "category": "utility"
+    },
+    {
+      "name": "vcode",
+      "displayName": "VCode Labeler",
+      "binaryName": "vcode",
+      "description": "Computype VCode plate labeler driver",
+      "defaultPort": 50067,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "labeler"
+    },
+    {
+      "name": "vprep",
+      "displayName": "Agilent VPrep",
+      "binaryName": "vprep",
+      "description": "Agilent VPrep sample prep (VWorks) driver",
+      "defaultPort": 50068,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "liquid_handler"
+    },
+    {
+      "name": "xpeel",
+      "displayName": "XPeel De-sealer",
+      "binaryName": "xpeel",
+      "description": "Brooks XPeel plate de-sealer driver",
+      "defaultPort": 50069,
+      "managed": true,
+      "is32bit": true,
+      "platform": ["windows"],
+      "category": "sealer"
+    }
+  ],
+  "categories": {
+    "liquid_handler": {
+      "displayName": "Liquid Handlers",
+      "icon": "pipette"
+    },
+    "robot": {
+      "displayName": "Robotic Arms",
+      "icon": "robot"
+    },
+    "reader": {
+      "displayName": "Plate Readers",
+      "icon": "eye"
+    },
+    "sealer": {
+      "displayName": "Sealers/De-sealers",
+      "icon": "package"
+    },
+    "shaker": {
+      "displayName": "Shakers/Mixers",
+      "icon": "refresh"
+    },
+    "incubator": {
+      "displayName": "Incubators",
+      "icon": "thermometer"
+    },
+    "centrifuge": {
+      "displayName": "Centrifuges",
+      "icon": "rotate-cw"
+    },
+    "storage": {
+      "displayName": "Storage/Hotels",
+      "icon": "layers"
+    },
+    "barcode": {
+      "displayName": "Barcode Readers",
+      "icon": "barcode"
+    },
+    "labeler": {
+      "displayName": "Labelers",
+      "icon": "tag"
+    },
+    "utility": {
+      "displayName": "Utilities",
+      "icon": "settings"
+    }
+  }
+}
+

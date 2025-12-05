@@ -38,3 +38,12 @@ app_config.json
 build/*
 dist/*
 .eggs/*
+
+# PyInstaller build artifacts
+tools/*/build/
+tools/*/dist/
+tools/*/venv/
+tools/*/venv32/
+
+# Generated gRPC interfaces (regenerated during build)
+tools/grpc_interfaces/__init__.py
