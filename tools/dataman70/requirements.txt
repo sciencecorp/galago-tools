@@ -1,0 +1,4 @@
+pyserial>=3.5
+appdirs>=1.4.4
+requests>=2.29.0
+

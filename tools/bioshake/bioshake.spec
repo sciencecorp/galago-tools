@@ -13,8 +13,12 @@ BUILD COMMAND:
 
 import os
 import sys
+from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
+
+# Collect all pyserial files
+serial_datas, serial_binaries, serial_hiddenimports = collect_all('serial')
 
 # Get the project root directory
 spec_dir = os.path.dirname(os.path.abspath(SPEC))
@@ -65,11 +69,11 @@ hiddenimports = [
 a = Analysis(
     ['entry_point.py'],
     pathex=[project_root],
-    binaries=[],
+    binaries=serial_binaries,
     datas=[
         (os.path.join(project_root, 'tools', 'grpc_interfaces'), 'tools/grpc_interfaces'),
-    ],
-    hiddenimports=hiddenimports,
+    ] + serial_datas,
+    hiddenimports=hiddenimports + serial_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
