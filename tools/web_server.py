@@ -449,6 +449,11 @@ async def start_tool(tool_name: str, tool_type: str, port: int) -> bool:
         return False
 
 
+async def start_toolbox() -> bool:
+    """Start the toolbox server"""
+    return await start_tool("Tool Box", "toolbox", 1010)
+
+
 async def stop_tool(tool_name: str) -> bool:
     """Stop a tool process with proper cleanup"""
     try:
@@ -937,6 +942,10 @@ async def main() -> None:
         asyncio.create_task(monitor_log_files())
         asyncio.create_task(monitor_tool_processes())
 
+        logger.info("Starting Tool Box automatically...")
+        toolbox_started = await start_toolbox()
+        if toolbox_started:
+            logger.info("Tool Box started successfully")
         # open_browser(browser_url, delay=2.0)
         # Wait for server to close
         await server.wait_closed()
