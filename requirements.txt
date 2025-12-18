@@ -1,4 +1,4 @@
-grpcio==1.70.0
+grpcio==1.76.0
 grpcio-tools==1.70.0
 grpcio-reflection==1.70.0
 pydantic==2.8.2
@@ -16,4 +16,3 @@ appdirs==1.4.4
 websockets==15.0.1
 colorama==0.4.6
 pyhamilton==1.491.17
-psutil==7.0.0
