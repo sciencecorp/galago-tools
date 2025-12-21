@@ -42,7 +42,11 @@ LOG_TIME = int(time.time())
 LOCAL_IP = get_local_ip()
 
 
-init(autoreset=True)
+# Force color output if FORCE_COLOR is set (for windows c# launcher)
+if os.environ.get("FORCE_COLOR") == "1":
+    init(autoreset=True, strip=False, convert=False)
+else:
+    init(autoreset=True)
 
 
 def setup_logging() -> Path:
