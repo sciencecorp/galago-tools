@@ -1,0 +1,54 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.minihub;
+
+message Command {
+  oneof command {
+    Abort abort = 1;
+    Close close = 2;
+    DisableMotor disable_motor = 3;
+    EnableMotor enable_motor = 4;
+    Jog jog = 5;
+    RotateToCassette rotate_to_cassette = 6;
+    RotateToDegree rotate_to_degree = 7;
+    RotateToHomePosition rotate_to_home_position = 8;
+    SetSpeed set_speed = 9;
+    ShowDiagsDialog show_diagnostics = 10;
+    TeachHome teach_home = 11;
+  }
+
+  message Abort {}
+
+  message Close {}
+
+  message DisableMotor {}
+
+  message EnableMotor {}
+
+  message Jog {
+    float degree = 1;
+    bool clockwise = 2;
+  }
+
+  message RotateToCassette {
+    int32 cassette_index = 1;
+  }
+
+  message RotateToDegree {
+    float degree = 1;
+  }
+
+  message RotateToHomePosition {}
+
+  message SetSpeed {
+    int32 speed = 1;
+  }
+
+  message ShowDiagsDialog {}
+
+  message TeachHome {}
+}
+
+message Config {
+  string profile = 1;
+}
