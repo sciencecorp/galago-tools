@@ -7,7 +7,7 @@ requests==2.29.0
 python-dotenv==1.0.0
 packaging==25.0
 msl-loadlib==0.10.0
-pywin32==304; platform_system == "Windows"
+pywin32==311; platform_system == "Windows"
 pyserial==3.5
 cython==3.0.11
 pillow==11.0.0
