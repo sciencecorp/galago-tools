@@ -9,7 +9,7 @@ runs:
     - name: Use Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.9.12
+        python-version: 3.11.9
     - name: Install dependencies
       run: ./bin/make dev_deps && ./bin/make deps
       shell: bash

@@ -2,7 +2,7 @@ name: Auto-Create Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   create-release:
@@ -12,15 +12,15 @@ jobs:
     permissions:
       contents: write
       actions: write
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-      
+          python-version: "3.11"
+
       - name: Extract version
         id: extract_version
         run: |
@@ -28,7 +28,7 @@ jobs:
           VERSION=$(grep -oP "__version__ = ['\"]([^'\"]+)" tools/version.py | cut -d'=' -f2 | tr -d '"' | tr -d "'" | tr -d " ")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -37,10 +37,10 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-      
+
       - name: Trigger Publish Workflow
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: Publish Python Package
           token: ${{ github.token }}
-          inputs: '{"test_mode": false, "use_test_pypi": false}' 
+          inputs: '{"test_mode": false, "use_test_pypi": false}'

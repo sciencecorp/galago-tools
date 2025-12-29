@@ -2,12 +2,11 @@ grpcio==1.76.0
 grpcio-tools==1.70.0
 grpcio-reflection==1.70.0
 pydantic==2.8.2
-pythonnet==3.0.1
 requests==2.29.0
 python-dotenv==1.0.0
 packaging==25.0
 msl-loadlib==0.10.0
-pywin32==304; platform_system == "Windows"
+pywin32==311; platform_system == "Windows"
 pyserial==3.5
 cython==3.0.11
 pillow==11.0.0
