@@ -14,17 +14,17 @@ on:
   workflow_dispatch:
     inputs:
       test_mode:
-        description: 'Run in test mode (no actual PyPI publish)'
+        description: "Run in test mode (no actual PyPI publish)"
         required: true
         default: false
         type: boolean
       use_test_pypi:
-        description: 'Publish to Test PyPI instead of production PyPI'
+        description: "Publish to Test PyPI instead of production PyPI"
         required: true
         default: false
         type: boolean
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -37,8 +37,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-      
+          python-version: "3.11"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -46,10 +46,10 @@ jobs:
           pip install build setuptools wheel
           # Pin twine to 6.0.1 to avoid 'license-file' metadata validation error: https://github.com/pypa/twine/issues/1216
           pip install twine==6.0.1
-      
+
       - name: Build package
         run: python -m build
-      
+
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
@@ -63,14 +63,14 @@ jobs:
     if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.test_mode && !inputs.use_test_pypi) }}
     permissions:
       id-token: write
-    
+
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
-          
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -84,14 +84,14 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.use_test_pypi }}
     permissions:
       id-token: write
-    
+
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
-          
+
       - name: Publish to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -104,14 +104,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.test_mode && !inputs.use_test_pypi) || github.event_name == 'pull_request' }}
-    
+
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
-          
+
       - name: Check package (no publish)
         run: |
           echo "TESTING ONLY - Package would be published to PyPI"
