@@ -1,4 +1,4 @@
-grpcio==1.76.0
+grpcio==1.70.0
 grpcio-tools==1.70.0
 grpcio-reflection==1.70.0
 pydantic==2.8.2
