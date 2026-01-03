@@ -96,7 +96,14 @@ class Db:
                 response = requests.get(f"{api_url}/health", timeout=5)
                 logging.info(f"Response status code: {response.status_code}")
                 if response.status_code == 200:
-                    return True
-            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                    try:
+                        data = response.json()
+                        if data.get("status") == "ok":
+                            return True
+                    except json.JSONDecodeError as e:
+                        logging.error(f"Invalid JSON response: {e}")
+                        continue
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                logging.warning(f"Connection attempt {i + 1} failed: {e}")
                 continue
         return False
