@@ -642,6 +642,8 @@ async def handle_websocket_message(websocket: Any, data: Dict[str, Any]) -> None
 
         elif action == "relaunch_all":
             success = await relaunch_all_tools()
+            await start_toolbox()
+
             response = {
                 "type": "response",
                 "success": success,
