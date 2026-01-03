@@ -3,7 +3,7 @@
 PROTOC_GEN_TS_PATH=".\\controller\\node_modules\\.bin\\protoc-gen-ts_proto"
 PROTO_SRC="./interfaces"
 WORKING_BRANCH=$(git symbolic-ref --short HEAD)
-ENV_NAME="galago" 
+ENV_NAME="galago"
 
 build_env() {
     echo "Creating conda environment '$ENV_NAME'..."
@@ -12,13 +12,13 @@ build_env() {
 }
 
 run() {
-  echo "Launching Tools" 
-  python -m tools.launch_tools "$@"
+  echo "Launching Tools"
+  python -m tools.web_server "$@"
 }
 
 run_debug() {
-  echo "Launching Tools in Debug Mode" 
-  python -m tools.launch_tools --debug
+  echo "Launching Tools in Debug Mode"
+  python -m tools.web_server --debug
 }
 
 dev_deps() {
@@ -34,7 +34,7 @@ deps() {
     python -m pip install -r $req --no-cache-dir || echo "Failed to install $req" >&2 || true
   done
   echo "Python Dependencies Installed"
-} 
+}
 
 test() {
   echo "Running Python Tests"
@@ -72,7 +72,7 @@ clean_proto() {
 }
 
 run(){
-  echo "Launching Tools" 
+  echo "Launching Tools"
   python -m tools.web_server
 }
 

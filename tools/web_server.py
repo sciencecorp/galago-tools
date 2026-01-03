@@ -42,7 +42,11 @@ LOG_TIME = int(time.time())
 LOCAL_IP = get_local_ip()
 
 
-init(autoreset=True)
+# Force color output if FORCE_COLOR is set (for windows c# launcher)
+if os.environ.get("FORCE_COLOR") == "1":
+    init(autoreset=True, strip=False, convert=False)
+else:
+    init(autoreset=True)
 
 
 def setup_logging() -> Path:
@@ -125,11 +129,10 @@ def display_startup_message(
 
     # Detect if we can safely use emojis
     try:
-        # Test if stdout can handle emojis
-        sys.stdout.write("\U0001f680")
-        sys.stdout.flush()
+        # Test if stdout can handle emojis WITHOUT displaying
+        "\U0001f680".encode(sys.stdout.encoding or "utf-8")
         use_emojis = True
-    except (UnicodeEncodeError, UnicodeDecodeError):
+    except (UnicodeEncodeError, UnicodeDecodeError, AttributeError):
         use_emojis = False
 
     # Choose symbols based on encoding support
@@ -448,6 +451,11 @@ async def start_tool(tool_name: str, tool_type: str, port: int) -> bool:
     except Exception as e:
         logger.error(f"Failed to start {tool_name}: {e}")
         return False
+
+
+async def start_toolbox() -> bool:
+    """Start the toolbox server"""
+    return await start_tool("Tool Box", "toolbox", 1010)
 
 
 async def stop_tool(tool_name: str) -> bool:
@@ -938,6 +946,10 @@ async def main() -> None:
         asyncio.create_task(monitor_log_files())
         asyncio.create_task(monitor_tool_processes())
 
+        logger.info("Starting Tool Box automatically...")
+        toolbox_started = await start_toolbox()
+        if toolbox_started:
+            logger.info("Tool Box started successfully")
         # open_browser(browser_url, delay=2.0)
         # Wait for server to close
         await server.wait_closed()
