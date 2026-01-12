@@ -896,7 +896,7 @@ def parse_arguments() -> argparse.Namespace:
         "--api-url",
         type=str,
         default=None,
-        help="API URL for the Galago backend (default: http://localhost:8000/api)",
+        help="API URL for the Galago backend (default: http://localhost:3010/api)",
     )
 
     return parser.parse_args()
