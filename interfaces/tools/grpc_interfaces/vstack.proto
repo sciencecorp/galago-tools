@@ -1,0 +1,58 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.vstack;
+
+message Command {
+  oneof command {
+    Abort abort = 1;
+    Close close = 2;
+    Downstack downstack = 3;
+    Home home = 4;
+    Jog jog = 5;
+    LoadStack load_stack = 6;
+    OpenGripper open_gripper = 7;
+    ReleaseStack release_stack = 8;
+    SetButtonMode set_button_mode = 9;
+    SetLabware set_labware = 10;
+    ShowDiagsDialog show_diagnostics = 11;
+    Upstack upstack = 12;
+  }
+
+  message Abort {}
+
+  message Close {}
+
+  message Downstack {}
+
+  message Home {}
+
+  message Jog {
+    float increment = 1;
+  }
+
+  message LoadStack {}
+
+  message OpenGripper {
+    bool open = 1;
+  }
+
+  message ReleaseStack {}
+
+  message SetButtonMode {
+    bool run_mode = 1;
+    string reply = 2;
+  }
+
+  message SetLabware {
+    string labware = 1;
+    int32 plate_dimension_select = 2;
+  }
+
+  message ShowDiagsDialog {}
+
+  message Upstack {}
+}
+
+message Config {
+  string profile = 1;
+}

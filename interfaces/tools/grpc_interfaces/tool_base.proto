@@ -25,6 +25,7 @@ import "tools/grpc_interfaces/plr.proto";
 import "tools/grpc_interfaces/pyhamilton.proto";
 import "tools/grpc_interfaces/benchcel.proto";
 import "tools/grpc_interfaces/minihub.proto";
+import "tools/grpc_interfaces/vstack.proto";
 
 message Command {
   oneof tool_command {
@@ -50,6 +51,7 @@ message Command {
     tools.grpc_interfaces.pyhamilton.Command pyhamilton = 20;
     tools.grpc_interfaces.benchcel.Command benchcel = 23;
     tools.grpc_interfaces.minihub.Command minihub = 24;
+    tools.grpc_interfaces.vstack.Command vstack = 25;
   }
 } 
 
@@ -79,6 +81,7 @@ message Config {
     tools.grpc_interfaces.pyhamilton.Config pyhamilton = 39;
     tools.grpc_interfaces.benchcel.Config benchcel = 42;
     tools.grpc_interfaces.minihub.Config minihub = 43;
+    tools.grpc_interfaces.vstack.Config vstack = 44;
   }
 }
 

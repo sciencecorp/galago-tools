@@ -27,6 +27,7 @@ enum ToolType {
   pyhamilton = 20;
   benchcel = 23;
   minihub = 24;
+  vstack = 25;
 }
 
 message ToolConfig {
