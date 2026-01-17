@@ -23,6 +23,7 @@ import "tools/grpc_interfaces/microserve.proto";
 import "tools/grpc_interfaces/vprep.proto";
 import "tools/grpc_interfaces/plr.proto";
 import "tools/grpc_interfaces/pyhamilton.proto";
+import "tools/grpc_interfaces/benchcel.proto";
 
 message Command {
   oneof tool_command {
@@ -46,6 +47,7 @@ message Command {
     tools.grpc_interfaces.vprep.Command vprep = 18;
     tools.grpc_interfaces.plr.Command plr = 19;
     tools.grpc_interfaces.pyhamilton.Command pyhamilton = 20;
+    tools.grpc_interfaces.benchcel.Command benchcel = 23;
   }
 } 
 
@@ -73,6 +75,7 @@ message Config {
     tools.grpc_interfaces.vprep.Config vprep = 37;
     tools.grpc_interfaces.plr.Config plr = 38;
     tools.grpc_interfaces.pyhamilton.Config pyhamilton = 39;
+    tools.grpc_interfaces.benchcel.Config benchcel = 42;
   }
 }
 

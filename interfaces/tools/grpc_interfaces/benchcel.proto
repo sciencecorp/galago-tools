@@ -1,0 +1,97 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.benchcel;
+
+message Command {
+  oneof command {
+    PickAndPlace pick_and_place = 1;
+    Delid delid = 2;
+    Relid relid = 3;
+    LoadStack load_stack = 4;
+    ReleaseStack release_stack = 5;
+    OpenClamp open_clamp = 6;
+    IsStackLoaded is_stack_loaded = 7;
+    IsPlatePresent is_plate_present = 8;
+    SetLabware set_labware = 9;
+    GetStackCount get_stack_count = 10;
+    GetTeachpointNames get_teachpoint_names = 11;
+    GetLabwareNames get_labware_names = 12;
+    ProtocolStart protocol_start = 13;
+    ProtocolFinish protocol_finish = 14;
+    MoveToHomePosition move_to_home_position = 15;
+    Pause pause = 16;
+    Unpause unpause = 17;
+    ShowDiagsDialog show_diagnostics = 18;
+    ShowLabwareEditor show_labware_editor = 19;
+  }
+
+  message PickAndPlace {
+    string pick_from = 1;
+    string place_to = 2;
+    bool lidded = 3;
+    int32 retraction_code = 4;
+  }
+
+  message Delid {
+    string delid_from = 1;
+    string delid_to = 2;
+    int32 retraction_code = 3;
+  }
+
+  message Relid {
+    string relid_from = 1;
+    string relid_to = 2;
+    int32 retraction_code = 3;
+  }
+
+  message LoadStack {
+    int32 stack = 1;
+  }
+
+  message ReleaseStack {
+    int32 stack = 1;
+  }
+
+  message OpenClamp {
+    int32 stack = 1;
+  }
+
+  message IsStackLoaded {
+    int32 stack = 1;
+  }
+
+  message IsPlatePresent {
+    int32 stack = 1;
+  }
+
+  message SetLabware {
+    string labware = 1;
+  }
+
+  message GetStackCount {}
+  
+  message GetTeachpointNames {}
+  
+  message GetLabwareNames {}
+  
+  message ProtocolStart {}
+  
+  message ProtocolFinish {}
+  
+  message MoveToHomePosition {}
+  
+  message Pause {}
+  
+  message Unpause {}
+  
+  message ShowDiagsDialog {}
+  
+  message ShowLabwareEditor {
+    bool modal = 1;
+    string labware = 2;
+  }
+}
+
+message Config {
+  string profile = 1;
+}
