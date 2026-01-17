@@ -253,8 +253,8 @@ class BenchCelDriver(ABCToolDriver):
     def ignore(self) -> None:
         self.schedule_threaded_command("ignore", {})
 
-    def schedule_threaded_command(self, command: str, arguments: dict) -> None:
-        self.execution_thread = threading.Thread(target=self.execute_command, args=(command, arguments,))
+    def schedule_threaded_command(self, command: str, arguments: dict) -> None:  # type: ignore
+        self.execution_thread = threading.Thread(target=self.execute_command(command, arguments,))  # type: ignore
         self.execution_thread.daemon = True
         self.execution_thread.start()
         return None

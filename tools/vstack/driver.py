@@ -180,7 +180,7 @@ class VStackDriver(ABCToolDriver):
         return 
 
     def schedule_threaded_command(self, command: str, arguments: dict) -> None:  # type: ignore
-        self.execution_thread = threading.Thread(target=self.execute_command, args=(command, arguments,))  # type: ignore
+        self.execution_thread = threading.Thread(target=self.execute_command(command, arguments,))  # type: ignore
         self.execution_thread.daemon = True
         self.execution_thread.start()
         return None
