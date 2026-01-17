@@ -1,0 +1,63 @@
+syntax = 'proto3';
+package com.science.foundry.tools.grpc_interfaces.vspin_with_loader;
+
+message Command {
+  oneof command {
+    Home home = 1;
+    CloseDoor close_door = 2;
+    OpenDoor open_door = 3;
+    LoadPlate load_plate = 4;
+    UnloadPlate unload_plate = 5;
+    Park park = 6;
+    Spin spin_cycle = 7;
+    StopSpin stop_spin_cycle = 8;
+    ShowDiagsDialog show_diagnostics = 9;
+  }
+
+  message Home {}
+
+  message CloseDoor {}
+
+  message OpenDoor {
+    int32 bucket = 1;  // 1 or 2
+  }
+
+  message LoadPlate {
+    int32 bucket = 1;               // 1 or 2
+    float gripper_offset = 2;       // 2.6 to 21.1
+    float plate_height = 3;         // 0.0 to 48.0
+    string speed = 4;               // 0 (slow) to 3 (fast)
+    int32 options = 5;             // 0-7 bitfield options
+  }
+
+  message UnloadPlate {
+    int32 bucket = 1;               // 1 or 2
+    float gripper_offset = 2;       // 2.6 to 21.1
+    float plate_height = 3;         // 0.0 to 48.0
+    string speed = 4;               // 0 (slow) to 3 (fast)
+    int32 options = 5;             // 0-7 bitfield options
+  }
+
+  message Park {}
+
+  message Spin {
+    int32 bucket = 1;
+    int32 time = 2;
+    float velocity_percent = 3;
+    float acceleration_percent = 4;
+    float deceleration_percent = 5;
+    int32 timer_mode = 6; // 0 is total time, 1 is time at speed
+  }
+
+  // Stop current spin cycle and present bucket
+  message StopSpin {
+    int32 bucket = 1;  // 1 or 2
+  }
+
+  message ShowDiagsDialog {
+  }
+}
+
+message Config {
+  string profile = 1;
+}

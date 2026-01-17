@@ -25,6 +25,8 @@ enum ToolType {
   vprep = 18;
   plr = 19;
   pyhamilton = 20;
+  vspin_with_loader = 21;
+  vspin = 22;
   benchcel = 23;
   minihub = 24;
   vstack = 25;

@@ -1,0 +1,42 @@
+syntax = 'proto3';
+package com.science.foundry.tools.grpc_interfaces.vspin;
+
+message Command {
+  oneof command {
+    Home home = 1;
+    CloseDoor close_door = 2;
+    OpenDoor open_door = 3;
+    Spin spin_cycle = 4;
+    StopSpin stop_spin_cycle = 5;
+    ShowDiagsDialog show_diagnostics = 6;
+  }
+
+  message Home {}
+
+  message CloseDoor {}
+
+  message OpenDoor {
+    int32 bucket = 1;  // 1 or 2
+  }
+
+  message Spin {
+    int32 bucket = 1;
+    int32 time = 2;
+    float velocity_percent = 3;
+    float acceleration_percent = 4;
+    float deceleration_percent = 5;
+    int32 timer_mode = 6; // 0 is total time, 1 is time at speed
+  }
+
+  // Stop current spin cycle and present bucket
+  message StopSpin {
+    int32 bucket = 1;  // 1 or 2
+  }
+
+  message ShowDiagsDialog {
+  }
+}
+
+message Config {
+  string profile = 1;
+}
