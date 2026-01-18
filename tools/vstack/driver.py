@@ -152,13 +152,13 @@ class VStackDriver(ABCToolDriver):
         self.schedule_threaded_command("upstack", {})
         return
 
-    def schedule_threaded_command(self, command: str, arguments: dict) -> None:  # type: ignore
+    def schedule_threaded_command(self, command: str, arguments: dict) -> None:
         self.execution_thread = threading.Thread(
-            target=self.execute_command(
+            target=self.execute_command(  # type: ignore[func-returns-value]
                 command,
                 arguments,
             )
-        )  # type: ignore
+        )
         self.execution_thread.daemon = True
         self.execution_thread.start()
         return None
