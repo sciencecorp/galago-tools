@@ -1,9 +1,10 @@
+import logging
 import os
-import logging 
-import threading 
+import threading
 import time
-from tools.base_server import ABCToolDriver
 from typing import Union
+
+from tools.base_server import ABCToolDriver
 
 try:
     import pythoncom
@@ -13,84 +14,86 @@ except Exception:
 
 if os.name == "nt":
     import clr  # type: ignore
+
     SDK_DLL = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)), "deps",
-                "AxInterop.MiniHubLib.dll",
-            )
+        os.path.dirname(os.path.abspath(__file__)),
+        "deps",
+        "AxInterop.AgilentLabwareMiniHubLib.dll",
+    )
 
-    clr.AddReference(SDK_DLL) 
+    clr.AddReference(SDK_DLL)
 
-    from AxMiniHubLib import AxMiniHub  # type: ignore
+    from AxAgilentLabwareMiniHubLib import AxLabwareMiniHubActiveX  # type: ignore
 
 else:
 
-    class AxMiniHub():  # type: ignore
+    class AxLabwareMiniHubActiveX:  # type: ignore
         def __init__(self) -> None:
             pass
-    
+
         def Initialize(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def Close(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def Abort(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def DisableMotor(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def EnableMotor(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def Jog(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def RotateToCassette(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def RotateToDegree(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def RotateToHomePosition(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def SetSpeed(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def ShowDiagsDialog(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def TeachHome(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
-        
+
         def GetLastError(self) -> None:
             raise NotImplementedError(
-                "AxMiniHub is not supported on non-Windows platforms"
+                "AxLabwareMiniHubActiveX is not supported on non-Windows platforms"
             )
 
 
@@ -98,66 +101,71 @@ class MiniHubDriver(ABCToolDriver):
     def __init__(self, profile: str) -> None:
         self.profile: str = profile
         self.live: bool = False
-        self.client: AxMiniHub
+        self.client: AxLabwareMiniHubActiveX
         self.lock = threading.Lock()  # To synchronize access to the device
         self.instantiate()
         self.initialize()
 
     def instantiate(self) -> None:
         pythoncom.CoInitialize()
-        self.client = AxMiniHub()
+        self.client = AxLabwareMiniHubActiveX()
         self.client.CreateControl()
         self.client.Blocking = True
         pythoncom.CoUninitialize()
 
-    def initialize(self) -> None: 
+    def initialize(self) -> None:
         args: dict = {"profile": self.profile}
         self.execute_command("initialize", args)
-    
+
     def close(self) -> None:
         self.schedule_threaded_command("close", {})
-    
+
     def abort(self) -> None:
         self.schedule_threaded_command("abort", {})
-        return 
-    
+        return
+
     def disable_motor(self) -> None:
         self.schedule_threaded_command("disable_motor", {})
-        return 
-    
+        return
+
     def enable_motor(self) -> None:
         self.schedule_threaded_command("enable_motor", {})
-        return 
-    
+        return
+
     def jog(self, degree: float, clockwise: bool) -> None:
         self.schedule_threaded_command("jog", {"degree": degree, "clockwise": clockwise})
-        return 
-    
+        return
+
     def rotate_to_cassette(self, cassette_index: int) -> None:
         self.schedule_threaded_command("rotate_to_cassette", {"cassette_index": cassette_index})
-        return 
-    
+        return
+
     def rotate_to_degree(self, degree: float) -> None:
         self.schedule_threaded_command("rotate_to_degree", {"degree": degree})
-        return 
-    
+        return
+
     def rotate_to_home_position(self) -> None:
         self.schedule_threaded_command("rotate_to_home_position", {})
-        return 
-    
+        return
+
     def set_speed(self, speed: int) -> None:
         self.schedule_threaded_command("set_speed", {"speed": speed})
-        return 
-    
+        return
+
     def show_diagnostics(self) -> None:
         self.schedule_threaded_command("show_diagnostics", {})
-    
+
     def teach_home(self) -> None:
         self.schedule_threaded_command("teach_home", {})
-        return 
+        return
 
     def schedule_threaded_command(self, command: str, arguments: dict) -> None:  # type: ignore
-        self.execution_thread = threading.Thread(target=self.execute_command(command, arguments,))  # type: ignore
+        self.execution_thread = threading.Thread(
+            target=self.execute_command(
+                command,
+                arguments,
+            )
+        )  # type: ignore
         self.execution_thread.daemon = True
         self.execution_thread.start()
         return None
