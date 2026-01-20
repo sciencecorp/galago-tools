@@ -259,9 +259,9 @@ class ToolServer(tool_driver_pb2_grpc.ToolDriverServicer):
         method_name = f"Estimate{command.__class__.__name__}"
         try:
             method = getattr(self, method_name)
-        except AttributeError as e:
-            logging.error(str(e))
-            return None, tool_base_pb2.UNRECOGNIZED_COMMAND
+        except AttributeError:
+            # No estimate method defined for this command, use default duration
+            return 0, None
 
         return method(command), None
 
