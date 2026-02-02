@@ -18,15 +18,22 @@ else:
         Python driver for BMG LABTECH CLARIOstar plate reader.
         """
 
-        def __init__(self, server_name: str = "CLARIOstar") -> None:
+        def __init__(
+            self,
+            protocol_dir: str = "C:\\Program Files (x86)\\BMG\\CLARIOstar\\User\\Definit",
+            data_dir: str = "C:\\Users\\Bioteam\\Desktop\\clariostar_automated_data",
+            device_name: str = "CLARIOstar",
+        ) -> None:
             """
             Initialize the CLARIOstar driver.
 
             Args:
-                server_name: Name of the ActiveX server (default: "CLARIOstar")
+                device_name: Name of the ActiveX server (default: "CLARIOstar")
                             For multiple installations, use "CLARIOstar2", "CLARIOstar3", etc.
             """
-            self.server_name: str = server_name
+            self.protocol_dir: str = protocol_dir
+            self.data_dir: str = data_dir
+            self.device_name: str = device_name
             self.live: bool = False
             self.client: CDispatch
 
@@ -63,15 +70,15 @@ else:
                 -2 if server not registered
                 -3 if different server is active
             """
-            logging.info(f"Opening connection to ActiveX server {self.server_name}")
-            result = cast(int, self.client.OpenConnectionV(self.server_name))
+            logging.info(f"Opening connection to ActiveX server {self.device_name}")
+            result = cast(int, self.client.OpenConnectionV(self.device_name))
             logging.info(f"Response: {result}")
 
             # Wait for instrument to be ready
             self.wait_for_status("Ready")
 
             if result != 0:
-                raise RuntimeError(f"Failed to open connection to {self.server_name}")
+                raise RuntimeError(f"Failed to open connection to {self.device_name}")
 
             return result
 
@@ -204,8 +211,6 @@ else:
         def run_protocol(
             self,
             protocol_name: str,
-            protocol_path: str,
-            data_path: str,
             plate_id1: str = "",
             plate_id2: str = "",
             plate_id3: str = "",
@@ -227,14 +232,15 @@ else:
             cmd = [
                 "Run",
                 protocol_name,
-                protocol_path,
-                data_path,
+                self.protocol_dir,
+                self.data_dir,
                 plate_id1,
                 plate_id2,
                 plate_id3,
             ]
 
             logging.info(f"Running protocol {protocol_name}")
+            # TODO: Probably change ExecuteAndWait (blocking) to Execute (non-blocking)
             result = cast(int, self.client.ExecuteAndWait(cmd))
             self.wait_for_status("Ready", 90)
             logging.info(f"Protocol {protocol_name} completed")
@@ -295,6 +301,25 @@ if __name__ == "__main__":
 
         # Move plate out
         driver.plate_out()
+
+        # Pausing to allow user to put plate on
+        time.sleep(4)
+
+        # Move plate in
+        driver.plate_in()
+
+        # Starting a test run
+        driver.run_protocol(
+            "Lime",
+            "C:\\Program Files (x86)\\BMG\\CLARIOstar\\User\\Definit",
+            "C:\\Users\\Bioteam\\Desktop\\clariostar_automated_data",
+        )
+
+        # Move plate out
+        driver.plate_out()
+
+        # Pausing to allow user to take plate out
+        time.sleep(4)
 
         # Move plate in
         driver.plate_in()
