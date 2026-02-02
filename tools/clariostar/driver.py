@@ -1,5 +1,6 @@
 import logging
 import os
+import struct
 import time
 from typing import cast
 
@@ -32,6 +33,13 @@ else:
             if os.name != "nt":
                 raise NotImplementedError(
                     "CLARIOstar ActiveX driver is only supported on Windows platforms"
+                )
+
+            # Check for 32-bit Python environment
+            if struct.calcsize("P") * 8 != 32:
+                raise RuntimeError(
+                    f"CLARIOstar driver requires a 32-bit Python environment. "
+                    f"Current environment is {struct.calcsize('P') * 8}-bit."
                 )
 
             # Initialize COM and create the client
@@ -99,7 +107,7 @@ else:
                 String value of the requested item
             """
 
-            result = cast(str, self.client.GetInfoV(item_name))
+            result: str = cast(str, self.client.GetInfoV(item_name)).strip()
 
             # logging.info(f"info status is {status}")
             logging.info(f"Result of Info is {result}")
@@ -118,14 +126,12 @@ else:
                 TimeoutError: If the status is not reached within the timeout
             """
             start_time = time.time()
-            current_status = ""
             while True:
                 if time.time() - start_time > timeout:
                     raise TimeoutError(f"Status {status} not reached within {timeout} seconds")
-                current_status = self.get_info("Status")
-                if current_status == status:
+                if self.get_info("Status") == status:
                     break
-                time.sleep(0.1)
+                time.sleep(0.5)
 
         def plate_out(self, mode: str = "Normal", x: int = 0, y: int = 0) -> int:
             """
