@@ -76,7 +76,7 @@ We also provide a Windows Installer that does all this for you. [Download Here](
 
 ## 32-bit Windows Environment
 
-Many legacy lab instruments require 32-bit Python on Windows. If you are doing local development (Option 1) and are using any of the Agilent tools you need to download python 32-bits or set up a 32-bit environment using conda:
+Many legacy lab instruments require 32-bit Python on Windows. If you are doing local development (Option 1) and are using any of the Agilent/Clariostar tools you need to download python 32-bits or set up a 32-bit environment using conda:
 
 
 ```bash
@@ -92,6 +92,14 @@ conda activate galago-tools
 pip install galago-tools
 ```
 
+Or, maybe:
+```bash
+micromamba create -y -n galago-tools-32bit "python=3.9" -c defaults --platform win-32
+micromamba activate galago-tools-32bit
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pip install -e .
+```
 
 ## Using the CLI
 ```bash
