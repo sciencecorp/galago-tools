@@ -18,13 +18,19 @@ class ClariostarServer(ToolServer):
         self.config = config
         if self.driver:
             self.driver.close()
-        if not config.protocol_dir or not config.data_dir or not config.device_name:
+        if (
+            not config.protocol_dir
+            or not config.data_dir
+            or not config.device_name
+            or not config.output_dir
+        ):
             raise RuntimeError(
                 "Protocol directory, experiment directory, and reader type must be specified in the configuration."
             )
         self.driver = CLARIOstarDriver(
             protocol_dir=config.protocol_dir,
             data_dir=config.data_dir,
+            output_dir=config.output_dir,
             device_name=config.device_name,
         )
         self.driver.initialize()
@@ -39,6 +45,8 @@ class ClariostarServer(ToolServer):
         self.driver.run_protocol(
             protocol_name=params.protocol_name,
             plate_id=params.plate_id,
+            assay_id=params.assay_id,
+            timepoint=params.timepoint,
         )
 
     def EstimateOpenCarrier(self, params: Command.OpenCarrier) -> int:
