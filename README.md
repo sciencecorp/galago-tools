@@ -92,15 +92,6 @@ conda activate galago-tools
 pip install galago-tools
 ```
 
-Or, maybe:
-```bash
-micromamba create -y -n galago-tools-32bit "python=3.9" -c defaults --platform win-32
-micromamba activate galago-tools-32bit
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-pip install -e .
-```
-
 ## Using the CLI
 ```bash
 

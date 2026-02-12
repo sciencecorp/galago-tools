@@ -135,7 +135,6 @@ else:
 
             result: str = cast(str, self.client.GetInfoV(item_name)).strip()
 
-            # logging.info(f"info status is {status}")
             logging.info(f"Result of Info is {result}")
 
             return result
@@ -249,8 +248,9 @@ else:
                 0 if successful, error code otherwise
 
             Notes:
-            The plate_id, assay_id, and timepoint are concatenated with hyphens
-            and suffixes to form the output file name.
+            The plate_id, assay_id, and timepoint are given to the clariostar
+            software as plate_id1, plate_id2, and plate_id3. These IDs can
+            be used to name the output data file via the clariostar settings.
             """
             cmd = [
                 "Run",
@@ -263,7 +263,6 @@ else:
             ]
 
             logging.info(f"Running protocol {protocol_name}")
-            # TODO: Probably change ExecuteAndWait (blocking) to Execute (non-blocking)
             result = cast(int, self.client.ExecuteAndWait(cmd))
             self.wait_for_status("Ready", 90)
             logging.info(f"Protocol {protocol_name} completed")
@@ -322,31 +321,11 @@ if __name__ == "__main__":
         # Create driver instance
         driver = CLARIOstarDriver()
 
-        # # Move plate out
-        # driver.plate_out()
+        # Move plate out
+        driver.plate_out()
 
-        # # Pausing to allow user to put plate on
-        # # time.sleep(4)
-
-        # # Move plate in
-        # driver.plate_in()
-
-        # Starting a test run
-        driver.run_protocol(
-            protocol_name="Lime-noorbital",
-            plate_id="helix_plate_id_1",
-            assay_id="helix_assay_id_1",
-            timepoint="helix_timepoint_1",
-        )
-
-        # # Move plate out
-        # driver.plate_out()
-
-        # # Pausing to allow user to take plate out
-        # # time.sleep(4)
-
-        # # Move plate in
-        # driver.plate_in()
+        # Move plate in
+        driver.plate_in()
 
         # Close connection
         driver.close_connection()
