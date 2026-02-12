@@ -642,6 +642,8 @@ async def handle_websocket_message(websocket: Any, data: Dict[str, Any]) -> None
 
         elif action == "relaunch_all":
             success = await relaunch_all_tools()
+            await start_toolbox()
+
             response = {
                 "type": "response",
                 "success": success,
@@ -905,10 +907,7 @@ async def main() -> None:
     global config, log_folder, last_tool_status
 
     try:
-        # Parse command line arguments
         args = parse_arguments()
-
-        # Setup logging first
         log_folder = setup_logging()
 
         # Set API URL if provided via command line
@@ -946,11 +945,12 @@ async def main() -> None:
         asyncio.create_task(monitor_log_files())
         asyncio.create_task(monitor_tool_processes())
 
-        logger.info("Starting Tool Box automatically...")
+        all_tools_started = await relaunch_all_tools()
+        if all_tools_started:
+            logger.info("All tools started successfully")
         toolbox_started = await start_toolbox()
         if toolbox_started:
             logger.info("Tool Box started successfully")
-        # open_browser(browser_url, delay=2.0)
         # Wait for server to close
         await server.wait_closed()
 

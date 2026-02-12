@@ -1,5 +1,6 @@
 import logging
 import os
+import struct
 import time
 from typing import cast
 
@@ -17,21 +18,54 @@ else:
         Python driver for BMG LABTECH CLARIOstar plate reader.
         """
 
-        def __init__(self, server_name: str = "CLARIOstar") -> None:
+        def __init__(
+            self,
+            protocol_dir: str = "C:\\Program Files (x86)\\BMG\\CLARIOstar\\User\\Definit",
+            data_dir: str = "C:\\Program Files (x86)\\BMG\\CLARIOstar\\User\\Data",
+            output_dir: str = "C:\\Program Files (x86)\\BMG\\MARS",
+            device_name: str = "CLARIOstar",
+        ) -> None:
             """
             Initialize the CLARIOstar driver.
 
             Args:
-                server_name: Name of the ActiveX server (default: "CLARIOstar")
+                device_name: Name of the ActiveX server (default: "CLARIOstar")
                             For multiple installations, use "CLARIOstar2", "CLARIOstar3", etc.
+                protocol_dir: Path to the directory containing the CLARIOstar protocols. This is determined
+                    in the clariostar software and cannot be configured via this driver.
+                data_dir: Path specified in CLARIOstar software for mars data. This is determined
+                    in the clariostar software and cannot be configured via this driver.
+                output_dir: Path specified in CLARIOstar software for output data. This is determined
+                    in the clariostar software and cannot be configured via this driver.
+
+            Notes:
+            To export data to a text file, this must be configured in the clariostar software via
+            Settings -> Data Output -> Define Format
+            Where the output_dir can be specified as well as the filename and format of the output file.
+            This will enable automatic export of data to a text file after each protocol run.
+            An example of filename format:
+            <date:yymmdd>_<time:hhmmss>-<protocol>-<method>-<ID1>-<ID2>-<ID3>
+            protocol = protocol name
+            method = type of measurement, e.g. Fluorescence Intensity, Luminescence, etc.
+            ID1-ID3 = user defined IDs
             """
-            self.server_name: str = server_name
+            self.protocol_dir: str = protocol_dir
+            self.data_dir: str = data_dir
+            self.output_dir: str = output_dir
+            self.device_name: str = device_name
             self.live: bool = False
             self.client: CDispatch
 
             if os.name != "nt":
                 raise NotImplementedError(
                     "CLARIOstar ActiveX driver is only supported on Windows platforms"
+                )
+
+            # Check for 32-bit Python environment
+            if struct.calcsize("P") * 8 != 32:
+                raise RuntimeError(
+                    f"CLARIOstar driver requires a 32-bit Python environment. "
+                    f"Current environment is {struct.calcsize('P') * 8}-bit."
                 )
 
             # Initialize COM and create the client
@@ -55,15 +89,15 @@ else:
                 -2 if server not registered
                 -3 if different server is active
             """
-            logging.info(f"Opening connection to ActiveX server {self.server_name}")
-            result = cast(int, self.client.OpenConnectionV(self.server_name))
+            logging.info(f"Opening connection to ActiveX server {self.device_name}")
+            result = cast(int, self.client.OpenConnectionV(self.device_name))
             logging.info(f"Response: {result}")
 
             # Wait for instrument to be ready
-            self.wait_for_status("Ready")
+            self.wait_for_status("Ready", timeout=20)
 
             if result != 0:
-                raise RuntimeError(f"Failed to open connection to {self.server_name}")
+                raise RuntimeError(f"Failed to open connection to {self.device_name}")
 
             return result
 
@@ -99,7 +133,7 @@ else:
                 String value of the requested item
             """
 
-            result = cast(str, self.client.GetInfoV(item_name))
+            result: str = cast(str, self.client.GetInfoV(item_name)).strip()
 
             # logging.info(f"info status is {status}")
             logging.info(f"Result of Info is {result}")
@@ -118,14 +152,12 @@ else:
                 TimeoutError: If the status is not reached within the timeout
             """
             start_time = time.time()
-            current_status = ""
             while True:
                 if time.time() - start_time > timeout:
                     raise TimeoutError(f"Status {status} not reached within {timeout} seconds")
-                current_status = self.get_info("Status")
-                if current_status == status:
+                if self.get_info("Status") == status:
                     break
-                time.sleep(0.1)
+                time.sleep(0.5)
 
         def plate_out(self, mode: str = "Normal", x: int = 0, y: int = 0) -> int:
             """
@@ -198,11 +230,9 @@ else:
         def run_protocol(
             self,
             protocol_name: str,
-            protocol_path: str,
-            data_path: str,
-            plate_id1: str = "",
-            plate_id2: str = "",
-            plate_id3: str = "",
+            plate_id: str = "",
+            assay_id: str = "",
+            timepoint: str = "",
         ) -> int:
             """
             Run a measurement protocol.
@@ -211,24 +241,29 @@ else:
                 protocol_name: Name of the protocol
                 protocol_path: Path to protocol definitions
                 data_path: Path where measurement data will be stored
-                plate_id1: Optional plate identifier
-                plate_id2: Optional plate identifier
-                plate_id3: Optional plate identifier
+                plate_id: Optional plate identifier
+                assay_id: Optional assay identifier
+                timepoint: Optional timepoint identifier
 
             Returns:
                 0 if successful, error code otherwise
+
+            Notes:
+            The plate_id, assay_id, and timepoint are concatenated with hyphens
+            and suffixes to form the output file name.
             """
             cmd = [
                 "Run",
                 protocol_name,
-                protocol_path,
-                data_path,
-                plate_id1,
-                plate_id2,
-                plate_id3,
+                self.protocol_dir,
+                self.data_dir,
+                plate_id,
+                assay_id,
+                timepoint,
             ]
 
             logging.info(f"Running protocol {protocol_name}")
+            # TODO: Probably change ExecuteAndWait (blocking) to Execute (non-blocking)
             result = cast(int, self.client.ExecuteAndWait(cmd))
             self.wait_for_status("Ready", 90)
             logging.info(f"Protocol {protocol_name} completed")
@@ -287,11 +322,31 @@ if __name__ == "__main__":
         # Create driver instance
         driver = CLARIOstarDriver()
 
-        # Move plate out
-        driver.plate_out()
+        # # Move plate out
+        # driver.plate_out()
 
-        # Move plate in
-        driver.plate_in()
+        # # Pausing to allow user to put plate on
+        # # time.sleep(4)
+
+        # # Move plate in
+        # driver.plate_in()
+
+        # Starting a test run
+        driver.run_protocol(
+            protocol_name="Lime-noorbital",
+            plate_id="helix_plate_id_1",
+            assay_id="helix_assay_id_1",
+            timepoint="helix_timepoint_1",
+        )
+
+        # # Move plate out
+        # driver.plate_out()
+
+        # # Pausing to allow user to take plate out
+        # # time.sleep(4)
+
+        # # Move plate in
+        # driver.plate_in()
 
         # Close connection
         driver.close_connection()

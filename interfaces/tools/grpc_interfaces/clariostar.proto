@@ -1,0 +1,30 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.clariostar;
+
+message Command {
+  oneof command {
+    OpenCarrier open_carrier = 1;
+    CloseCarrier close_carrier = 2;
+    StartRead start_read = 3;
+  }
+
+  message OpenCarrier {}
+
+  message CloseCarrier {}
+
+  message StartRead {
+    string protocol_name = 1;
+    optional string plate_id = 2;
+    optional string assay_id = 3;
+    optional string timepoint = 4;
+  }
+}
+
+message Config {
+  string protocol_dir = 1;
+  string data_dir = 2;
+  string device_name = 3;
+  string output_dir = 4;
+}
+
