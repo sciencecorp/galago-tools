@@ -33,7 +33,7 @@ class ClariostarServer(ToolServer):
             output_dir=config.output_dir,
             device_name=config.device_name,
         )
-        self.driver.initialize()
+        self.driver.open_connection()
 
     def OpenCarrier(self, params: Command.OpenCarrier) -> None:
         self.driver.plate_out()
