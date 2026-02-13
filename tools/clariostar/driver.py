@@ -94,7 +94,7 @@ else:
             logging.info(f"Response: {result}")
 
             # Wait for instrument to be ready
-            self.wait_for_status("Ready", timeout=20)
+            self.wait_for_status("Ready", timeout=30)
 
             if result != 0:
                 raise RuntimeError(f"Failed to open connection to {self.device_name}")
