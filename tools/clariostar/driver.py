@@ -3,8 +3,25 @@ import os
 import struct
 import time
 from typing import cast
+from dataclasses import dataclass
+from enum import Enum
 
 from tools.base_server import ABCToolDriver
+
+
+class PollType(str, Enum):
+    PlateOut = "PlateOut"
+    Status = "Status"
+    T1notreached = "T1notreached"
+
+
+@dataclass
+class PollCriteria:
+    poll_type: PollType
+    desired_result: str
+    timeout: float = 30.0
+    poll_interval: float = 0.5
+
 
 if os.name != "nt":
     raise NotImplementedError("CLARIOstar ActiveX driver is only supported on Windows platforms")
@@ -69,7 +86,10 @@ else:
                 )
 
             # Initialize COM and create the client
+            # Use CoInitializeEx with COINIT_MULTITHREADED to avoid hanging in non-GUI threads (like gRPC workers)
+            # that don't pump messages.
             pythoncom.CoInitialize()
+            # pythoncom.CoInitializeEx(pythoncom.COINIT_MULTITHREADED)
             try:
                 self.client = win32com.client.Dispatch("BMG_ActiveX.BMGRemoteControl")
                 logging.info("CLARIOstar ActiveX client created successfully")
@@ -91,15 +111,17 @@ else:
             """
             logging.info(f"Opening connection to ActiveX server {self.device_name}")
             result = cast(int, self.client.OpenConnectionV(self.device_name))
-            logging.info(f"Response: {result}")
-
-            # Wait for instrument to be ready
-            self.wait_for_status("Ready", timeout=30)
-
-            if result != 0:
-                raise RuntimeError(f"Failed to open connection to {self.device_name}")
-
-            self.test_connection()
+            self.poll_until(
+                poll_criterias=[
+                    PollCriteria(
+                        poll_type=PollType.Status,
+                        desired_result="Ready",
+                        timeout=30.0,
+                        poll_interval=1.0,
+                    )
+                ]
+            )
+            logging.info("Connection opened successfully")
 
             return result
 
@@ -109,18 +131,13 @@ else:
             self.live = False
             logging.info("Connection closed")
 
-        def test_connection(self) -> None:
-            """Test the connection using the Dummy command."""
-            logging.debug("Testing connection...")
-            self.client.Dummy()
-            logging.debug("Connection test passed")
-
-        """
-            Establishing connection automatically initializes the instrument so we don't need to call initialize() explicitly.
-        """
-
         def initialize(self) -> int:
-            """Initialize the reader."""
+            """Initialize the reader.
+
+            Note:
+            Establishing connection automatically initializes the instrument
+            so we don't need to call initialize() explicitly.
+            """
             logging.info("Initializing reader")
             cmd_list = ["Init"]
             result = cast(int, self.client.Execute(cmd_list))
@@ -143,55 +160,74 @@ else:
 
             result: str = cast(str, self.client.GetInfoV(item_name)).strip()
 
-            logging.info(f"Result of Info is {result}")
+            logging.info(f"Asking clariostar about {item_name} results in: {result}")
 
             return result
 
-        def wait_for_status(self, status: str = "Ready", timeout: float = 15.0) -> None:
+        def poll_until(self, poll_criterias: list[PollCriteria]) -> None:
             """
-            Wait for the specified status to be reached.
+            Poll until the specified criteria are met.
 
             Args:
-                status: The status to wait for (e.g., "Ready")
-                timeout: Maximum time to wait in seconds
+                poll_criteria: The criteria or list of criteria to poll for
 
             Raises:
-                TimeoutError: If the status is not reached within the timeout
+                TimeoutError: If the criteria are not met within the timeout
             """
             start_time = time.time()
-            while True:
-                if time.time() - start_time > timeout:
-                    raise TimeoutError(f"Status {status} not reached within {timeout} seconds")
-                if self.get_info("Status") == status:
-                    break
-                time.sleep(0.5)
+            last_poll_times = {id(c): 0.0 for c in poll_criterias}
+            unsatisfied = poll_criterias
 
-        def execute_and_poll(self, cmd: list, timeout: float = 30.0) -> int:
+            while unsatisfied:
+                current_time = time.time()
+                # Create a copy to iterate while modifying the original list
+                for criteria in unsatisfied[:]:
+                    # Check timeout
+                    if current_time - start_time > criteria.timeout:
+                        raise TimeoutError(
+                            f"Poll criteria {criteria.poll_type} not met within {criteria.timeout} seconds"
+                        )
+
+                    # Poll if interval has passed
+                    if current_time - last_poll_times[id(criteria)] > criteria.poll_interval:
+                        poll_result = self.get_info(criteria.poll_type.value)
+
+                        if poll_result == criteria.desired_result:
+                            unsatisfied.remove(criteria)
+                        elif poll_result.lower() == "error":
+                            error_message = self.get_info("Error")
+                            raise RuntimeError(
+                                f"Poll criteria {criteria.poll_type} resulted in error: {error_message}"
+                            )
+                        else:
+                            last_poll_times[id(criteria)] = current_time
+
+                time.sleep(0.1)
+
+        def execute(
+            self,
+            cmd: list,
+        ) -> int:
             """
-            Execute a command using Execute (non-blocking) and poll for status.
+            Execute a command using Execute (non-blocking)
             """
+            logging.info("Checking if instrument is ready to receive command...")
+            self.poll_until(
+                poll_criterias=[
+                    PollCriteria(
+                        poll_type=PollType.Status,
+                        desired_result="Ready",
+                        timeout=15.0,
+                        poll_interval=0.5,
+                    ),
+                ]
+            )
             logging.info(f"Executing command: {cmd}")
             result = cast(int, self.client.Execute(cmd))
 
             if result != 0:
                 logging.error(f"Command execution failed to start: {result}")
                 return result
-
-            # Allow some time for status to change
-            time.sleep(0.5)
-
-            start_time = time.time()
-            while True:
-                if time.time() - start_time > timeout:
-                    raise TimeoutError(f"Command timed out after {timeout} seconds")
-
-                status = self.get_info("Status")
-                logging.debug(f"Polling status: {status}")
-
-                if status == "Ready":
-                    break
-
-                time.sleep(0.5)
 
             return result
 
@@ -211,12 +247,24 @@ else:
             if mode == "User":
                 cmd.extend([str(x), str(y)])
 
-            logging.info("Moving plate carrier out.")
-            result = self.execute_and_poll(cmd)
-            logging.info(f"Plate carrier moved out with result {result}")
-            if result != 0:
-                raise RuntimeError("Failed to move plate carrier out")
-            return result
+            self.execute(cmd)
+            self.poll_until(
+                poll_criterias=[
+                    PollCriteria(
+                        poll_type=PollType.PlateOut,
+                        desired_result="1",
+                        timeout=15.0,
+                        poll_interval=0.5,
+                    ),
+                    PollCriteria(
+                        poll_type=PollType.Status,
+                        desired_result="Ready",
+                        timeout=15.0,
+                        poll_interval=0.5,
+                    ),
+                ]
+            )
+            return 0
 
         def plate_in(self, mode: str = "Normal", x: int = 0, y: int = 0) -> int:
             """
@@ -234,10 +282,24 @@ else:
             if mode == "User":
                 cmd.extend([str(x), str(y)])
 
-            logging.info("Moving plate carrier in.")
-            result = self.execute_and_poll(cmd)
-            logging.info(f"Plate carrier moved in with result {result}")
-            return result
+            self.execute(cmd)
+            self.poll_until(
+                poll_criterias=[
+                    PollCriteria(
+                        poll_type=PollType.PlateOut,
+                        desired_result="0",
+                        timeout=15.0,
+                        poll_interval=0.5,
+                    ),
+                    PollCriteria(
+                        poll_type=PollType.Status,
+                        desired_result="Ready",
+                        timeout=15.0,
+                        poll_interval=0.5,
+                    ),
+                ]
+            )
+            return 0
 
         def set_temperature(self, temperature: float) -> int:
             """
@@ -254,11 +316,24 @@ else:
             """
             logging.info(f"Setting temperature to {temperature}°C")
             cmd = ["Temp", f"{temperature:.1f}"]
-            result = self.execute_and_poll(cmd, timeout=10)
-
-            logging.info(f"Temperature set to {temperature}°C")
-
-            return result
+            self.execute(cmd)
+            self.poll_until(
+                poll_criterias=[
+                    PollCriteria(
+                        poll_type=PollType.T1notreached,
+                        desired_result="0",
+                        timeout=120.0,
+                        poll_interval=2.0,
+                    ),
+                    PollCriteria(
+                        poll_type=PollType.Status,
+                        desired_result="Ready",
+                        timeout=120.0,
+                        poll_interval=2.0,
+                    ),
+                ]
+            )
+            return 0
 
         def run_protocol(
             self,
@@ -296,57 +371,23 @@ else:
                 timepoint,
             ]
 
-            logging.info(f"Running protocol {protocol_name}")
-            result = self.execute_and_poll(cmd, timeout=90)
-            logging.info(f"Protocol {protocol_name} completed")
-            return result
-
-        def gain_well(
-            self,
-            protocol_name: str,
-            protocol_path: str,
-            column: int,
-            row: int,
-            target_value_a: float,
-            chromatic: int = 1,
-            focus_adjustment: bool = False,
-        ) -> int:
-            """
-            Perform gain adjustment on a specific well.
-
-            Args:
-                protocol_name: Name of the protocol
-                protocol_path: Path to protocol definitions
-                column: Column of well to use (1-24)
-                row: Row of well to use (1-16)
-                target_value_a: Target value for channel A (0-100% of range)
-                chromatic: Chromatic number to use (1-5)
-                focus_adjustment: Whether to perform focus adjustment
-
-            Returns:
-                0 if successful, error code otherwise
-            """
-            cmd = [
-                "GainWell",
-                protocol_name,
-                protocol_path,
-                str(column),
-                str(row),
-                str(target_value_a),
-                "0",  # target_value_b (not used for CLARIOstar)
-                str(chromatic),
-                "0",  # target polarization (not used here)
-                "A" if focus_adjustment else "-",
-            ]
-            logging.info(f"Executing command: {cmd}")
-            result = self.execute_and_poll(cmd)
-            logging.info(f"Command result: {result}")
-            return result
+            self.execute(cmd)
+            self.poll_until(
+                poll_criterias=[
+                    PollCriteria(
+                        poll_type=PollType.Status,
+                        desired_result="Ready",
+                        timeout=180.0,
+                        poll_interval=1.0,
+                    )
+                ]
+            )
+            return 0
 
 
 # Example usage
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     try:
         # Create driver instance
