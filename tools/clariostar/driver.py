@@ -99,6 +99,8 @@ else:
             if result != 0:
                 raise RuntimeError(f"Failed to open connection to {self.device_name}")
 
+            self.test_connection()
+
             return result
 
         def close_connection(self) -> None:
@@ -106,6 +108,12 @@ else:
             self.client.CloseConnection()
             self.live = False
             logging.info("Connection closed")
+
+        def test_connection(self) -> None:
+            """Test the connection using the Dummy command."""
+            logging.debug("Testing connection...")
+            self.client.Dummy()
+            logging.debug("Connection test passed")
 
         """
             Establishing connection automatically initializes the instrument so we don't need to call initialize() explicitly.
@@ -158,6 +166,35 @@ else:
                     break
                 time.sleep(0.5)
 
+        def execute_and_poll(self, cmd: list, timeout: float = 30.0) -> int:
+            """
+            Execute a command using Execute (non-blocking) and poll for status.
+            """
+            logging.info(f"Executing command: {cmd}")
+            result = cast(int, self.client.Execute(cmd))
+
+            if result != 0:
+                logging.error(f"Command execution failed to start: {result}")
+                return result
+
+            # Allow some time for status to change
+            time.sleep(0.5)
+
+            start_time = time.time()
+            while True:
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"Command timed out after {timeout} seconds")
+
+                status = self.get_info("Status")
+                logging.debug(f"Polling status: {status}")
+
+                if status == "Ready":
+                    break
+
+                time.sleep(0.5)
+
+            return result
+
         def plate_out(self, mode: str = "Normal", x: int = 0, y: int = 0) -> int:
             """
             Move plate carrier out of the instrument.
@@ -175,8 +212,7 @@ else:
                 cmd.extend([str(x), str(y)])
 
             logging.info("Moving plate carrier out.")
-            result = cast(int, self.client.ExecuteAndWait(cmd))
-            self.wait_for_status("Ready", timeout=30)
+            result = self.execute_and_poll(cmd)
             logging.info(f"Plate carrier moved out with result {result}")
             if result != 0:
                 raise RuntimeError("Failed to move plate carrier out")
@@ -199,8 +235,7 @@ else:
                 cmd.extend([str(x), str(y)])
 
             logging.info("Moving plate carrier in.")
-            result = cast(int, self.client.ExecuteAndWait(cmd))
-            self.wait_for_status("Ready", timeout=30)
+            result = self.execute_and_poll(cmd)
             logging.info(f"Plate carrier moved in with result {result}")
             return result
 
@@ -219,8 +254,7 @@ else:
             """
             logging.info(f"Setting temperature to {temperature}°C")
             cmd = ["Temp", f"{temperature:.1f}"]
-            result = cast(int, self.client.ExecuteAndWait(cmd))
-            self.wait_for_status("Ready", timeout=10)
+            result = self.execute_and_poll(cmd, timeout=10)
 
             logging.info(f"Temperature set to {temperature}°C")
 
@@ -263,8 +297,7 @@ else:
             ]
 
             logging.info(f"Running protocol {protocol_name}")
-            result = cast(int, self.client.ExecuteAndWait(cmd))
-            self.wait_for_status("Ready", 90)
+            result = self.execute_and_poll(cmd, timeout=90)
             logging.info(f"Protocol {protocol_name} completed")
             return result
 
@@ -306,9 +339,7 @@ else:
                 "A" if focus_adjustment else "-",
             ]
             logging.info(f"Executing command: {cmd}")
-            result = cast(int, self.client.ExecuteAndWait(cmd))
-            time.sleep(0.1)
-            self.wait_for_status("Ready")
+            result = self.execute_and_poll(cmd)
             logging.info(f"Command result: {result}")
             return result
 
