@@ -13,6 +13,7 @@ class PollType(str, Enum):
     PlateOut = "PlateOut"
     Status = "Status"
     T1notreached = "T1notreached"
+    MeasureData = "MeasureData"
 
 
 @dataclass
@@ -97,7 +98,6 @@ else:
                 logging.error(f"Failed to create CLARIOstar ActiveX client: {e}")
                 pythoncom.CoUninitialize()
                 raise
-            self.open_connection()
 
         def open_connection(self) -> int:
             """
@@ -207,6 +207,7 @@ else:
         def execute(
             self,
             cmd: list,
+            post_queue_delay: float = 0.5,
         ) -> int:
             """
             Execute a command using Execute (non-blocking)
@@ -229,6 +230,7 @@ else:
                 logging.error(f"Command execution failed to start: {result}")
                 return result
 
+            time.sleep(post_queue_delay)
             return result
 
         def plate_out(self, mode: str = "Normal", x: int = 0, y: int = 0) -> int:
@@ -379,7 +381,13 @@ else:
                         desired_result="Ready",
                         timeout=180.0,
                         poll_interval=1.0,
-                    )
+                    ),
+                    PollCriteria(
+                        poll_type=PollType.MeasureData,
+                        desired_result="1",
+                        timeout=180.0,
+                        poll_interval=1.0,
+                    ),
                 ]
             )
             return 0
@@ -392,6 +400,7 @@ if __name__ == "__main__":
     try:
         # Create driver instance
         driver = CLARIOstarDriver()
+        driver.open_connection()
 
         # Move plate out
         driver.plate_out()
