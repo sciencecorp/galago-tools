@@ -69,7 +69,7 @@ pip install galago-tools
 galago 
 ```
 
-## Option3: Windows Installer 
+## Option 3: Windows Installer 
 
 We also provide a Windows Installer that does all this for you. [Download Here](https://galago.bio/assets/installer/Galago%20Installer_x86.exe). A launch icon will automatically be created in the desktop. 
 

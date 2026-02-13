@@ -13,7 +13,7 @@ CONFIG_FILE = DATA_DIR / "api_config.json"
 
 
 class Db:
-    _api_url = "http://localhost:8000/api"  # Default
+    _api_url = "http://localhost:3010/api"  # Default
 
     @classmethod
     def get_api_url(cls) -> str:
