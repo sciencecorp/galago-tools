@@ -423,6 +423,16 @@ else:
                 poll_criterias=[
                     PollCriteria(
                         poll_type=PollType.Status,
+                        desired_result="Running",
+                        timeout=180.0,
+                        poll_interval=0.5,
+                    ),
+                ]
+            )
+            self.poll_until(
+                poll_criterias=[
+                    PollCriteria(
+                        poll_type=PollType.Status,
                         desired_result="Ready",
                         timeout=180.0,
                         poll_interval=1.0,
