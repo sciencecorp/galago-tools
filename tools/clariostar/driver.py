@@ -4,8 +4,9 @@ import struct
 import time
 import threading
 import queue
-from typing import Any
+import typing as t
 from dataclasses import dataclass
+from pathlib import Path
 from enum import Enum
 
 from tools.base_server import ABCToolDriver
@@ -47,9 +48,12 @@ else:
             """Initialize the CLARIOstar driver."""
             self.protocol_dir: str = protocol_dir
             self.data_dir: str = data_dir
-            self.output_dir: str = output_dir
+            self.output_dir: Path = Path(output_dir)
             self.device_name: str = device_name
             self.live: bool = True
+
+            if not self.output_dir.exists():
+                raise RuntimeError(f"Output directory {self.output_dir} does not exist")
 
             # Proactively kill hanging instances to ensure a clean state
             self.kill_processes("CLARIOstar.exe", ask_user=False)
@@ -83,7 +87,7 @@ else:
             pythoncom.CoInitialize()
             logging.info("COM initialized in worker thread")
 
-            client: Any = None
+            client: t.Any = None
             try:
                 client = win32com.client.Dispatch("BMG_ActiveX.BMGRemoteControl")
                 logging.info("CLARIOstar ActiveX client created in worker thread")
@@ -121,7 +125,7 @@ else:
             logging.info("CLARIOstar worker thread exiting")
             pythoncom.CoUninitialize()
 
-        def _call(self, func_name: str, *args: Any, timeout: float = 30.0) -> Any:
+        def _call(self, func_name: str, *args: t.Any, timeout: float = 30.0) -> t.Any:
             """Send a command to the worker thread and wait for response."""
             if not self.live:
                 raise RuntimeError("Driver is not live")
@@ -382,6 +386,30 @@ else:
             )
             return 0
 
+        def get_latest_data_file(self) -> t.Optional[Path]:
+            """
+            Get the most recent created data file in self.output_dir
+
+            Returns:
+                The latest data file.
+            """
+            files = (
+                f for f in self.output_dir.iterdir() if f.is_file() and f.name.endswith(".csv")
+            )
+            return max(files, key=lambda f: f.stat().st_ctime, default=None)
+
+        def get_latest_data(self) -> str:
+            """
+            Read the most recent created data file in self.output_dir
+
+            Returns:
+                The content of the latest data file.
+            """
+            latest_file = self.get_latest_data_file()
+            if latest_file is None:
+                raise FileNotFoundError("No data file found.")
+            return latest_file.read_text()
+
         def run_protocol(
             self,
             protocol_name: str,
@@ -445,7 +473,9 @@ else:
                     ),
                 ]
             )
-            return 0
+            data = self.get_latest_data()
+            logging.debug(data)
+            return data
 
 
 # Example usage
