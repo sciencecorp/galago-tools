@@ -396,7 +396,7 @@ else:
             files = (
                 f for f in self.output_dir.iterdir() if f.is_file() and f.name.endswith(".csv")
             )
-            return max(files, key=lambda f: f.stat().st_ctime, default=None)
+            return max(files, key=lambda f: f.stat().st_ctime if f else 0, default=None)
 
         def get_latest_data(self) -> str:
             """
@@ -416,7 +416,7 @@ else:
             plate_id: str = "",
             assay_id: str = "",
             timepoint: str = "",
-        ) -> int:
+        ) -> str:
             """
             Run a measurement protocol.
 
