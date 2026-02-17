@@ -39,6 +39,10 @@ class Lcus1RelayDriver(ABCToolDriver):
         self.ser.flush()
         logging.info(f"LCUS-1 relay on serial port: {self.port} is OFF")
 
+    def __del__(self) -> None:
+        """Disconnect from the device when the driver is destroyed."""
+        self.close()
+
 
 if __name__ == "__main__":
     import time
