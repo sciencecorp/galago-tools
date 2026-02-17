@@ -44,7 +44,8 @@ if __name__ == "__main__":
     import time
 
     logging.basicConfig(level=logging.DEBUG)
-    driver = Lcus1RelayDriver("/dev/cu.usbserial-110")
+    # single driver test
+    driver = Lcus1RelayDriver("COM4")
     try:
         driver.initialize()
         driver.on()
@@ -54,3 +55,24 @@ if __name__ == "__main__":
         logging.error(f"Error during LCUS-1 relay operation: {e}")
     finally:
         driver.close()
+
+    time.sleep(3)
+
+    # dual driver test
+    driver1 = Lcus1RelayDriver("COM4")
+    driver2 = Lcus1RelayDriver("COM5")
+    try:
+        driver1.initialize()
+        driver2.initialize()
+        driver1.on()
+        time.sleep(2)
+        driver2.on()
+        time.sleep(2)
+        driver1.off()
+        time.sleep(2)
+        driver2.off()
+    except Exception as e:
+        logging.error(f"Error during LCUS-1 relay operation: {e}")
+    finally:
+        driver1.close()
+        driver2.close()
