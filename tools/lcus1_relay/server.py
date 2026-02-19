@@ -23,6 +23,7 @@ class Lcus1RelayServer(ToolServer):
         self.driver.initialize()
 
     def Switch(self, params: Command.Switch) -> None:
+        logging.info(f"Switching relay on port {self.config.com_port} to {params.on}")
         if params.on:
             self.driver.on()
         else:
