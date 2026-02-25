@@ -154,7 +154,7 @@ else:
                     PollCriteria(
                         poll_type=PollType.Status,
                         desired_result="Ready",
-                        timeout=30.0,
+                        timeout=45.0,
                         poll_interval=1.0,
                     )
                 ]
@@ -452,7 +452,7 @@ else:
                     PollCriteria(
                         poll_type=PollType.Status,
                         desired_result="Running",
-                        timeout=180.0,
+                        timeout=600.0,
                         poll_interval=0.5,
                     ),
                 ]
@@ -462,13 +462,13 @@ else:
                     PollCriteria(
                         poll_type=PollType.Status,
                         desired_result="Ready",
-                        timeout=180.0,
+                        timeout=600.0,
                         poll_interval=1.0,
                     ),
                     PollCriteria(
                         poll_type=PollType.MeasureData,
                         desired_result="1",
-                        timeout=180.0,
+                        timeout=600.0,
                         poll_interval=1.0,
                     ),
                 ]
