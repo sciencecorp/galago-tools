@@ -156,7 +156,7 @@ else:
                     PollCriteria(
                         poll_type=PollType.Status,
                         desired_result="Ready",
-                        timeout=45.0,
+                        timeout=60.0,
                         poll_interval=1.0,
                     )
                 ]
@@ -495,9 +495,6 @@ if __name__ == "__main__":
         # Move plate out
         driver.plate_out()
 
-        # Move plate in
-        driver.plate_in()
-
         # # Set temp to 37C
         # print("----------Setting temperature to 37C")
         # driver.set_temperature(temperature=37.0)
@@ -511,6 +508,9 @@ if __name__ == "__main__":
         print("----------Setting temperature to 25C")
         driver.set_temperature(temperature=25.0)
         print("Finished setting temperature to 25C")
+
+        # Move plate in
+        driver.plate_in()
 
         # Close connection
         driver.close_connection()
