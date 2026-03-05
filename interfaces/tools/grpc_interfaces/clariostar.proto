@@ -7,6 +7,7 @@ message Command {
     OpenCarrier open_carrier = 1;
     CloseCarrier close_carrier = 2;
     StartRead start_read = 3;
+    SetTemperature set_temperature = 4;
   }
 
   message OpenCarrier {}
@@ -18,6 +19,10 @@ message Command {
     optional string plate_id = 2;
     optional string assay_id = 3;
     optional string timepoint = 4;
+  }
+
+  message SetTemperature {
+    float temperature = 1;
   }
 }
 

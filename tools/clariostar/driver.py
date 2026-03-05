@@ -5,7 +5,7 @@ import time
 import threading
 import queue
 import typing as t
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from enum import Enum
 
@@ -17,6 +17,7 @@ class PollType(str, Enum):
     Status = "Status"
     T1notreached = "T1notreached"
     MeasureData = "MeasureData"
+    Temp1 = "Temp1"
 
 
 @dataclass
@@ -25,6 +26,7 @@ class PollCriteria:
     desired_result: str
     timeout: float = 30.0
     poll_interval: float = 0.5
+    companion_polls: list[PollType] = field(default_factory=list)
 
 
 if os.name != "nt":
@@ -237,6 +239,8 @@ else:
                     # Poll if interval has passed
                     if current_time - last_poll_times[id(criteria)] > criteria.poll_interval:
                         poll_result = self.get_info(criteria.poll_type.value)
+                        for companion_poll in criteria.companion_polls:
+                            self.get_info(companion_poll.value)
 
                         if poll_result == criteria.desired_result:
                             unsatisfied.remove(criteria)
@@ -373,8 +377,9 @@ else:
                     PollCriteria(
                         poll_type=PollType.T1notreached,
                         desired_result="0",
-                        timeout=120.0,
+                        timeout=900.0,
                         poll_interval=2.0,
+                        companion_polls=[PollType.Temp1],
                     ),
                     PollCriteria(
                         poll_type=PollType.Status,
@@ -492,6 +497,20 @@ if __name__ == "__main__":
 
         # Move plate in
         driver.plate_in()
+
+        # # Set temp to 37C
+        # print("----------Setting temperature to 37C")
+        # driver.set_temperature(temperature=37.0)
+        # print("Finished setting temperature to 37C")
+
+        # import time
+
+        # time.sleep(10)
+
+        # Set temp to 25C
+        print("----------Setting temperature to 25C")
+        driver.set_temperature(temperature=25.0)
+        print("Finished setting temperature to 25C")
 
         # Close connection
         driver.close_connection()

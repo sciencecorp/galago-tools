@@ -49,6 +49,9 @@ class ClariostarServer(ToolServer):
             timepoint=params.timepoint,
         )
 
+    def SetTemperature(self, params: Command.SetTemperature) -> None:
+        self.driver.set_temperature(temperature=params.temperature)
+
     def EstimateOpenCarrier(self, params: Command.OpenCarrier) -> int:
         return 2
 
@@ -57,6 +60,9 @@ class ClariostarServer(ToolServer):
 
     def EstimateStartRead(self, params: Command.StartRead) -> int:
         return 5
+
+    def EstimateSetTemperature(self, params: Command.SetTemperature) -> int:
+        return 600
 
 
 if __name__ == "__main__":
