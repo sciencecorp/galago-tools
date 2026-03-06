@@ -5,10 +5,15 @@ package com.science.foundry.tools.grpc_interfaces.lcus1_relay;
 message Command {
   oneof command {
     Switch switch = 1;
+    TimedSwitch timed_switch = 2;
   }
 
   message Switch {
     bool on = 1;
+  }
+
+  message TimedSwitch {
+    float duration_seconds = 1;
   }
 }
 
