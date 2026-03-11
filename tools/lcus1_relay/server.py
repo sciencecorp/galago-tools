@@ -1,6 +1,7 @@
 import logging
 import math
 import time
+import typing as t
 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.lcus1_relay_pb2 import Command, Config
@@ -35,7 +36,7 @@ class Lcus1RelayServer(ToolServer):
     def EstimateSwitch(self, params: Command.Switch) -> int:
         return 1
 
-    def TimedSwitch(self, params: Command.TimedSwitch) -> ExecuteCommandReply | None:
+    def TimedSwitch(self, params: Command.TimedSwitch) -> t.Optional[ExecuteCommandReply]:
         if params.duration_seconds <= 0:
             response = ExecuteCommandReply()
             response.response = INVALID_ARGUMENTS
@@ -43,9 +44,7 @@ class Lcus1RelayServer(ToolServer):
             response.return_reply = True
             return response
 
-        logging.info(
-            f"TimedSwitch on port {self.config.com_port} for {params.duration_seconds}s"
-        )
+        logging.info(f"TimedSwitch on port {self.config.com_port} for {params.duration_seconds}s")
         self.driver.on()
         try:
             time.sleep(params.duration_seconds)
