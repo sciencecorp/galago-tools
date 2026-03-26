@@ -309,6 +309,7 @@ class Pf400Driver(ABCToolDriver):
             if self.initializer is not None:
                 self.initializer.initialize()
             self.movement = MovementController(self.communicator, self.state, self.config)
+            self.set_sys_speed(speed=100)
             logging.info("Successfully connected to PF400")
         except Exception as e:
             logging.error(f"Failed to connect to PF400: {str(e)}")
@@ -491,19 +492,14 @@ class Pf400Driver(ABCToolDriver):
         """Cleanup when driver is destroyed"""
         self.close()
 
-# if __name__ == "__main__":
-#     driver = Pf400Driver(
-#         tcp_host="192.168.0.1",
-#         tcp_port=10100,
-#         joints=6,
-#         gpl_version="v2"
-#     )
-#     driver.initialize()
+if __name__ == "__main__":
+    driver = Pf400Driver(tcp_host="192.168.0.2", tcp_port=10100, joints=5, gpl_version="v1")
+    driver.initialize()
 
-#     logging.info("Getting system speed")
-#     driver.get_sys_speed()
-#     logging.info("Getting close width")
-#     driver.get_gripper_close_position()
-#     logging.info("Getting open width")
-#     driver.get_gripper_open_position()
+    logging.info("Getting system speed")
+    driver.get_sys_speed()
+    logging.info("Getting close width")
+    driver.get_gripper_close_position()
+    logging.info("Getting open width")
+    driver.get_gripper_open_position()
 

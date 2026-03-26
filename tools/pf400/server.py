@@ -32,12 +32,12 @@ DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
     MotionProfile(
         name="default",
         id=1,
-        speed=85,
-        speed2=80,
-        acceleration=60,
-        deceleration=60,
-        accel_ramp=0.1,
-        decel_ramp=0.1,
+        speed=100,
+        speed2=100,
+        acceleration=100,
+        deceleration=100,
+        accel_ramp=0.5,
+        decel_ramp=0.5,
         inrange=0,
         straight=0
     ), 
@@ -136,72 +136,72 @@ class Pf400Server(ToolServer):
 
 
     def LoadWaypoints(self, params: Command.LoadWaypoints) -> None:
-            logging.info("Loading waypoints")
-            #Load locations
-            waypoints_dictionary: dict[str, t.Any] = json_format.MessageToDict(params.waypoints)
-            locations_list = waypoints_dictionary.get("locations", [])
-            self.waypoints = Waypoints.parse_obj({"locations": locations_list})
-            logging.info(f"Loaded {len(self.waypoints.locations)} locations")
+        logging.info("Loading waypoints")
+        #Load locations
+        waypoints_dictionary: dict[str, t.Any] = json_format.MessageToDict(params.waypoints)
+        locations_list = waypoints_dictionary.get("locations", [])
+        self.waypoints = Waypoints.parse_obj({"locations": locations_list})
+        logging.info(f"Loaded {len(self.waypoints.locations)} locations")
 
-            #Load grips
-            grips_list = waypoints_dictionary.get("grip_params")
-            grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
-            logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
-            if len(grip_params.grip_params) == 0:
-                logging.warning("No grip parameters found. Using default grip parameters.")
-                self.plate_handling_params = DEFAULT_PLATE_HANDLING_PARAMS
-            else:
-                for grip in grip_params.grip_params:
-                    self.plate_handling_params[grip.name.lower()] = {
-                        "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
-                        "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
-                    }
+        #Load grips
+        grips_list = waypoints_dictionary.get("grip_params")
+        grip_params : Grips = Grips.parse_obj({"grip_params": grips_list})
+        logging.info(f"Loaded {len(grip_params.grip_params)} grip parameters")
+        if len(grip_params.grip_params) == 0:
+            logging.warning("No grip parameters found. Using default grip parameters.")
+            self.plate_handling_params = DEFAULT_PLATE_HANDLING_PARAMS
+        else:
+            for grip in grip_params.grip_params:
+                self.plate_handling_params[grip.name.lower()] = {
+                    "grasp": Command.GraspPlate(width=grip.width, force=grip.force, speed=grip.speed),
+                    "release": Command.ReleasePlate(width=grip.width+10, speed=grip.speed)
+                }
 
-            self.grips = grip_params
+        self.grips = grip_params
 
-            logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters") 
-            logging.info(self.plate_handling_params)
-            
-            #Load and register profiles 
-            motion_profiles_list = waypoints_dictionary.get("motion_profiles")
-            if motion_profiles_list:
-                for i, profile in enumerate(motion_profiles_list):
-                    profile["id"] = i + 1
-            motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
-            
-            self.motion_profiles = motion_profiles
-            logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
-  
-            if motion_profiles_list and len(motion_profiles_list) > 0:
-                for motion_profile in motion_profiles.profiles:
-                    logging.info(f"Registering motion profile {motion_profile.name}")
-                    try:
-                        profile_no_name = motion_profile.copy(deep=True)
-                        profile_no_name.name = ""
-                        self.driver.register_motion_profile(str(motion_profile))
-                    except Exception as e:
-                        logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
-                        raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
-            else:
-                #Register default motion profiles
-                logging.info("No motion profiles loaded. Using default profiles.")
-                for motion_profile in DEFAULT_MOTION_PROFILES:
-                    logging.info(f"Registering default motion profiles {motion_profile.name}")
-                    try:
-                        #Remove name from the profile 
-                        profile_no_name = motion_profile.copy(deep=True)
-                        profile_no_name.name = ""
-                        logging.info(profile_no_name)
-                        self.driver.register_motion_profile(str(motion_profile))
-                    except Exception as e:
-                        logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
-                        raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
-                
-            # #Load Sequences 
-            sequences_list = waypoints_dictionary.get("sequences")
-            sequences = ArmSequences.parse_obj({"sequences":sequences_list})
-            logging.info(f"Loaded {len(sequences.sequences)} sequences")
-            self.sequences = sequences
+        logging.info(f"Loaded {len(self.plate_handling_params)} plate handling parameters")
+        logging.info(self.plate_handling_params)
+
+        #Load and register profiles
+        motion_profiles_list = waypoints_dictionary.get("motion_profiles")
+        if motion_profiles_list:
+            for i, profile in enumerate(motion_profiles_list):
+                profile["id"] = i + 1
+        motion_profiles = MotionProfiles.parse_obj({"profiles": motion_profiles_list})
+
+        self.motion_profiles = motion_profiles
+        logging.info(f"Loaded {len(motion_profiles.profiles)} motion profiles")
+
+        if motion_profiles_list and len(motion_profiles_list) > 0:
+            for motion_profile in motion_profiles.profiles:
+                logging.info(f"Registering motion profile {motion_profile.name}")
+                try:
+                    profile_no_name = motion_profile.copy(deep=True)
+                    profile_no_name.name = ""
+                    self.driver.register_motion_profile(str(motion_profile))
+                except Exception as e:
+                    logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                    raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+        else:
+            #Register default motion profiles
+            logging.info("No motion profiles loaded. Using default profiles.")
+            for motion_profile in DEFAULT_MOTION_PROFILES:
+                logging.info(f"Registering default motion profiles {motion_profile.name}")
+                try:
+                    #Remove name from the profile
+                    profile_no_name = motion_profile.copy(deep=True)
+                    profile_no_name.name = ""
+                    logging.info(profile_no_name)
+                    self.driver.register_motion_profile(str(motion_profile))
+                except Exception as e:
+                    logging.error(f"Error registering motion profile {motion_profile.name}: {e}")
+                    raise Exception(f"Error registering motion profile {motion_profile.name}: {e}")
+
+        # #Load Sequences
+        sequences_list = waypoints_dictionary.get("sequences")
+        sequences = ArmSequences.parse_obj({"sequences":sequences_list})
+        logging.info(f"Loaded {len(sequences.sequences)} sequences")
+        self.sequences = sequences
 
     
     def LoadLabware(self, params: Command.LoadLabware) -> None:
@@ -221,7 +221,7 @@ class Pf400Server(ToolServer):
         current_loc_array = self.driver.wherej().split(" ")
         #Unwind the arm while keeping the z height, gripper width and rail constant
         if self.config.joints == 5:
-           new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]}"
+            new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]}"
         else:
             new_loc = f"{current_loc_array[1]} {waypoint_loc.vec[1]} {waypoint_loc.vec[2]} {waypoint_loc.vec[3]} {current_loc_array[5]} {current_loc_array[6]}"
         self.driver.movej(new_loc,  motion_profile=1)
@@ -294,6 +294,7 @@ class Pf400Server(ToolServer):
         approach_height = int(approach_height)
         grasp: Command.GraspPlate
         if not grasp_params or (grasp_params.width == 0):
+            logging.info(f"Grasp params not provided, using params: {self.plate_handling_params}")
             grap_param_exists = self.plate_handling_params.get(source_location.orientation.lower())
             if not grap_param_exists:
                 raise Exception(f"Grasp params for {source_location.orientation.lower()} not found")
