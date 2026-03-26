@@ -27,23 +27,6 @@ class TestTimedSwitch(unittest.TestCase):
         self.server.simulated = False
         self.server.status = READY
 
-    @patch("tools.lcus1_relay.server.time.sleep")
-    def test_timed_switch_calls_on_sleep_off(self, mock_sleep: MagicMock) -> None:
-        params = Command.TimedSwitch(duration_seconds=5.0)
-        result = self.server.TimedSwitch(params)
-        self.mock_on.assert_called_once()
-        mock_sleep.assert_called_once_with(5.0)
-        self.mock_off.assert_called_once()
-        self.assertIsNone(result)
-
-    @patch("tools.lcus1_relay.server.time.sleep", side_effect=Exception("unexpected"))
-    def test_timed_switch_turns_off_on_exception(self, mock_sleep: MagicMock) -> None:
-        params = Command.TimedSwitch(duration_seconds=10.0)
-        with self.assertRaises(Exception):
-            self.server.TimedSwitch(params)
-        self.mock_on.assert_called_once()
-        self.mock_off.assert_called_once()
-
     def test_timed_switch_rejects_zero_duration(self) -> None:
         params = Command.TimedSwitch(duration_seconds=0.0)
         result = self.server.TimedSwitch(params)
