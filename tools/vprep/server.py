@@ -188,10 +188,10 @@ class VPrepServer(ToolServer):
         self._execute_with_retry("RunRunset", run_op)
    
     def EstimateRunProtocol(self, params: Command.RunProtocol) -> int:
-        return 60  # Return a more realistic estimate in seconds
-    
+        return 1  # Quick return in simulation mode
+
     def EstimateRunRunset(self, params: Command.RunRunset) -> int:
-        return 120  # Return a more realistic estimate in seconds
+        return 1  # Quick return in simulation mode
     
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

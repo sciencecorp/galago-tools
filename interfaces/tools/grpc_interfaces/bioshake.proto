@@ -13,7 +13,7 @@ message Command {
     WaitForShakeToFinish wait_for_shake_to_finish = 7;
     SetTemperature set_temperature = 8;
     TemperatureOn temperature_on = 9;
-    TemperatureOff temperatrue_off = 10;
+    TemperatureOff temperature_off = 10;
   }
 
   message Grip {}
@@ -24,7 +24,7 @@ message Command {
 
   message StartShake {
     int32 speed = 1;
-    int32 acceleration =2;
+    int32 acceleration = 2;
     int32 duration = 3;
   }
 
@@ -35,14 +35,10 @@ message Command {
   message WaitForShakeToFinish {
     int32 timeout = 1;
   }
-  
-  message TemperatureOn {
 
-  }
+  message TemperatureOn {}
 
-  message TemperatureOff {
-
-  }
+  message TemperatureOff {}
 
   message SetTemperature {
     int32 temperature = 1;
