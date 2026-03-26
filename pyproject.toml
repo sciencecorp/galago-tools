@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 target-version = "py39"
 line-length = 100
 ignore = ["E501"]
-exclude = ["cytation.py"]
+exclude = ["cytation.py", "CLARIOstar.py"]
 
 [tool.mypy]
 python_version = "3.9"
