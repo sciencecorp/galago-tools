@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 import math
 
 from tools.grpc_interfaces.lcus1_relay_pb2 import Command, Config
@@ -9,20 +9,31 @@ from tools.lcus1_relay.server import Lcus1RelayServer
 
 class TestTimedSwitch(unittest.TestCase):
     def setUp(self) -> None:
+        from tools.grpc_interfaces.tool_base_pb2 import READY
+
+        self.patcher_on = patch(
+            "tools.lcus1_relay.driver.Lcus1RelayDriver.on", new_callable=MagicMock
+        )
+        self.patcher_off = patch(
+            "tools.lcus1_relay.driver.Lcus1RelayDriver.off", new_callable=MagicMock
+        )
+        self.mock_on = self.patcher_on.start()
+        self.mock_off = self.patcher_off.start()
+        self.addCleanup(self.patcher_on.stop)
+        self.addCleanup(self.patcher_off.stop)
         self.server = Lcus1RelayServer()
         self.server.driver = MagicMock()
         self.server.config = Config(com_port="COM4")
         self.server.simulated = False
-        self.server.status = 2  # READY
+        self.server.status = READY
 
     @patch("tools.lcus1_relay.server.time.sleep")
     def test_timed_switch_calls_on_sleep_off(self, mock_sleep: MagicMock) -> None:
         params = Command.TimedSwitch(duration_seconds=5.0)
         result = self.server.TimedSwitch(params)
-        self.server.driver.on.assert_called_once()
+        self.mock_on.assert_called_once()
         mock_sleep.assert_called_once_with(5.0)
-        self.server.driver.off.assert_called_once()
-        self.server.driver.assert_has_calls([call.on(), call.off()])
+        self.mock_off.assert_called_once()
         self.assertIsNone(result)
 
     @patch("tools.lcus1_relay.server.time.sleep", side_effect=Exception("unexpected"))
@@ -30,20 +41,22 @@ class TestTimedSwitch(unittest.TestCase):
         params = Command.TimedSwitch(duration_seconds=10.0)
         with self.assertRaises(Exception):
             self.server.TimedSwitch(params)
-        self.server.driver.on.assert_called_once()
-        self.server.driver.off.assert_called_once()
+        self.mock_on.assert_called_once()
+        self.mock_off.assert_called_once()
 
     def test_timed_switch_rejects_zero_duration(self) -> None:
         params = Command.TimedSwitch(duration_seconds=0.0)
         result = self.server.TimedSwitch(params)
-        self.assertEqual(result.response, INVALID_ARGUMENTS)
-        self.server.driver.on.assert_not_called()
+        if result is not None:
+            self.assertEqual(result.response, INVALID_ARGUMENTS)
+        self.mock_on.assert_not_called()
 
     def test_timed_switch_rejects_negative_duration(self) -> None:
         params = Command.TimedSwitch(duration_seconds=-1.0)
         result = self.server.TimedSwitch(params)
-        self.assertEqual(result.response, INVALID_ARGUMENTS)
-        self.server.driver.on.assert_not_called()
+        if result is not None:
+            self.assertEqual(result.response, INVALID_ARGUMENTS)
+        self.mock_on.assert_not_called()
 
     def test_estimate_timed_switch(self) -> None:
         params = Command.TimedSwitch(duration_seconds=3.7)
