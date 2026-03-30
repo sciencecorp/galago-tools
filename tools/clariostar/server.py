@@ -3,6 +3,7 @@ import logging
 
 from tools.base_server import ToolServer, serve
 from tools.grpc_interfaces.clariostar_pb2 import Command, Config
+from tools.grpc_interfaces.tool_base_pb2 import ExecuteCommandReply, SUCCESS
 
 from .driver import CLARIOstarDriver
 
@@ -41,13 +42,17 @@ class ClariostarServer(ToolServer):
     def CloseCarrier(self, params: Command.CloseCarrier) -> None:
         self.driver.plate_in()
 
-    def StartRead(self, params: Command.StartRead) -> None:
-        self.driver.run_protocol(
+    def StartRead(self, params: Command.StartRead) -> ExecuteCommandReply:
+        data = self.driver.run_protocol(
             protocol_name=params.protocol_name,
             plate_id=params.plate_id,
             assay_id=params.assay_id,
             timepoint=params.timepoint,
         )
+        response = ExecuteCommandReply(response=SUCCESS, return_reply=True)
+        if data:
+            response.meta_data.update({"data": data})
+        return response
 
     def SetTemperature(self, params: Command.SetTemperature) -> None:
         self.driver.set_temperature(temperature=params.temperature)
