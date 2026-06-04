@@ -22,6 +22,6 @@ message Command {
 
 message Config {
   uint32 hub_port = 1;              // default 0
-  optional int32 serial_number = 2; // optional; disambiguates the hub
-  optional float frequency = 3;     // optional PWM Hz; applied to all channels at connect
+  uint32 frequency = 2;     // PWM Hz; applied to all channels at connect
+  optional int32 serial_number = 3; // optional; disambiguates the hub
 }

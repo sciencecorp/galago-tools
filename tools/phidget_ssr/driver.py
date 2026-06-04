@@ -22,8 +22,8 @@ class PhidgetSSRDriver(ABCToolDriver):
     def __init__(
         self,
         hub_port: int = 0,
+        frequency: int = 5000,
         serial_number: t.Optional[int] = None,
-        frequency: t.Optional[float] = None,
         attach_timeout_ms: int = 5000,
     ) -> None:
         self.hub_port = hub_port
