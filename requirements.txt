@@ -8,7 +8,7 @@ packaging==25.0
 msl-loadlib==0.10.0
 pywin32==311; platform_system == "Windows"
 pyserial==3.5
-phidget22
+phidget22==1.25.20260408
 cython==3.0.11
 pillow==11.0.0
 comtypes==1.4.10

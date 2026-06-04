@@ -52,12 +52,19 @@ class PhidgetSSRDriver(ABCToolDriver):
 
         try:
             output.setFrequency(self.frequency)
-            logging.info(f"Phidget SSR channel {channel} frequency set to {self.frequency} Hz")
         except PhidgetException as e:
             raise RuntimeError(
                 f"Failed to set frequency {self.frequency} Hz on channel {channel}: {e} "
                 f"(requires firmware >=120 and a value within the device range)"
             ) from e
+        try:
+            actual = output.getFrequency()
+            logging.info(f"Phidget SSR channel {channel} frequency confirmed: {actual} Hz")
+        except PhidgetException:
+            logging.warning(
+                f"Phidget SSR channel {channel}: set frequency to {self.frequency} Hz "
+                f"but could not read it back"
+            )
 
     def initialize(self) -> None:
         from Phidget22.Devices.DigitalOutput import DigitalOutput  # type: ignore
