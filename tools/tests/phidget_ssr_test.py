@@ -3,8 +3,8 @@ import unittest
 from unittest.mock import MagicMock, call, patch
 
 from tools.grpc_interfaces.phidget_ssr_pb2 import Command, Config
-from tools.grpc_interfaces.tool_base_pb2 import INVALID_ARGUMENTS
-from tools.phidget_ssr.server import PhidgetSSRServer
+from tools.grpc_interfaces.tool_base_pb2 import INVALID_ARGUMENTS, READY
+from tools.phidget_ssr.server import NUM_CHANNELS, PhidgetSSRServer
 
 
 class TestSetDutyCycle(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestSetDutyCycle(unittest.TestCase):
         self.server.driver = MagicMock()
         self.server.config = Config(hub_port=0)
         self.server.simulated = False
-        self.server.status = 3  # READY
+        self.server.status = READY
 
     def test_set_duty_cycle_routes_to_driver(self) -> None:
         params = Command.SetDutyCycle(channel=2, duty_cycle=0.5)
@@ -39,6 +39,15 @@ class TestSetDutyCycle(unittest.TestCase):
         self.assertEqual(result.response, INVALID_ARGUMENTS)
         self.server.driver.set_duty_cycle.assert_not_called()
 
+    def test_set_duty_cycle_accepts_boundary_values(self) -> None:
+        for channel in (0, NUM_CHANNELS - 1):
+            for duty in (0.0, 1.0):
+                self.server.driver.reset_mock()
+                params = Command.SetDutyCycle(channel=channel, duty_cycle=duty)
+                result = self.server.SetDutyCycle(params)
+                self.assertIsNone(result, msg=f"channel={channel} duty={duty} should be accepted")
+                self.server.driver.set_duty_cycle.assert_called_once_with(channel, duty)
+
     def test_estimate_set_duty_cycle(self) -> None:
         params = Command.SetDutyCycle(channel=0, duty_cycle=0.5)
         self.assertEqual(self.server.EstimateSetDutyCycle(params), 1)
@@ -50,7 +59,7 @@ class TestTimedDutyCycle(unittest.TestCase):
         self.server.driver = MagicMock()
         self.server.config = Config(hub_port=0)
         self.server.simulated = False
-        self.server.status = 3  # READY
+        self.server.status = READY
 
     @patch("tools.phidget_ssr.server.time.sleep")
     def test_timed_duty_cycle_sets_sleeps_then_zeroes(self, mock_sleep: MagicMock) -> None:
