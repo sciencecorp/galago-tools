@@ -1,0 +1,27 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.phidget_ssr;
+
+message Command {
+  oneof command {
+    SetDutyCycle set_duty_cycle = 1;
+    TimedDutyCycle timed_duty_cycle = 2;
+  }
+
+  message SetDutyCycle {
+    uint32 channel = 1;       // 0..3
+    float duty_cycle = 2;     // 0.0..1.0
+  }
+
+  message TimedDutyCycle {
+    uint32 channel = 1;       // 0..3
+    float duty_cycle = 2;     // 0.0..1.0
+    float duration_seconds = 3;
+  }
+}
+
+message Config {
+  uint32 hub_port = 1;              // default 0
+  optional int32 serial_number = 2; // optional; disambiguates the hub
+  optional float frequency = 3;     // optional PWM Hz; applied to all channels at connect
+}

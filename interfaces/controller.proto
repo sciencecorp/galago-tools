@@ -27,6 +27,7 @@ enum ToolType {
   pyhamilton = 20;
   clariostar = 21;
   lcus1_relay = 22;
+  phidget_ssr = 23;
 }
 
 message ToolConfig {
