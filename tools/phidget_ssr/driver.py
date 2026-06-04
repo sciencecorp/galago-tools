@@ -30,19 +30,19 @@ class PhidgetSSRDriver(ABCToolDriver):
         self.serial_number = serial_number
         self.frequency = frequency
         self.attach_timeout_ms = attach_timeout_ms
-        self.channels: list = []
+        self.channels: list[t.Any] = []
 
-    def _make_attach_handler(self, channel: int) -> t.Callable:
+    def _make_attach_handler(self, channel: int) -> t.Callable[..., None]:
         def on_attach(handle: t.Any) -> None:
             logging.info(f"Phidget SSR channel {channel} attached (hub_port={self.hub_port})")
         return on_attach
 
-    def _make_detach_handler(self, channel: int) -> t.Callable:
+    def _make_detach_handler(self, channel: int) -> t.Callable[..., None]:
         def on_detach(handle: t.Any) -> None:
             logging.warning(f"Phidget SSR channel {channel} detached (hub_port={self.hub_port})")
         return on_detach
 
-    def _make_error_handler(self, channel: int) -> t.Callable:
+    def _make_error_handler(self, channel: int) -> t.Callable[..., None]:
         def on_error(handle: t.Any, code: int, description: str) -> None:
             logging.error(f"Phidget SSR channel {channel} error {code}: {description}")
         return on_error
@@ -75,6 +75,7 @@ class PhidgetSSRDriver(ABCToolDriver):
                 output.setOnDetachHandler(self._make_detach_handler(channel))
                 output.setOnErrorHandler(self._make_error_handler(channel))
                 output.openWaitForAttachment(self.attach_timeout_ms)
+                # Frequency is a per-channel property in Phidget22; apply the one configured value to each.
                 if self.frequency is not None:
                     self._apply_frequency(output, channel)
                 self.channels.append(output)
