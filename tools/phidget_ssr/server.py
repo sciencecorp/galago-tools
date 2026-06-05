@@ -28,7 +28,7 @@ class PhidgetSSRServer(ToolServer):
         self.driver = PhidgetSSRDriver(
             hub_port=config.hub_port,
             serial_number=config.serial_number if config.HasField("serial_number") else None,
-            frequency=config.frequency if config.HasField("frequency") else None,
+            frequency=config.frequency,
         )
         self.driver.initialize()
 
