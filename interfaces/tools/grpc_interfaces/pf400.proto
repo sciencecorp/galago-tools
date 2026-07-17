@@ -24,6 +24,19 @@ message Command {
     RegisterMotionProfile register_motion_profile = 17;
     LoadWaypoints load_waypoints = 18;
     LoadLabware load_labware =19;
+    SetSpeed set_speed = 20;
+    GetSpeed get_speed = 21;
+  }
+
+  // Sets the robot's global monitor speed (mspeed), a 1-100 governor that
+  // scales the effective speed of every motion. This is the value a teach
+  // pendant speed slider drives.
+  message SetSpeed {
+    int32 speed = 1;
+  }
+
+  // Returns the current global monitor speed (mspeed) in reply meta_data.
+  message GetSpeed {
   }
 
   message RawCommand {
@@ -133,4 +146,8 @@ message Config {
   int32 port = 2;
   int32 joints = 3;
   string gpl_version = 4;
+  // Global monitor speed (mspeed, 1-100) applied on initialization so the arm
+  // never inherits a stale, low governor left behind by manual/pendant use.
+  // Defaults to 100 when unset (0).
+  int32 system_speed = 5;
 }

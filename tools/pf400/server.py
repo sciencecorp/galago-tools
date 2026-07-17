@@ -54,6 +54,23 @@ DEFAULT_MOTION_PROFILES : list[MotionProfile] = [
         inrange=0,
         straight=1
     ),
+    #transit profile: negative inrange enables continuous-path blending so the
+    #arm does not decelerate to a full stop at intermediate approach waypoints.
+    #Intended for the fast point-to-point legs of a move; use "default"/
+    #"default_straight" (inrange=0) for the final approach/place segment where
+    #the arm must settle precisely on target.
+    MotionProfile(
+        name="transit",
+        id=3,
+        speed=100,
+        speed2=100,
+        acceleration=100,
+        deceleration=100,
+        accel_ramp=0.1,
+        decel_ramp=0.1,
+        inrange=-1,
+        straight=0
+    ),
 ]
 
 
@@ -92,7 +109,7 @@ class Pf400Server(ToolServer):
             tcp_port=request.port,
             joints=request.joints,
             gpl_version=request.gpl_version,
-
+            system_speed=(getattr(request, "system_speed", 100) or 100),
         )
         self.driver.initialize()
 
@@ -571,6 +588,33 @@ class Pf400Server(ToolServer):
             response.error_message = str(e)
             return response
 
+    def SetSpeed(self, params: Command.SetSpeed) -> None:
+        """Set the global monitor speed (mspeed) governor, 1-100."""
+        if not self.driver:
+            raise Exception("Driver not initialized")
+        speed = max(1, min(100, params.speed))
+        self.driver.set_sys_speed(speed)
+
+    def GetSpeed(self, params: Command.GetSpeed) -> ExecuteCommandReply:
+        """Return the current global monitor speed (mspeed) in meta_data."""
+        response = ExecuteCommandReply()
+        response.return_reply = True
+        response.response = SUCCESS
+        try:
+            if not self.driver:
+                raise Exception("Driver not initialized")
+            # mspeed returns "0 <value>"; expose the raw reply.
+            speed = self.driver.get_sys_speed()
+            meta = Struct()
+            meta.update({"speed": speed})
+            response.meta_data.CopyFrom(meta)
+            return response
+        except Exception as e:
+            logging.error(f"Error getting system speed: {e}")
+            response.response = ERROR_FROM_TOOL
+            response.error_message = str(e)
+            return response
+
     def command_instance_from_name(self, command_name: str) -> Union[message.Message, t.Any]:
         command_descriptors = Command.DESCRIPTOR.fields_by_name
         command_dictionary = dict()
@@ -643,6 +687,12 @@ class Pf400Server(ToolServer):
         return 1 
     
     def EstimateLoadLabware(self, params: Command.LoadLabware) -> int:
+        return 1
+
+    def EstimateSetSpeed(self, params: Command.SetSpeed) -> int:
+        return 1
+
+    def EstimateGetSpeed(self, params: Command.GetSpeed) -> int:
         return 1
 
 if __name__ == "__main__":
