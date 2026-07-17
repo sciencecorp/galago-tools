@@ -31,6 +31,10 @@ class RobotConfig:
     grasp_plate_buffer_mm: int = 10
     joints: int = 5
     gpl_version: str = "v1"
+    # Global monitor speed (mspeed, 1-100) applied on initialization. The PF400
+    # scales every motion by this governor, so a low value left behind by manual
+    # or teach-pendant use makes all automated moves slow. Default 100.
+    system_speed: int = 100
 
 @dataclass
 class Location:
@@ -180,9 +184,31 @@ class RobotInitializer:
             self._ensure_power_on()
             self._ensure_robot_attached()
             self._ensure_robot_homed()
+            self._ensure_system_speed()
         except Exception as e:
             logging.error(f"Initialization failed: {e}")
             raise
+
+    def _ensure_system_speed(self) -> None:
+        """Restore the global monitor speed (mspeed) governor.
+
+        The PF400 scales every motion by mspeed (1-100). Manual jogging or
+        teaching commonly leaves it low, which then silently slows every
+        automated move. We reset it to the configured value (default 100) on
+        every initialization so behavior is deterministic regardless of how the
+        arm was last used.
+        """
+        target = self.config.system_speed
+        if not target or target <= 0:
+            target = 100
+        target = max(1, min(100, target))
+        try:
+            previous = self.communicator.send_command("mspeed")
+            self.communicator.send_command(f"mspeed {target}")
+            logging.info(f"Set system monitor speed (mspeed) to {target} (was {previous})")
+        except Exception as e:
+            # Non-fatal: a bad governor slows the arm but should not block startup.
+            logging.warning(f"Could not set system monitor speed to {target}: {e}")
 
     def _ensure_pc_mode(self) -> None:
         """Ensure robot is in PC mode"""
@@ -283,9 +309,9 @@ class RobotInitializer:
 
 class Pf400Driver(ABCToolDriver):
     """Main driver class for the PF400 robot"""
-    def __init__(self, tcp_host: str, tcp_port: int, joints:int=5, gpl_version:str="v1") -> None:
+    def __init__(self, tcp_host: str, tcp_port: int, joints:int=5, gpl_version:str="v1", system_speed:int=100) -> None:
         self.state = RobotState()
-        self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port, joints=joints, gpl_version=gpl_version)
+        self.config = RobotConfig(tcp_host=tcp_host, tcp_port=tcp_port, joints=joints, gpl_version=gpl_version, system_speed=system_speed)
         self.tcp_ip: Optional[Pf400TcpIp] = None
         self.communicator: Optional[RobotCommunicator] = None 
         self.gripper: Optional[GripperController] = None
