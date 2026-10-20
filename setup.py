@@ -45,7 +45,7 @@ class BuildProtobuf(_build_py):
         if grpc_proto_files:
             subprocess.run(
                 [
-                    "python", "-m", "grpc_tools.protoc",
+                    sys.executable, "-m", "grpc_tools.protoc",
                     f"-I{proto_src}",
                     f"--python_out={grpc_interfaces_output_dir}/",
                     f"--pyi_out={grpc_interfaces_output_dir}/",
@@ -67,7 +67,7 @@ class BuildProtobuf(_build_py):
         if root_proto_files:
             subprocess.run(
                 [
-                    "python", "-m", "grpc_tools.protoc",
+                    sys.executable, "-m", "grpc_tools.protoc",
                     f"-I{proto_src}",
                     f"--python_out={grpc_interfaces_output_dir}/",
                     f"--pyi_out={grpc_interfaces_output_dir}/",

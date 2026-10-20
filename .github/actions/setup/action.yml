@@ -5,9 +5,9 @@ runs:
   using: "composite"
   steps:
     - name: Check out repository code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
     - name: Use Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: 3.11.9
     - name: Install dependencies
